@@ -36,3 +36,22 @@ export async function createHandler(req: Request, res: Response, next: NextFunct
     next(err);
   }
 }
+
+export async function toggleReceivingHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { closed } = req.body;
+    const po = await poService.togglePoReceivingStatus(orgId(req), req.params.poId, Boolean(closed));
+    res.json({ data: po });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function recordGrnHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const grn = await poService.recordGoodsReceipt(orgId(req), req.params.poId, req.body);
+    res.status(201).json({ data: grn });
+  } catch (err) {
+    next(err);
+  }
+}

@@ -12,6 +12,9 @@ export interface DocumentItem {
 export interface InvoiceListItem {
   id: string;
   invoiceNumber: string;
+  buyerInvoiceId?: string | null;
+  fiscalYear?: string | null;
+  erpClearingNumber?: string | null;
   supplier: { id: string; name: string } | null;
   invoiceDate?: string | null;
   dueDate: string | null;
@@ -55,6 +58,9 @@ export interface InvoicePaymentItem {
   currency: string;
   paymentMethod: string;
   referenceNumber?: string | null;
+  utrNumber?: string | null;
+  clearingDate?: string | null;
+  clearingDocumentNumber?: string | null;
   scheduledDate?: string | null;
   processedAt?: string | null;
   createdAt: string;

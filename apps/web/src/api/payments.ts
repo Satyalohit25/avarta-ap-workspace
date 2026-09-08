@@ -10,12 +10,18 @@ export interface PaymentRow {
   dueDate: string | null;
   status: string;
   method: string;
+  utrNumber?: string | null;
+  clearingDate?: string | null;
+  clearingDocumentNumber?: string | null;
 }
 
 export function listPayments() {
   return apiRequest<{ data: PaymentRow[] }>("/payments");
 }
 
-export function executePayment(paymentId: string) {
-  return apiRequest<{ data: PaymentRow }>(`/payments/${paymentId}/execute`, { method: "POST" });
+export function executePayment(paymentId: string, details?: { utrNumber?: string; clearingDocumentNumber?: string }) {
+  return apiRequest<{ data: PaymentRow }>(`/payments/${paymentId}/execute`, {
+    method: "POST",
+    body: details,
+  });
 }

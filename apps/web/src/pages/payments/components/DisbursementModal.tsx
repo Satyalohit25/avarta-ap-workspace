@@ -125,6 +125,9 @@ interface SettlementReceipt {
   debitedAmount: number;
   currency: string;
   railName: string;
+  utrNumber: string;
+  clearingDate: string;
+  clearingDocumentNumber: string;
 }
 
 function createSettlementReceipt(params: {
@@ -132,8 +135,13 @@ function createSettlementReceipt(params: {
   amount: number;
   currency: string;
   railName: string;
+  utrNumber?: string;
+  clearingDocumentNumber?: string;
 }): SettlementReceipt {
   const now = new Date();
+  const utr = params.utrNumber || `NEFT-TATAPAY-${now.getTime().toString().slice(-7)}`;
+  const clearingDoc = params.clearingDocumentNumber || `2533${Math.floor(100000 + Math.random() * 900000)}`;
+
   return {
     reference: `H2H-DISB-${now.getTime().toString().slice(-8)}`,
     timestamp: now.toLocaleString("en-IN", {
@@ -148,6 +156,9 @@ function createSettlementReceipt(params: {
     debitedAmount: params.amount,
     currency: params.currency,
     railName: params.railName,
+    utrNumber: utr,
+    clearingDate: now.toLocaleDateString("en-IN"),
+    clearingDocumentNumber: clearingDoc,
   };
 }
 
@@ -246,6 +257,9 @@ export function DisbursementModal({
 ================================================================================
 SETTLEMENT REFERENCE : ${receipt?.reference ?? "H2H-DISB-00000000"}
 TRANSACTION STATUS   : SETTLED & CONFIRMED (HTTP 200 OK)
+BANK UTR NUMBER      : ${receipt?.utrNumber ?? "NEFT-TATAPAY-8941029"}
+BANK CLEARING DATE   : ${receipt?.clearingDate}
+ERP CLEARING DOC REF : ${receipt?.clearingDocumentNumber ?? "2533000040"}
 EXECUTION TIMESTAMP  : ${receipt?.timestamp}
 SETTLEMENT RAIL      : ${receipt?.railName}
 DEBIT ACCOUNT        : ${receipt?.debitedAccountName}
@@ -376,7 +390,7 @@ Avarta AP Workspace Maker-Checker Governance Protocol (Section 44AA / Rule 56).
               </div>
 
               {/* Receipt Grid */}
-              <div className="relative z-10 grid grid-cols-2 gap-3 text-caption pt-1">
+              <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 gap-3 text-caption pt-1">
                 <div>
                   <span className="text-micro text-neutral-400 dark:text-zinc-500 uppercase block">Total Debited</span>
                   <span className="text-body-sm font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
@@ -396,9 +410,21 @@ Avarta AP Workspace Maker-Checker Governance Protocol (Section 44AA / Rule 56).
                   </span>
                 </div>
                 <div>
-                  <span className="text-micro text-neutral-400 dark:text-zinc-500 uppercase block">Remaining Balance</span>
-                  <span className="text-neutral-800 dark:text-zinc-200 font-medium tabular-nums">
-                    {formatCurrency(remainingBalance, activeAccount.currency)}
+                  <span className="text-micro text-neutral-400 dark:text-zinc-500 uppercase block">Bank UTR Number</span>
+                  <span className="text-emerald-700 dark:text-emerald-400 font-mono font-semibold text-caption truncate block">
+                    {receipt.utrNumber}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-micro text-neutral-400 dark:text-zinc-500 uppercase block">Clearing Date</span>
+                  <span className="text-neutral-800 dark:text-zinc-200 font-medium font-mono text-caption">
+                    {receipt.clearingDate}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-micro text-neutral-400 dark:text-zinc-500 uppercase block">ERP Clearing Doc</span>
+                  <span className="text-neutral-800 dark:text-zinc-200 font-medium font-mono text-caption">
+                    {receipt.clearingDocumentNumber}
                   </span>
                 </div>
               </div>

@@ -31,10 +31,12 @@ export async function listPurchaseOrders(params: {
       utilizedAmount: po.utilizedAmount.toString(),
       remainingAmount: po.remainingAmount.toString(),
       status: po.status,
+      closedForReceiving: (po as unknown as { closedForReceiving?: boolean }).closedForReceiving ?? false,
       matchingStatus: po.matchingStatus,
       issueDate: po.issueDate,
       createdAt: po.createdAt,
       linkedInvoicesCount: po.invoices.length,
+      goodsReceiptsCount: (po as unknown as { goodsReceipts?: unknown[] }).goodsReceipts?.length ?? 0,
     })),
     meta: paginationMeta(page, pageSize, total),
   };
@@ -54,6 +56,7 @@ export async function getPurchaseOrder(organizationId: string, id: string) {
     utilizedAmount: po.utilizedAmount.toString(),
     remainingAmount: po.remainingAmount.toString(),
     status: po.status,
+    closedForReceiving: (po as unknown as { closedForReceiving?: boolean }).closedForReceiving ?? false,
     matchingStatus: po.matchingStatus,
     issueDate: po.issueDate,
     createdAt: po.createdAt,
@@ -63,7 +66,47 @@ export async function getPurchaseOrder(organizationId: string, id: string) {
       totalAmount: inv.totalAmount.toString(),
       status: inv.status,
     })),
+    goodsReceipts: (po as unknown as { goodsReceipts?: Array<{
+      id: string;
+      grnNumber: string;
+      receiptDate: Date;
+      vendorDeliveryNote?: string | null;
+      status: string;
+      comments?: string | null;
+      lines: Array<{
+        id: string;
+        lineNumber: number;
+        description: string;
+        itemCode?: string | null;
+        receivedQuantity: number | string;
+        unitOfMeasure: string;
+        status: string;
+        inspectionNotes?: string | null;
+      }>;
+    }> }).goodsReceipts?.map((gr) => ({
+      id: gr.id,
+      grnNumber: gr.grnNumber,
+      receiptDate: gr.receiptDate,
+      vendorDeliveryNote: gr.vendorDeliveryNote,
+      status: gr.status,
+      comments: gr.comments,
+      lines: gr.lines.map((l) => ({
+        id: l.id,
+        lineNumber: l.lineNumber,
+        description: l.description,
+        itemCode: l.itemCode,
+        receivedQuantity: Number(l.receivedQuantity),
+        unitOfMeasure: l.unitOfMeasure,
+        status: l.status,
+        inspectionNotes: l.inspectionNotes,
+      })),
+    })) ?? [],
   };
+}
+
+export async function togglePoReceivingStatus(organizationId: string, poId: string, closed: boolean) {
+  await repo.updatePoReceivingStatus(organizationId, poId, closed);
+  return getPurchaseOrder(organizationId, poId);
 }
 
 export async function createPurchaseOrder(
@@ -71,4 +114,14 @@ export async function createPurchaseOrder(
   data: repo.CreatePoData
 ) {
   return repo.createPurchaseOrder(organizationId, data);
+}
+
+export async function recordGoodsReceipt(
+  organizationId: string,
+  poId: string,
+  data: Parameters<typeof repo.createGoodsReceipt>[2]
+) {
+  const po = await repo.findPoById(organizationId, poId);
+  if (!po) throw ApiError.notFound("Purchase Order not found");
+  return repo.createGoodsReceipt(organizationId, poId, data);
 }

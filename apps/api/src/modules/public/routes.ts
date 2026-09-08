@@ -26,7 +26,14 @@ publicRoutes.get("/invoices/track/:token", async (req: Request, res: Response): 
           select: { displayName: true, legalName: true },
         },
         payments: {
-          select: { status: true, scheduledDate: true, processedAt: true },
+          select: {
+            status: true,
+            scheduledDate: true,
+            processedAt: true,
+            utrNumber: true,
+            clearingDate: true,
+            clearingDocumentNumber: true,
+          },
         },
       },
     });
@@ -36,14 +43,19 @@ publicRoutes.get("/invoices/track/:token", async (req: Request, res: Response): 
       res.json({
         data: {
           invoiceNumber: token.startsWith("INV-") ? token : "INV-2026-1007",
+          buyerInvoiceId: "2522000123",
+          fiscalYear: "2025-2026",
           supplierName: "Tata Steel Tubes Ltd",
           amount: 354000,
           currency: "INR",
           receivedDate: "2026-08-28T10:00:00Z",
-          publicStatus: "Approved for Payment",
-          publicStatusStage: 3, // 1: Received, 2: Under Review, 3: Approved for Payment, 4: Paid
+          publicStatus: "Paid",
+          publicStatusStage: 4, // 1: Received, 2: Under Review, 3: Approved for Payment, 4: Paid
           estimatedPaymentDate: "2026-09-19",
-          notes: "Invoice validated and approved. Queued for scheduled electronic remittance.",
+          utrNumber: "NEFT-TATAPAY-8941029",
+          clearingDate: "2026-09-02",
+          clearingDocumentNumber: "2533000040",
+          notes: "Remittance dispatched via Host-to-Host banking rail. UTR confirmed by receiving bank.",
         },
       });
       return;
@@ -59,7 +71,7 @@ publicRoutes.get("/invoices/track/:token", async (req: Request, res: Response): 
     if (invoice.status === "PAID") {
       publicStatus = "Paid";
       publicStatusStage = 4;
-      notes = `Remittance dispatched on ${latestPayment?.processedAt ? new Date(latestPayment.processedAt).toLocaleDateString("en-IN") : "recent payment batch"}.`;
+      notes = `Remittance dispatched${latestPayment?.utrNumber ? ` under UTR ${latestPayment.utrNumber}` : ""}. Bank clearing confirmed.`;
     } else if (invoice.status === "APPROVED" || invoice.status === "SCHEDULED") {
       publicStatus = "Approved for Payment";
       publicStatusStage = 3;
@@ -79,6 +91,8 @@ publicRoutes.get("/invoices/track/:token", async (req: Request, res: Response): 
     res.json({
       data: {
         invoiceNumber: invoice.invoiceNumber,
+        buyerInvoiceId: (invoice as unknown as { buyerInvoiceId?: string | null }).buyerInvoiceId ?? null,
+        fiscalYear: (invoice as unknown as { fiscalYear?: string | null }).fiscalYear ?? null,
         supplierName,
         amount: Number(invoice.totalAmount),
         currency: invoice.currency,
@@ -86,6 +100,9 @@ publicRoutes.get("/invoices/track/:token", async (req: Request, res: Response): 
         publicStatus,
         publicStatusStage,
         estimatedPaymentDate: invoice.dueDate,
+        utrNumber: latestPayment?.utrNumber ?? null,
+        clearingDate: latestPayment?.clearingDate ?? null,
+        clearingDocumentNumber: latestPayment?.clearingDocumentNumber ?? null,
         notes,
       },
     });

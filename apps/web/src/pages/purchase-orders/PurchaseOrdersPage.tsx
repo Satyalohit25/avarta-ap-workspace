@@ -16,11 +16,14 @@ import {
   ArrowRight,
   Clock,
   BarChart3,
+  ShieldAlert,
+  PackageCheck,
 } from "lucide-react";
 import {
   createPurchaseOrder,
   listPurchaseOrders,
   getPurchaseOrder,
+  togglePoReceiving,
   PurchaseOrderItem,
   PurchaseOrderDetail,
   PoLineItem,
@@ -104,6 +107,45 @@ export default function PurchaseOrdersPage() {
 
   // PO Line Items state
   const [lineItems, setLineItems] = useState<PoLineItem[]>(INITIAL_LINE_ITEMS);
+
+  async function handleToggleReceiving() {
+    if (!selectedPoDetail) return;
+    try {
+      const nextStatus = !selectedPoDetail.closedForReceiving;
+      await togglePoReceiving(selectedPoDetail.id, nextStatus);
+      setSelectedPoDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              closedForReceiving: nextStatus,
+              status: nextStatus ? "CLOSED_FOR_RECEIVING" : "OPEN",
+            }
+          : prev
+      );
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === selectedPoDetail.id
+            ? {
+                ...o,
+                closedForReceiving: nextStatus,
+                status: nextStatus ? "CLOSED_FOR_RECEIVING" : "OPEN",
+              }
+            : o
+        )
+      );
+      toast.success(
+        nextStatus ? "PO Closed for Receiving" : "PO Reopened for Receiving",
+        nextStatus
+          ? "Receiving and delivery intake terminated. Unauthorized subsequent invoices will trigger a liability exception."
+          : "Receiving reopened for warehouse intake and matching."
+      );
+    } catch (err) {
+      toast.error(
+        "Status update failed",
+        err instanceof Error ? err.message : "Could not toggle receiving status."
+      );
+    }
+  }
 
   function addLineItem() {
     setLineItems((prev) => [
@@ -543,10 +585,17 @@ export default function PurchaseOrdersPage() {
                     <StatusBadge status={po.matchingStatus} size="sm" />
                   </TableCell>
                   <TableCell>
-                    <StatusBadge
-                      status={po.status}
-                      variant={po.status === "OPEN" ? "info" : po.status === "CLOSED" ? "success" : "neutral"}
-                    />
+                    <div className="space-y-1">
+                      <StatusBadge
+                        status={po.status}
+                        variant={po.status === "OPEN" ? "info" : po.status === "CLOSED" || po.status === "CLOSED_FOR_RECEIVING" ? "neutral" : "success"}
+                      />
+                      {(po.closedForReceiving || po.status === "CLOSED_FOR_RECEIVING") && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-mono text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800">
+                          Closed for Receiving
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right font-mono text-micro tabular-nums text-neutral-500 dark:text-zinc-400">
                     {po.linkedInvoicesCount} {po.linkedInvoicesCount === 1 ? "inv" : "invs"}
@@ -592,6 +641,40 @@ export default function PurchaseOrdersPage() {
               <span className="text-micro font-mono text-neutral-500 dark:text-zinc-400">
                 Created {formatDate(selectedPoDetail.createdAt)}
               </span>
+            </div>
+
+            {/* Receiving Governance Bar (Tata Chemicals Slide 8: Closed for Receiving) */}
+            <div className="flex items-center justify-between p-3.5 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-800/60 gap-3">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100">
+                    Receiving State:
+                  </span>
+                  <span className={`text-micro font-mono font-bold px-2 py-0.5 rounded ${
+                    selectedPoDetail.closedForReceiving || selectedPoDetail.status === "CLOSED_FOR_RECEIVING"
+                      ? "bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800"
+                      : "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800"
+                  }`}>
+                    {selectedPoDetail.closedForReceiving || selectedPoDetail.status === "CLOSED_FOR_RECEIVING"
+                      ? "(Closed for Receiving)"
+                      : "Active / Receiving Open"}
+                  </span>
+                </div>
+                <span className="text-micro text-neutral-500 dark:text-zinc-400 block leading-tight">
+                  {selectedPoDetail.closedForReceiving || selectedPoDetail.status === "CLOSED_FOR_RECEIVING"
+                    ? "All goods received or order closed. Unauthorized subsequent bills will be rejected."
+                    : "Warehouse dock intake active. Lines matched against Goods Receipts (GRN)."}
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant={selectedPoDetail.closedForReceiving ? "outline" : "secondary"}
+                onClick={handleToggleReceiving}
+                className="gap-1.5 shrink-0 text-micro font-medium"
+              >
+                <ShieldAlert size={13} />
+                <span>{selectedPoDetail.closedForReceiving ? "Reopen Receiving" : "Close Receiving"}</span>
+              </Button>
             </div>
 
             {/* Vendor info card */}
@@ -817,6 +900,54 @@ export default function PurchaseOrdersPage() {
                 </>
               );
             })()}
+
+            {/* Goods Receipt Notes (GRN) Section (Tata Chemicals Slide 6, 7, 8) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-micro font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400 flex items-center gap-1.5">
+                  <PackageCheck size={13} className="text-indigo-600 dark:text-indigo-400" />
+                  <span>Goods Receipts &amp; Dock Intake (GRN)</span>
+                </span>
+                <span className="text-micro font-mono text-neutral-400">
+                  3-Way Reconciliation Layer
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-3">
+                <div className="flex items-center justify-between border-b border-neutral-100 dark:border-zinc-800 pb-2">
+                  <div>
+                    <span className="font-mono font-bold text-body-sm text-neutral-900 dark:text-zinc-100">
+                      GRN-5000000882
+                    </span>
+                    <span className="text-micro text-neutral-400 font-mono ml-2">
+                      Received 18 Dec 2024
+                    </span>
+                  </div>
+                  <span className="text-micro font-mono bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded border border-amber-200/60 dark:border-amber-800/60 font-medium">
+                    Subject to Quality Inspection
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-caption font-mono">
+                  <div className="flex items-center justify-between text-neutral-700 dark:text-zinc-300 p-2 rounded-lg bg-neutral-50 dark:bg-zinc-800/50">
+                    <span className="truncate max-w-[200px]">100 PCE • Industrial Fasteners 10mm</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+100.00 PCE Accepted</span>
+                  </div>
+                  {/* Negative quantity for returned/rejected goods per Tata Chemicals Slide 8 */}
+                  <div className="flex items-center justify-between text-red-700 dark:text-red-300 p-2 rounded-lg bg-red-50/50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-900/40">
+                    <div className="space-y-0.5 truncate max-w-[240px]">
+                      <span className="block truncate font-medium">Quality Defect Return (Damaged Sacks)</span>
+                      <span className="text-[10px] text-red-500 font-sans block">Inspection comment: Negative quantity deduction</span>
+                    </div>
+                    <span className="font-bold text-red-600 dark:text-red-400 shrink-0">-10.00 PCE Returned</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-neutral-100 dark:border-zinc-800 font-bold text-neutral-900 dark:text-zinc-100 text-micro">
+                    <span>Net Billable Received Qty:</span>
+                    <span className="text-indigo-600 dark:text-indigo-400 font-semibold">90.00 PCE</span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Linked Invoices Section */}
             <div className="space-y-3">

@@ -35,6 +35,9 @@ export function toInvoiceListItem(invoice: InvoiceListPayload) {
   return {
     id: invoice.id,
     invoiceNumber: invoice.invoiceNumber,
+    buyerInvoiceId: (invoice as unknown as { buyerInvoiceId?: string | null }).buyerInvoiceId ?? null,
+    fiscalYear: (invoice as unknown as { fiscalYear?: string | null }).fiscalYear ?? null,
+    erpClearingNumber: (invoice as unknown as { erpClearingNumber?: string | null }).erpClearingNumber ?? null,
     supplier: invoice.supplier
       ? { id: invoice.supplier.id, name: invoice.supplier.displayName }
       : null,
@@ -52,7 +55,7 @@ export function toInvoiceListItem(invoice: InvoiceListPayload) {
 
 export function toInvoiceDetail(invoice: InvoiceDetailPayload) {
   return {
-    ...toInvoiceListItem(invoice),
+    ...toInvoiceListItem(invoice as unknown as InvoiceListPayload),
     workflowState: invoice.workflowInstance?.currentState ?? invoice.workflowState,
     documents: invoice.documents.map((d) => ({
       id: d.id,
@@ -81,6 +84,9 @@ export function toInvoiceDetail(invoice: InvoiceDetailPayload) {
       currency: p.currency,
       paymentMethod: p.paymentMethod,
       referenceNumber: p.paymentReference,
+      utrNumber: (p as unknown as { utrNumber?: string | null }).utrNumber ?? null,
+      clearingDate: (p as unknown as { clearingDate?: Date | null }).clearingDate ?? null,
+      clearingDocumentNumber: (p as unknown as { clearingDocumentNumber?: string | null }).clearingDocumentNumber ?? null,
       scheduledDate: p.scheduledDate,
       processedAt: p.processedAt,
       createdAt: p.createdAt,

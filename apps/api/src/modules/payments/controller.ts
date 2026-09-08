@@ -25,7 +25,14 @@ export async function scheduleHandler(req: Request, res: Response, next: NextFun
 
 export async function executeHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    res.json({ data: await paymentService.executePayment(orgId(req), req.params.paymentId, req.auth?.userId) });
+    res.json({
+      data: await paymentService.executePayment(
+        orgId(req),
+        req.params.paymentId,
+        req.auth?.userId,
+        req.body
+      ),
+    });
   } catch (err) {
     next(err);
   }

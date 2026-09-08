@@ -226,10 +226,25 @@ export default function PaymentsPage() {
                         {formatCurrency(p.amount, p.currency ?? "INR")}
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={p.status} />
+                        <div className="space-y-1">
+                          <StatusBadge status={p.status} />
+                          {p.utrNumber && (
+                            <div className="flex items-center gap-1 text-micro font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded border border-emerald-200/60 dark:border-emerald-800/60 w-fit">
+                              <span>UTR:</span>
+                              <span className="font-semibold">{p.utrNumber}</span>
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-neutral-500 dark:text-zinc-400 font-mono text-micro">
-                        {formatDate(p.dueDate)}
+                        {p.clearingDate ? (
+                          <div>
+                            <span>{formatDate(p.clearingDate)}</span>
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block font-sans font-medium">Cleared</span>
+                          </div>
+                        ) : (
+                          formatDate(p.dueDate)
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         {p.status === "SCHEDULED" ? (

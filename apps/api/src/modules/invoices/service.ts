@@ -246,12 +246,79 @@ export async function processInvoice(organizationId: string, invoiceId: string, 
 
   await applyTransition({ invoiceId, event: "VALIDATION_SUCCESS", triggeredBy: userId });
 
-  // Match
+  // Match (Doc 04 Stage 4: 3-Way Matching PO <-> GRN <-> Invoice per Tata Chemicals standard)
   await applyTransition({ invoiceId, event: "MATCHING_START", triggeredBy: userId });
+
   if (invoice.purchaseOrderId) {
-    // Simplified match: presence of a linked PO is treated as a match.
+    const po = await prisma.purchaseOrder.findUnique({
+      where: { id: invoice.purchaseOrderId },
+      include: {
+        goodsReceipts: {
+          include: { lines: true },
+        },
+      },
+    });
+
+    // Rule 1: PO Closed for Receiving check (Tata Chemicals Slide 8)
+    if (po && (po.status === "CLOSED_FOR_RECEIVING" || po.closedForReceiving)) {
+      const remaining = Number(po.remainingAmount);
+      const invoiceTotal = Number(invoice.totalAmount);
+      if (invoiceTotal > remaining) {
+        await applyTransition({ invoiceId, event: "MATCHING_FAILURE", triggeredBy: userId });
+        await prisma.exception.create({
+          data: {
+            organizationId,
+            invoiceId,
+            type: "PRICE_DIFFERENCE",
+            severity: "HIGH",
+            title: "PO Closed for Receiving — Liability Cap Exceeded",
+            description: `Purchase Order ${po.poNumber} is marked 'Closed for Receiving'. Billed amount ($${invoiceTotal}) exceeds remaining balance ($${remaining}).`,
+            status: "OPEN",
+          },
+        });
+        return getInvoice(organizationId, invoiceId);
+      }
+    }
+
+    // Rule 2: 3-Way Line Match with GRN and Negative Return Quantities (Tata Chemicals Slide 8)
+    if (po && po.goodsReceipts.length > 0) {
+      let netReceivedQty = 0;
+      let totalReturnedQty = 0;
+
+      for (const grn of po.goodsReceipts) {
+        for (const line of grn.lines) {
+          const qty = Number(line.receivedQuantity);
+          if (qty < 0) {
+            totalReturnedQty += Math.abs(qty);
+          }
+          netReceivedQty += qty;
+        }
+      }
+
+      const lines = await prisma.invoiceLine.findMany({ where: { invoiceId } });
+      const totalInvoicedQty = lines.reduce((acc, l) => acc + Number(l.quantity), 0);
+
+      // Discrepancy check: Invoiced qty exceeds net accepted goods
+      if (totalInvoicedQty > netReceivedQty && netReceivedQty > 0) {
+        await applyTransition({ invoiceId, event: "MATCHING_FAILURE", triggeredBy: userId });
+        await prisma.exception.create({
+          data: {
+            organizationId,
+            invoiceId,
+            type: "QUANTITY_DIFFERENCE",
+            severity: "HIGH",
+            title: "3-Way Match Failed: Goods Return / Rejection Detected on GRN",
+            description: `Invoice bills for ${totalInvoicedQty} units, but Net Accepted GRN quantity is only ${netReceivedQty} units (${totalReturnedQty} units returned during Quality Inspection on GRN).`,
+            status: "OPEN",
+          },
+        });
+        return getInvoice(organizationId, invoiceId);
+      }
+    }
+
     await applyTransition({ invoiceId, event: "MATCHING_SUCCESS", triggeredBy: userId });
   } else {
+    // Non-PO invoice matching
     await applyTransition({ invoiceId, event: "MATCHING_SUCCESS", triggeredBy: userId });
   }
 

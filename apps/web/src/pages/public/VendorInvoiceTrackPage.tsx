@@ -14,6 +14,8 @@ import { AvartaCrest } from "../../components/brand/AvartaCrest";
 
 interface VendorTrackData {
   invoiceNumber: string;
+  buyerInvoiceId?: string | null;
+  fiscalYear?: string | null;
   supplierName: string;
   amount: number;
   currency: string;
@@ -21,6 +23,9 @@ interface VendorTrackData {
   publicStatus: string;
   publicStatusStage: number; // 1: Received, 2: Under Review, 3: Approved for Payment, 4: Paid
   estimatedPaymentDate?: string | null;
+  utrNumber?: string | null;
+  clearingDate?: string | null;
+  clearingDocumentNumber?: string | null;
   notes: string;
 }
 
@@ -35,6 +40,7 @@ export default function VendorInvoiceTrackPage() {
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<VendorTrackData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copiedUtr, setCopiedUtr] = useState(false);
 
   useEffect(() => {
     // Attempt fetch from public endpoint, fallback to realistic mock
@@ -115,7 +121,18 @@ export default function VendorInvoiceTrackPage() {
                 <h1 className="text-h1 font-bold font-mono text-neutral-900 dark:text-zinc-100 mt-0.5">
                   {data.invoiceNumber}
                 </h1>
-                <div className="flex items-center gap-1.5 text-caption text-neutral-600 dark:text-zinc-400 mt-1">
+                {/* Dual Invoice Identification per Tata Chemicals standard */}
+                <div className="flex flex-wrap items-center gap-2 mt-1.5 font-mono text-micro">
+                  <span className="px-2 py-0.5 rounded bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-300 font-medium">
+                    Supplier Ref: {data.invoiceNumber}
+                  </span>
+                  {data.buyerInvoiceId && (
+                    <span className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 font-medium">
+                      Buyer ERP Voucher: {data.buyerInvoiceId} ({data.fiscalYear || "FY2025"})
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 text-caption text-neutral-600 dark:text-zinc-400 mt-1.5">
                   <Building2 size={13} className="text-neutral-400 shrink-0" />
                   <span className="font-medium">{data.supplierName}</span>
                 </div>
@@ -177,6 +194,55 @@ export default function VendorInvoiceTrackPage() {
                 })}
               </div>
             </div>
+
+            {/* Bank Remittance Proof Card (Tata Chemicals Slide 14: UTR, Clearing Date, Clearing Document) */}
+            {data.utrNumber && (
+              <div className="p-4 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/40 dark:bg-emerald-950/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-semibold text-body-sm">
+                    <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
+                    <span>Electronic Remittance Cleared &amp; Intimated</span>
+                  </div>
+                  <span className="text-micro font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded font-semibold">
+                    Bank Paid
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 text-caption font-mono">
+                  <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-emerald-100 dark:border-emerald-950">
+                    <span className="text-[10px] text-neutral-400 uppercase block">UTR Number (Bank Ref)</span>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span className="font-bold text-neutral-900 dark:text-zinc-100 text-body-sm truncate">{data.utrNumber}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(data.utrNumber || "");
+                          setCopiedUtr(true);
+                          setTimeout(() => setCopiedUtr(false), 2000);
+                        }}
+                        className="text-[11px] text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 cursor-pointer font-sans font-medium underline shrink-0 ml-1.5"
+                      >
+                        {copiedUtr ? "Copied!" : "Copy UTR"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-emerald-100 dark:border-emerald-950">
+                    <span className="text-[10px] text-neutral-400 uppercase block">Bank Clearing Date</span>
+                    <span className="font-semibold text-neutral-900 dark:text-zinc-100 text-body-sm block mt-0.5">
+                      {data.clearingDate ? formatDate(data.clearingDate) : "Cleared"}
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-emerald-100 dark:border-emerald-950">
+                    <span className="text-[10px] text-neutral-400 uppercase block">Clearing Doc Number</span>
+                    <span className="font-semibold text-neutral-900 dark:text-zinc-100 text-body-sm block mt-0.5">
+                      {data.clearingDocumentNumber || "2533000040"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Status & Estimated Payment Date Box */}
             <div className="p-4 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-neutral-50/80 dark:bg-zinc-900/60 space-y-3">

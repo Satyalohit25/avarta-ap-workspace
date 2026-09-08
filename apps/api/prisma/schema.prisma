@@ -208,13 +208,15 @@ model PurchaseOrder {
   totalAmount     Decimal @db.Decimal(18, 2)
   utilizedAmount  Decimal @default(0) @db.Decimal(18, 2)
   remainingAmount Decimal @db.Decimal(18, 2)
-  status          String  @default("OPEN") // OPEN | CLOSED | CANCELLED
+  status          String  @default("OPEN") // OPEN | CLOSED | CANCELLED | CLOSED_FOR_RECEIVING
+  closedForReceiving Boolean @default(false)
   matchingStatus  String  @default("UNMATCHED") // MATCHED | PARTIAL | UNMATCHED
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  invoices Invoice[]
+  invoices      Invoice[]
+  goodsReceipts GoodsReceipt[]
 
   @@unique([organizationId, poNumber])
 }
@@ -231,6 +233,9 @@ model Invoice {
   assignedTo      User? @relation("InvoiceOwner", fields: [assignedToId], references: [id])
 
   invoiceNumber String
+  buyerInvoiceId String?  // Internal Buyer ERP voucher reference (e.g. 2522000123)
+  fiscalYear     String?  // Financial year (e.g. 2024-2025)
+  erpClearingNumber String? // ERP clearing doc number
   invoiceDate   DateTime?
   dueDate       DateTime?
   currency      String  @default("INR")
@@ -350,6 +355,9 @@ model Payment {
   invoice        Invoice  @relation(fields: [invoiceId], references: [id])
 
   paymentReference String?
+  utrNumber        String? // Bank NEFT/RTGS/Wire Unique Transaction Reference (proof for vendor)
+  clearingDate     DateTime? // Exact date bank debited/cleared payment
+  clearingDocumentNumber String? // ERP clearing document reference (e.g. 2533000040)
   amount           Decimal @db.Decimal(18, 2)
   currency         String  @default("INR")
   paymentMethod    String  @default("BANK_TRANSFER")
@@ -434,4 +442,36 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([organizationId, entityType, entityId])
+}
+
+// Goods Receipt Note (GRN) for 3-Way Matching, supporting inspection & negative return quantities per Tata Chemicals
+model GoodsReceipt {
+  id              String   @id @default(uuid())
+  organizationId  String
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  grnNumber       String
+  receiptDate     DateTime @default(now())
+  vendorDeliveryNote String?
+  status          String   @default("ACCEPTED") // RECEIVED | SUBJECT_TO_INSPECTION | ACCEPTED | RETURNED
+  comments        String?  // e.g. "Subject to Quality Inspection", "Returned damaged goods"
+
+  lines           GoodsReceiptLine[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([organizationId, grnNumber])
+}
+
+model GoodsReceiptLine {
+  id              String   @id @default(uuid())
+  goodsReceiptId  String
+  goodsReceipt    GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  lineNumber      Int
+  description     String
+  itemCode        String?
+  receivedQuantity Decimal @db.Decimal(18, 4) // Negative decimal indicates returned/rejected goods (e.g. -1.000)
+  unitOfMeasure   String  @default("UNIT")
+  status          String  @default("ACCEPTED") // ACCEPTED | RETURNED | INSPECTION_PENDING
+  inspectionNotes String?
 }

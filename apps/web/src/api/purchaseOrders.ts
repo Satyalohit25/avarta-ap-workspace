@@ -11,6 +11,27 @@ export interface PoLineItem {
   lineTotal: number;
 }
 
+export interface GoodsReceiptLineItem {
+  id: string;
+  lineNumber: number;
+  description: string;
+  itemCode?: string | null;
+  receivedQuantity: number; // can be negative for returned goods per Tata Chemicals
+  unitOfMeasure: string;
+  status: string;
+  inspectionNotes?: string | null;
+}
+
+export interface GoodsReceiptItem {
+  id: string;
+  grnNumber: string;
+  receiptDate: string;
+  vendorDeliveryNote?: string | null;
+  status: string;
+  comments?: string | null;
+  lines: GoodsReceiptLineItem[];
+}
+
 export interface PurchaseOrderItem {
   id: string;
   poNumber: string;
@@ -21,10 +42,12 @@ export interface PurchaseOrderItem {
   utilizedAmount: string;
   remainingAmount: string;
   status: string;
+  closedForReceiving?: boolean;
   matchingStatus: string;
   issueDate: string;
   createdAt: string;
   linkedInvoicesCount: number;
+  goodsReceiptsCount?: number;
   poType?: string;
   costCenter?: string;
   deliveryLocation?: string;
@@ -43,6 +66,7 @@ export interface PurchaseOrderDetail extends PurchaseOrderItem {
     totalAmount: string;
     status: string;
   }>;
+  goodsReceipts?: GoodsReceiptItem[];
 }
 
 export function listPurchaseOrders(params: { search?: string; status?: string } = {}) {
@@ -51,6 +75,13 @@ export function listPurchaseOrders(params: { search?: string; status?: string } 
 
 export function getPurchaseOrder(poId: string) {
   return apiRequest<{ data: PurchaseOrderDetail }>(`/purchase-orders/${poId}`);
+}
+
+export function togglePoReceiving(poId: string, closed: boolean) {
+  return apiRequest<{ data: PurchaseOrderDetail }>(`/purchase-orders/${poId}/receiving`, {
+    method: "POST",
+    body: { closed },
+  });
 }
 
 export interface CreatePurchaseOrderInput {
@@ -72,6 +103,27 @@ export interface CreatePurchaseOrderInput {
 
 export function createPurchaseOrder(data: CreatePurchaseOrderInput) {
   return apiRequest<{ data: PurchaseOrderItem }>("/purchase-orders", {
+    method: "POST",
+    body: data,
+  });
+}
+
+export function recordGoodsReceipt(poId: string, data: {
+  grnNumber: string;
+  vendorDeliveryNote?: string;
+  comments?: string;
+  status?: string;
+  lines: Array<{
+    lineNumber: number;
+    description: string;
+    itemCode?: string;
+    receivedQuantity: number;
+    unitOfMeasure?: string;
+    status?: string;
+    inspectionNotes?: string;
+  }>;
+}) {
+  return apiRequest<{ data: unknown }>(`/purchase-orders/${poId}/grn`, {
     method: "POST",
     body: data,
   });
