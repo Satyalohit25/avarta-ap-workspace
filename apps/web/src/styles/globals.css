@@ -1,0 +1,116 @@
+@import url('https://fonts.cdnfonts.com/css/chomsky');
+@import url('https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&family=Almendra+Display&family=Cinzel+Decorative:wght@700;900&family=Diplomata+SC&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.font-script,
+.font-old-english,
+.font-chomsky {
+  font-family: 'Chomsky', 'Old English Text MT', 'Lordish', 'UnifrakturCook', 'Almendra Display', serif;
+  letter-spacing: 0.02em;
+}
+
+.font-almendra {
+  font-family: 'Almendra Display', serif;
+}
+
+.font-cinzel-decorative {
+  font-family: 'Cinzel Decorative', serif;
+}
+
+.font-diplomata {
+  font-family: 'Diplomata SC', serif;
+}
+
+@layer base {
+  /* Light Mode shadcn/ui Theme Variables (design(2).md §4) */
+  :root {
+    --background: 220 14% 97%;        /* #F7F8FA Quiet Canvas */
+    --foreground: 222 47% 11%;        /* #111827 Text Primary */
+    --card: 0 0% 100%;               /* #FFFFFF Card Surface */
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 243 75% 59%;           /* #4F46E5 Locked Indigo */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 94%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 220 14% 94%;             /* #EEF0F3 Muted Surface */
+    --muted-foreground: 215 16% 47%;  /* #6B7280 Subdued Text */
+    --accent: 226 100% 97%;           /* #EEF2FF Light Accent */
+    --accent-foreground: 243 75% 59%;
+    --destructive: 0 72% 51%;         /* #DC2626 Locked Red */
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;            /* #E2E5EA Quiet Border */
+    --input: 220 13% 91%;
+    --ring: 243 75% 59%;
+    --radius: 0.375rem;               /* 6px Standard Radius */
+  }
+
+  /* Restrained Neutral Dark Mode Theme Variables (Zinc Base) */
+  .dark {
+    --background: 240 10% 3.9%;       /* #09090B Neutral Dark Canvas */
+    --foreground: 0 0% 98%;           /* #FAFAFA High-Contrast Text Primary */
+    --card: 240 5.9% 10%;             /* #18181B Surface Dark Card */
+    --card-foreground: 0 0% 98%;
+    --popover: 240 5.9% 10%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 243 75% 59%;           /* #4F46E5 Locked Indigo */
+    --primary-foreground: 0 0% 100%;   /* #FFFFFF High-Contrast White Text */
+    --secondary: 240 3.7% 15.9%;      /* #27272A Dark Secondary Hover */
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;          /* #27272A Dark Muted Surface */
+    --muted-foreground: 240 5% 64.9%; /* #A1A1AA Dark Muted Text */
+    --accent: 240 3.7% 15.9%;         /* #27272A Neutral Dark Accent */
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;     /* #7F1D1D Dark Destructive */
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;         /* #27272A Hairline Border */
+    --input: 240 3.7% 15.9%;
+    --ring: 240 5% 84%;               /* #D4D4D8 Focus Ring */
+  }
+
+  html {
+    font-family: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
+    overscroll-behavior: none;
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    overscroll-behavior: none;
+    @apply text-body antialiased transition-colors duration-fast;
+  }
+  * {
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Sleek modern scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.2);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "ap-saas",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:api": "pnpm --filter @ap-saas/api dev",
+    "dev:web": "pnpm --filter @ap-saas/web dev",
+    "build": "pnpm --filter @ap-saas/web build && pnpm --filter @ap-saas/api build",
+    "build:api": "pnpm --filter @ap-saas/api build",
+    "build:web": "pnpm --filter @ap-saas/web build",
+    "db:migrate": "pnpm --filter @ap-saas/api db:migrate",
+    "db:deploy": "pnpm --filter @ap-saas/api db:deploy",
+    "db:seed": "pnpm --filter @ap-saas/api db:seed",
+    "db:setup": "pnpm --filter @ap-saas/api db:setup",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:e2e": "pnpm --filter @ap-saas/web test:e2e",
+    "lint": "eslint . --cache --cache-location .eslintcache"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.67.0",
+    "@typescript-eslint/parser": "^8.67.0",
+    "eslint": "^10.8.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "vitest": "^4.1.10"
+  }
+}

@@ -1,0 +1,437 @@
+// ClearOps AP Workspace — Prisma schema
+// Working subset of the full schema in /docs/13-database-schema.md (Doc 13).
+// Simplification vs. Doc 13: roles are a fixed enum on User rather than
+// separate roles/permissions join tables, to keep the initial slice
+// buildable. Expand to full RBAC tables when Settings > Roles ships.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMINISTRATOR
+  FINANCE_MANAGER
+  FINANCE_EXECUTIVE
+  APPROVER
+  READ_ONLY
+}
+
+enum UserStatus {
+  ACTIVE
+  DEACTIVATED
+}
+
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum InvoiceStatus {
+  RECEIVED
+  PROCESSING
+  EXCEPTION
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  SCHEDULED
+  PAID
+  SYNCED
+  ARCHIVED
+}
+
+enum InvoiceSource {
+  EMAIL
+  PORTAL
+  UPLOAD
+  SCANNER
+  MOBILE
+  API
+  EDI
+  ERP
+}
+
+enum ExceptionType {
+  MISSING_PO
+  UNKNOWN_VENDOR
+  DUPLICATE_INVOICE
+  DUPLICATE_AMOUNT
+  TAX_DIFFERENCE
+  CURRENCY_MISMATCH
+  PRICE_DIFFERENCE
+  QUANTITY_DIFFERENCE
+  MISSING_SIGNATURE
+  INVALID_GST
+  LOW_AI_CONFIDENCE
+  MISSING_REQUIRED_FIELD
+  FRAUD_RISK
+  MANUAL_REVIEW
+}
+
+enum ExceptionSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ExceptionStatus {
+  OPEN
+  ASSIGNED
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DELEGATED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  AWAITING_SCHEDULE
+  SCHEDULED
+  PROCESSING
+  PAID
+  FAILED
+  ON_HOLD
+}
+
+enum WorkflowState {
+  RECEIVED
+  CAPTURED
+  VALIDATING
+  VALIDATED
+  VALIDATION_FAILED
+  MATCHING
+  MATCHED
+  MATCHING_FAILED
+  WAITING_APPROVAL
+  SCHEDULED
+  PROCESSING_PAYMENT
+  PAID
+  ERP_SYNC
+  ARCHIVED
+}
+
+model Organization {
+  id              String   @id @default(uuid())
+  name            String
+  legalName       String?
+  country         String   @default("IN")
+  defaultCurrency String   @default("INR")
+  timezone        String   @default("Asia/Kolkata")
+  dateFormat      String   @default("DD MMM YYYY")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  users         User[]
+  suppliers     Supplier[]
+  purchaseOrders PurchaseOrder[]
+  invoices      Invoice[]
+  exceptions    Exception[]
+  payments      Payment[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+}
+
+model User {
+  id             String     @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  email        String
+  passwordHash String
+  fullName     String
+  role         Role
+  status       UserStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedExceptions Exception[] @relation("ExceptionOwner")
+  assignedInvoices   Invoice[]   @relation("InvoiceOwner")
+  approvals          Approval[]
+  comments           Comment[]
+  notifications      Notification[]
+
+  @@unique([organizationId, email])
+}
+
+model Supplier {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  supplierCode      String
+  legalName         String
+  displayName       String
+  gstNumber         String?
+  country           String  @default("IN")
+  currency          String  @default("INR")
+  paymentTermsDays  Int     @default(30)
+  status            SupplierStatus @default(ACTIVE)
+
+  email   String?
+  phone   String?
+  address String?
+
+  outstandingBalance Decimal @default(0) @db.Decimal(18, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchaseOrders PurchaseOrder[]
+  invoices       Invoice[]
+
+  @@unique([organizationId, supplierCode])
+}
+
+model PurchaseOrder {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  supplierId     String
+  supplier       Supplier @relation(fields: [supplierId], references: [id])
+
+  poNumber        String
+  currency        String  @default("INR")
+  issueDate       DateTime?
+  totalAmount     Decimal @db.Decimal(18, 2)
+  utilizedAmount  Decimal @default(0) @db.Decimal(18, 2)
+  remainingAmount Decimal @db.Decimal(18, 2)
+  status          String  @default("OPEN") // OPEN | CLOSED | CANCELLED
+  matchingStatus  String  @default("UNMATCHED") // MATCHED | PARTIAL | UNMATCHED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoices Invoice[]
+
+  @@unique([organizationId, poNumber])
+}
+
+model Invoice {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  supplierId     String?
+  supplier       Supplier? @relation(fields: [supplierId], references: [id])
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  assignedToId    String?
+  assignedTo      User? @relation("InvoiceOwner", fields: [assignedToId], references: [id])
+
+  invoiceNumber String
+  invoiceDate   DateTime?
+  dueDate       DateTime?
+  currency      String  @default("INR")
+
+  subtotalAmount Decimal @default(0) @db.Decimal(18, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(18, 2)
+  totalAmount    Decimal @default(0) @db.Decimal(18, 2)
+  paidAmount     Decimal @default(0) @db.Decimal(18, 2)
+
+  status        InvoiceStatus @default(RECEIVED) // read-only projection — see AGENTS.md rule 4
+  workflowState WorkflowState @default(RECEIVED)
+  source        InvoiceSource @default(UPLOAD)
+  aiConfidence  Decimal?      @db.Decimal(5, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lines       InvoiceLine[]
+  documents   Document[]
+  validations Validation[]
+  exceptions  Exception[]
+  approvals   Approval[]
+  payments    Payment[]
+  comments    Comment[]
+  workflowInstance WorkflowInstance?
+
+  @@unique([organizationId, invoiceNumber])
+  @@index([organizationId, status])
+  @@index([organizationId, workflowState])
+  @@index([organizationId, dueDate])
+}
+
+model InvoiceLine {
+  id        String  @id @default(uuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  lineNumber  Int
+  description String
+  quantity    Decimal @default(1) @db.Decimal(18, 4)
+  unitPrice   Decimal @default(0) @db.Decimal(18, 4)
+  taxAmount   Decimal @default(0) @db.Decimal(18, 2)
+  lineAmount  Decimal @default(0) @db.Decimal(18, 2)
+}
+
+model Document {
+  id        String  @id @default(uuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  fileName        String
+  mimeType        String
+  storageKey      String
+  fileSize        Int
+  ocrStatus       String @default("PENDING")
+  extractionStatus String @default("PENDING")
+
+  createdAt DateTime @default(now())
+}
+
+model Validation {
+  id        String  @id @default(uuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  ruleCode String
+  ruleName String
+  status   String // PASSED | FAILED | WARNING | SKIPPED
+  message  String?
+
+  createdAt DateTime @default(now())
+}
+
+model Exception {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  invoiceId      String
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id])
+  assignedToId   String?
+  assignedTo     User?    @relation("ExceptionOwner", fields: [assignedToId], references: [id])
+
+  type        ExceptionType
+  severity    ExceptionSeverity
+  title       String
+  description String?
+  status      ExceptionStatus @default(OPEN)
+  resolution  String?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  resolvedAt DateTime?
+
+  @@index([organizationId, status])
+  @@index([organizationId, severity])
+}
+
+model Approval {
+  id         String @id @default(uuid())
+  invoiceId  String
+  invoice    Invoice @relation(fields: [invoiceId], references: [id])
+  approverId String
+  approver   User    @relation(fields: [approverId], references: [id])
+
+  sequenceNumber Int      @default(1)
+  status         ApprovalStatus @default(PENDING)
+  comment        String?
+  requestedAt    DateTime @default(now())
+  respondedAt    DateTime?
+}
+
+model Payment {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  invoiceId      String
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id])
+
+  paymentReference String?
+  amount           Decimal @db.Decimal(18, 2)
+  currency         String  @default("INR")
+  paymentMethod    String  @default("BANK_TRANSFER")
+  scheduledDate    DateTime?
+  processedAt      DateTime?
+  status           PaymentStatus @default(AWAITING_SCHEDULE)
+  failureReason    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId, status])
+}
+
+model WorkflowInstance {
+  id        String  @id @default(uuid())
+  invoiceId String  @unique
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  currentState WorkflowState @default(RECEIVED)
+  startedAt    DateTime      @default(now())
+  completedAt  DateTime?
+
+  transitions WorkflowTransition[]
+}
+
+model WorkflowTransition {
+  id                 String @id @default(uuid())
+  workflowInstanceId String
+  workflowInstance   WorkflowInstance @relation(fields: [workflowInstanceId], references: [id])
+
+  fromState  String
+  toState    String
+  event      String
+  triggeredBy String?
+  reason     String?
+  createdAt  DateTime @default(now())
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  invoiceId String
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  body      String
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+
+  type      String
+  title     String
+  message   String?
+  entityType String?
+  entityId   String?
+  status    String   @default("UNREAD") // UNREAD | READ | ARCHIVED
+
+  createdAt DateTime @default(now())
+  readAt    DateTime?
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  userId     String?
+  action     String
+  entityType String
+  entityId   String
+  beforeData Json?
+  afterData  Json?
+  result     String @default("SUCCESS")
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId, entityType, entityId])
+}

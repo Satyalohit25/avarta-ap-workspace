@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2a2b30" />
+      <stop offset="100%" stop-color="#121316" />
+    </linearGradient>
+    <style>
+      @import url('https://fonts.cdnfonts.com/css/chomsky');
+      @import url('https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&amp;display=swap');
+      .letter {
+        font-family: 'Chomsky', 'UnifrakturCook', 'Old English Text MT', serif;
+        font-size: 47px;
+        fill: #f8fafc;
+        font-weight: 700;
+        text-anchor: middle;
+        dominant-baseline: central;
+      }
+    </style>
+  </defs>
+  <rect x="1" y="1" width="62" height="62" rx="16" fill="url(#bgGrad)" stroke="#3f3f46" stroke-width="1.5" />
+  <text x="32" y="31" class="letter">A</text>
+</svg>
