@@ -37,6 +37,16 @@ export function createApp() {
   app.use(express.json({ limit: "10mb" }));
   app.use(requestId);
 
+  app.get("/", (_req, res) => {
+    return res.json({
+      workspace: "Avarta AP Workspace API",
+      status: "operational",
+      version: "1.0.0",
+      healthCheck: "/health",
+      apiBase: "/api/v1",
+    });
+  });
+
   app.get("/health", async (_req, res) => {
     try {
       await prisma.$queryRawUnsafe("SELECT 1");
