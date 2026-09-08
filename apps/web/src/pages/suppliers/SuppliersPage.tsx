@@ -812,6 +812,7 @@ export default function SuppliersPage() {
           setShowAddModal(false);
           resetAddForm();
         }}
+        size="xl"
         title="Onboard New Supplier"
         description="Register a verified vendor in the master directory across entity, contact, and banking sections."
       >

@@ -106,6 +106,7 @@ export function EntityLinkModal({
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
+      size="xl"
       title={isVendor ? "Assign Supplier / Vendor" : "Link Purchase Order"}
       description={
         isVendor

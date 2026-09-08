@@ -279,7 +279,7 @@ Avarta AP Workspace Maker-Checker Governance Protocol (Section 44AA / Rule 56).
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
-      className="max-w-2xl w-full max-h-[92vh] flex flex-col"
+      size="2xl"
       title={
         lifecycle === "SUCCESS"
           ? "Disbursement Settled Successfully"

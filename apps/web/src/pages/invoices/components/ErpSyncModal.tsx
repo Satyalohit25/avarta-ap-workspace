@@ -153,7 +153,7 @@ export function ErpSyncModal({
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
-      className="max-w-2xl w-full"
+      size="2xl"
       title={
         lifecycle === "SUCCESS"
           ? "General Ledger Voucher Confirmed"

@@ -872,6 +872,7 @@ export default function PurchaseOrdersPage() {
       <Dialog
         isOpen={showCreateModal}
         onClose={() => { setShowCreateModal(false); resetPoForm(); }}
+        size="2xl"
         title="Create Purchase Order"
         description="Register a committed purchase order with itemized line items and cost allocation."
       >
