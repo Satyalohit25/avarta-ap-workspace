@@ -168,7 +168,7 @@ export function UserWorkspaceMenu({
                   </span>
                 </div>
                 <span className="text-caption text-neutral-500 dark:text-zinc-400 font-mono truncate block mt-0.5">
-                  {user?.email ?? "user@clearops.dev"}
+                  {user?.email ?? "manager@avarta.dev"}
                 </span>
                 <div className="flex items-center gap-1.5 mt-1.5 text-micro text-neutral-600 dark:text-zinc-400">
                   <Building2 size={12} className="text-neutral-400 shrink-0" />

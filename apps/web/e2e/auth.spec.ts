@@ -28,7 +28,7 @@ test.describe("Authentication Flow & Login UI", () => {
 
   test("displays error message on invalid credentials", async ({ page }) => {
     await page.goto("/login");
-    await page.fill("#loginEmail", "invalid@clearops.dev");
+    await page.fill("#loginEmail", "invalid@avarta.dev");
     await page.fill("#loginPassword", "wrongpassword");
     await page.click('button[type="submit"]');
 

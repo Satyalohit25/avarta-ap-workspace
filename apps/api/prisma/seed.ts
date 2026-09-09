@@ -46,7 +46,7 @@ async function main() {
     prisma.user.create({
       data: {
         organizationId: org.id,
-        email: "admin@clearops.dev",
+        email: "admin@avarta.dev",
         passwordHash,
         fullName: "Asha Administrator",
         role: "ADMINISTRATOR",
@@ -55,7 +55,7 @@ async function main() {
     prisma.user.create({
       data: {
         organizationId: org.id,
-        email: "manager@clearops.dev",
+        email: "manager@avarta.dev",
         passwordHash,
         fullName: "Manav Manager",
         role: "FINANCE_MANAGER",
@@ -64,7 +64,7 @@ async function main() {
     prisma.user.create({
       data: {
         organizationId: org.id,
-        email: "executive@clearops.dev",
+        email: "executive@avarta.dev",
         passwordHash,
         fullName: "Esha Executive",
         role: "FINANCE_EXECUTIVE",
@@ -73,7 +73,7 @@ async function main() {
     prisma.user.create({
       data: {
         organizationId: org.id,
-        email: "approver@clearops.dev",
+        email: "approver@avarta.dev",
         passwordHash,
         fullName: "Arjun Approver",
         role: "APPROVER",
@@ -731,7 +731,7 @@ async function main() {
   }
 
   console.log("-------------------------------------------------------");
-  console.log("ClearOps Seed Refresh Completed Successfully!");
+  console.log("Avarta Seed Refresh Completed Successfully!");
   console.log("-------------------------------------------------------");
   console.log("Seeded Entities:");
   console.log(` - 1 Organization (${org.name})`);
