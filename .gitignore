@@ -21,8 +21,13 @@ coverage/
 
 # Testing & E2E artifacts
 playwright-report/
+**/playwright-report/
 test-results/
+**/test-results/
 e2e-screenshots/
+**/e2e-screenshots/
 apps/web/*_verified.png
 apps/web/e2e/*.cjs
+**/*.timestamp-*.mjs
+**/*.log
 
