@@ -43,7 +43,8 @@ export function RecentInvoicesPanel({ invoices, loading, onInspect }: RecentInvo
             {invoices.map((inv) => (
               <div
                 key={inv.id}
-                className="p-3.5 rounded-lg border border-neutral-200/80 dark:border-zinc-800 bg-neutral-50/40 dark:bg-zinc-900/60 hover:bg-white dark:hover:bg-zinc-900 transition-colors shadow-2xs space-y-2.5"
+                onClick={() => onInspect(inv)}
+                className="p-3.5 rounded-lg border border-neutral-200/80 dark:border-zinc-800 bg-neutral-50/40 dark:bg-zinc-900/60 hover:bg-white dark:hover:bg-zinc-900 transition-colors shadow-2xs space-y-2.5 cursor-pointer"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-0.5 min-w-0">

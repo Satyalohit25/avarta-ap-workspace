@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { listApprovals, ApprovalRow } from "../../api/approvals";
-import { transitionInvoice, getInvoice, InvoiceListItem } from "../../api/invoices";
+import { listApprovals, approveApproval, rejectApproval, ApprovalRow } from "../../api/approvals";
+import { getInvoice, InvoiceListItem } from "../../api/invoices";
 import { SkeletonRows } from "../../components/Skeleton";
 import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/layout/PageHeader";
@@ -118,11 +118,11 @@ export default function ApprovalsPage() {
       .finally(() => setLoadingDetails(false));
   }, [selectedApproval]);
 
-  async function handleApprove(invoiceId: string) {
-    const invNum = selectedApproval?.invoiceNumber ?? invoiceId;
+  async function handleApprove(approvalId: string) {
+    const invNum = selectedApproval?.invoiceNumber ?? approvalId;
     setActionPending(true);
     try {
-      await transitionInvoice(invoiceId, "APPROVE", "Approved via Quick Review Drawer");
+      await approveApproval(approvalId, "Approved via Quick Review Drawer");
       setFeedbackBanner({
         type: "success",
         title: "Invoice Approved",
@@ -142,12 +142,12 @@ export default function ApprovalsPage() {
     }
   }
 
-  async function handleReject(invoiceId: string) {
+  async function handleReject(approvalId: string) {
     if (!rejectComment.trim()) return;
-    const invNum = selectedApproval?.invoiceNumber ?? invoiceId;
+    const invNum = selectedApproval?.invoiceNumber ?? approvalId;
     setActionPending(true);
     try {
-      await transitionInvoice(invoiceId, "REJECT", rejectComment.trim());
+      await rejectApproval(approvalId, rejectComment.trim());
       setFeedbackBanner({
         type: "warning",
         title: "Invoice Rejected",
@@ -534,7 +534,7 @@ export default function ApprovalsPage() {
                   <Button
                     size="sm"
                     variant="destructive"
-                    onClick={() => handleReject(selectedApproval.invoiceId)}
+                    onClick={() => handleReject(selectedApproval.id)}
                     disabled={actionPending || !rejectComment.trim()}
                   >
                     Confirm Rejection
@@ -546,7 +546,7 @@ export default function ApprovalsPage() {
               <div className="space-y-2 pt-2 border-t border-neutral-200 dark:border-zinc-800">
                 <Button
                   className="w-full h-11 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-body-sm shadow-sm"
-                  onClick={() => handleApprove(selectedApproval.invoiceId)}
+                  onClick={() => handleApprove(selectedApproval.id)}
                   disabled={actionPending}
                 >
                   <CheckSquare size={16} />

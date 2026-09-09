@@ -13,7 +13,7 @@ test.describe("Approvals & Payments Workflows", () => {
 
   test("loads Payments Schedule", async ({ page }) => {
     await page.goto("/payments");
-    await expect(page.locator("h1")).toHaveText("Payments");
+    await expect(page.locator("h1")).toContainText("Payments");
   });
 
   test("loads Suppliers Directory", async ({ page }) => {

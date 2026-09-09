@@ -1,5 +1,7 @@
 import { prisma } from "../../config/database";
+import { ApiError } from "../../lib/errors";
 import { parsePagination, paginationMeta } from "../../lib/pagination";
+import { applyTransition } from "../../workflow/engine";
 
 export async function listApprovals(params: {
   organizationId: string;
@@ -41,3 +43,59 @@ export async function listApprovals(params: {
     meta: paginationMeta(page, pageSize, total),
   };
 }
+
+export async function approveApproval(
+  organizationId: string,
+  approvalId: string,
+  userId?: string,
+  notes?: string
+) {
+  const approval = await prisma.approval.findFirst({
+    where: { id: approvalId },
+    include: { invoice: true },
+  });
+  if (!approval || approval.invoice.organizationId !== organizationId) {
+    throw ApiError.notFound("Approval not found");
+  }
+
+  // AGENTS.md rule 4: applyTransition changes workflow_instances.current_state and invoices.status
+  await applyTransition({
+    invoiceId: approval.invoiceId,
+    event: "APPROVED",
+    triggeredBy: userId,
+    reason: notes,
+  });
+
+  return prisma.approval.findUnique({
+    where: { id: approvalId },
+    include: { invoice: { include: { supplier: true } } },
+  });
+}
+
+export async function rejectApproval(
+  organizationId: string,
+  approvalId: string,
+  userId?: string,
+  reason?: string
+) {
+  const approval = await prisma.approval.findFirst({
+    where: { id: approvalId },
+    include: { invoice: true },
+  });
+  if (!approval || approval.invoice.organizationId !== organizationId) {
+    throw ApiError.notFound("Approval not found");
+  }
+
+  await applyTransition({
+    invoiceId: approval.invoiceId,
+    event: "REJECTED",
+    triggeredBy: userId,
+    reason,
+  });
+
+  return prisma.approval.findUnique({
+    where: { id: approvalId },
+    include: { invoice: { include: { supplier: true } } },
+  });
+}
+

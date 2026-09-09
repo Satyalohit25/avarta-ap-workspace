@@ -120,7 +120,7 @@ export function InvoiceStateBanner({
                 type="button"
                 onClick={() => setIsExpanded((prev) => !prev)}
                 className="inline-flex items-center gap-1 text-micro text-neutral-400 dark:text-zinc-500 hover:text-neutral-700 dark:hover:text-zinc-300 px-2 py-1 rounded hover:bg-neutral-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                aria-label={isExpanded ? "Hide details" : "View details"}
+                aria-label={isExpanded ? "Hide workflow details" : "View workflow details"}
               >
                 <span>{isExpanded ? "Less" : "Details"}</span>
                 {isExpanded ? <ChevronUp size={12} strokeWidth={2} /> : <ChevronDown size={12} strokeWidth={2} />}

@@ -1,8 +1,10 @@
+import path from "path";
 import { ExceptionType } from "@prisma/client";
 import { prisma } from "../../config/database";
 import { ApiError } from "../../lib/errors";
 import { parsePagination, paginationMeta } from "../../lib/pagination";
 import { applyTransition, startWorkflow } from "../../workflow/engine";
+import { extractInvoiceFromFile } from "../../ai/extractor";
 import * as repo from "./repository";
 import { toInvoiceDetail, toInvoiceListItem } from "./mapper";
 
@@ -230,9 +232,81 @@ export async function processInvoice(organizationId: string, invoiceId: string, 
   // Capture
   await applyTransition({ invoiceId, event: "CAPTURE_COMPLETE", triggeredBy: userId });
 
-  // Mock AI confidence, deterministic per invoice number so demo data is stable.
-  const confidence = mockConfidence(invoice.invoiceNumber);
-  await prisma.invoice.update({ where: { id: invoiceId }, data: { aiConfidence: confidence } });
+  // Document AI Extraction (Multimodal or Statutory Heuristic)
+  let confidence = mockConfidence(invoice.invoiceNumber);
+  const document = await prisma.document.findFirst({
+    where: { invoiceId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (document) {
+    try {
+      const uploadsDir = path.join(process.cwd(), "uploads");
+      const filePath = path.join(uploadsDir, document.storageKey);
+      const extracted = await extractInvoiceFromFile(filePath, document.mimeType, document.fileName);
+      confidence = Math.round(extracted.overallConfidence * 100) / 100;
+
+      // Match supplier if not already assigned
+      let supplierId = invoice.supplierId;
+      if (!supplierId && extracted.supplier?.name) {
+        const foundSupplier = await prisma.supplier.findFirst({
+          where: {
+            organizationId,
+            OR: [
+              ...(extracted.supplier.gstin ? [{ gstNumber: extracted.supplier.gstin }] : []),
+              { displayName: { contains: extracted.supplier.name, mode: "insensitive" } },
+              { legalName: { contains: extracted.supplier.name, mode: "insensitive" } },
+            ],
+          },
+        });
+        if (foundSupplier) supplierId = foundSupplier.id;
+      }
+
+      // Match Purchase Order if extracted
+      let purchaseOrderId = invoice.purchaseOrderId;
+      if (!purchaseOrderId && extracted.purchaseOrderNumber) {
+        const foundPo = await prisma.purchaseOrder.findFirst({
+          where: {
+            organizationId,
+            poNumber: extracted.purchaseOrderNumber,
+          },
+        });
+        if (foundPo) purchaseOrderId = foundPo.id;
+      }
+
+      // Populate extracted line items if invoice has no lines
+      const existingLineCount = await prisma.invoiceLine.count({ where: { invoiceId } });
+      if (existingLineCount === 0 && extracted.lines && extracted.lines.length > 0) {
+        await prisma.invoiceLine.createMany({
+          data: extracted.lines.map((l) => ({
+            invoiceId,
+            lineNumber: l.lineNumber,
+            description: l.description,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            lineAmount: l.lineAmount,
+          })),
+        });
+      }
+
+      await prisma.invoice.update({
+        where: { id: invoiceId },
+        data: {
+          aiConfidence: confidence,
+          supplierId: supplierId ?? undefined,
+          purchaseOrderId: purchaseOrderId ?? undefined,
+          totalAmount: invoice.totalAmount ? undefined : extracted.totalAmount,
+          subtotalAmount: invoice.subtotalAmount ? undefined : extracted.subtotal,
+          taxAmount: invoice.taxAmount ? undefined : extracted.taxAmount,
+        },
+      });
+    } catch (err) {
+      console.warn("Document AI extraction fallback:", err);
+      await prisma.invoice.update({ where: { id: invoiceId }, data: { aiConfidence: confidence } });
+    }
+  } else {
+    await prisma.invoice.update({ where: { id: invoiceId }, data: { aiConfidence: confidence } });
+  }
 
   // Validate
   await applyTransition({ invoiceId, event: "VALIDATION_START", triggeredBy: userId });

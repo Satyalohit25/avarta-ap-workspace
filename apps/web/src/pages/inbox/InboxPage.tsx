@@ -139,6 +139,10 @@ export default function InboxPage() {
           lines: values.lines,
           file: values.file,
         });
+        toast.success(
+          "Invoice Received",
+          `Invoice ${values.invoiceNumber.trim()} added to inbox and awaiting review.`,
+        );
       } else if (formMode === "review" && selectedInvoiceId) {
         // Persist human corrections first before running pipeline
         await updateInvoice(selectedInvoiceId, {

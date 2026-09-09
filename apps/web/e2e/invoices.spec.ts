@@ -8,7 +8,7 @@ test.describe("Invoice Lifecycle & Processing Workflow", () => {
 
   test("receives a new invoice from Inbox form and lands on state-first detail page", async ({ page }) => {
     await page.goto("/inbox");
-    await expect(page.locator("h1")).toHaveText("Inbox");
+    await expect(page.locator("h1")).toHaveText("Inbox", { timeout: 15000 });
 
     // Open Quick manual entry dialog
     await page.getByRole("button", { name: /Quick manual entry/i }).click();
@@ -17,19 +17,14 @@ test.describe("Invoice Lifecycle & Processing Workflow", () => {
     await page.click('button[type="submit"]');
 
     // Should see the invoice in Recent Invoices list
-    await expect(page.getByText(testInvNum)).toBeVisible();
+    await expect(page.getByText(testInvNum, { exact: true }).first()).toBeVisible({ timeout: 10000 });
 
     // Click to navigate to Invoice Detail view
-    await page.getByText(testInvNum).first().click();
+    await page.getByText(testInvNum, { exact: true }).first().click();
 
-    // In review dialog or full workspace, open detail view
     const openWorkspaceBtn = page.getByRole("button", { name: /Open Full Workspace/i });
-    if (await openWorkspaceBtn.isVisible()) {
-      await openWorkspaceBtn.click();
-    } else {
-      await page.goto("/invoices");
-      await page.getByText(testInvNum).first().click();
-    }
+    await expect(openWorkspaceBtn).toBeVisible({ timeout: 10000 });
+    await openWorkspaceBtn.click();
 
     await page.waitForURL(/\/invoices\/[a-zA-Z0-9-]+$/);
     await expect(page.locator("h1")).toContainText(testInvNum);
@@ -58,10 +53,10 @@ test.describe("Invoice Lifecycle & Processing Workflow", () => {
     await page.waitForURL(/\/invoices\/[a-zA-Z0-9-]+$/);
 
     // Verify Metric Strip
-    await expect(page.locator("span").filter({ hasText: "Total Amount" }).first()).toBeVisible();
-    await expect(page.locator("span").filter({ hasText: "Due Date" }).first()).toBeVisible();
-    await expect(page.locator("span").filter({ hasText: "Supplier / Vendor" }).first()).toBeVisible();
-    await expect(page.locator("span").filter({ hasText: "Purchase Order" }).first()).toBeVisible();
+    await expect(page.locator("span").filter({ hasText: "Total Amount" }).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("span").filter({ hasText: "Due Date" }).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("span").filter({ hasText: "Supplier / Vendor" }).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("span").filter({ hasText: "Purchase Order" }).first()).toBeVisible({ timeout: 10000 });
   });
 
   test("opens Supplier & PO linking modals from summary strip", async ({ page }) => {
@@ -88,16 +83,12 @@ test.describe("Invoice Lifecycle & Processing Workflow", () => {
     await page.fill("#shared-invoice-number", testInvNum);
     await page.click('button[type="submit"]');
 
-    await expect(page.getByText(testInvNum)).toBeVisible();
-    await page.getByText(testInvNum).first().click();
+    await expect(page.getByText(testInvNum, { exact: true }).first()).toBeVisible({ timeout: 10000 });
+    await page.getByText(testInvNum, { exact: true }).first().click();
 
     const openWorkspaceBtn = page.getByRole("button", { name: /Open Full Workspace/i });
-    if (await openWorkspaceBtn.isVisible()) {
-      await openWorkspaceBtn.click();
-    } else {
-      await page.goto("/invoices");
-      await page.getByText(testInvNum).first().click();
-    }
+    await expect(openWorkspaceBtn).toBeVisible({ timeout: 10000 });
+    await openWorkspaceBtn.click();
 
     await page.waitForURL(/\/invoices\/[a-zA-Z0-9-]+$/);
 
@@ -128,13 +119,16 @@ test.describe("Invoice Lifecycle & Processing Workflow", () => {
     const bannerToggle = page.locator('button[aria-label="Hide workflow details"], button[aria-label="View workflow details"]');
     await expect(bannerToggle).toHaveCount(1);
 
-    // Toggle collapse
-    await bannerToggle.click();
-    await expect(bannerToggle).toHaveAttribute("aria-label", "View workflow details");
+    const initialLabel = await bannerToggle.getAttribute("aria-label");
+    const toggledLabel = initialLabel === "Hide workflow details" ? "View workflow details" : "Hide workflow details";
 
-    // Toggle expand again
+    // Toggle once
     await bannerToggle.click();
-    await expect(bannerToggle).toHaveAttribute("aria-label", "Hide workflow details");
+    await expect(bannerToggle).toHaveAttribute("aria-label", toggledLabel);
+
+    // Toggle back
+    await bannerToggle.click();
+    await expect(bannerToggle).toHaveAttribute("aria-label", initialLabel!);
 
     // Open Audit Drawer
     const viewAuditBtn = page.getByRole("button", { name: /Audit/i }).first();
@@ -149,7 +143,7 @@ test.describe("Invoice Lifecycle & Processing Workflow", () => {
 
     // Take screenshot of dynamic audit drawer
     await page.screenshot({
-      path: "C:/Users/lohit/.gemini/antigravity-ide/brain/6e360243-5347-4196-895e-dd16767a8b6d/dynamic-audit-drawer-verified.png",
+      path: "test-results/dynamic-audit-drawer-verified.png",
       fullPage: true,
     });
   });

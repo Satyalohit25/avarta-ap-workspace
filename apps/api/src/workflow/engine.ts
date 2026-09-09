@@ -64,6 +64,86 @@ export async function applyTransition({ invoiceId, event, triggeredBy, reason }:
       },
     });
 
+    // Relational Side Effect: Automated Approval Generation
+    if (rule.to === "WAITING_APPROVAL") {
+      const existingApproval = await tx.approval.findFirst({
+        where: { invoiceId, status: "PENDING" },
+      });
+      if (!existingApproval) {
+        const approver = await tx.user.findFirst({
+          where: {
+            organizationId: invoice.organizationId,
+            role: { in: ["APPROVER", "FINANCE_MANAGER", "ADMINISTRATOR"] },
+            status: "ACTIVE",
+          },
+        });
+        if (approver) {
+          await tx.approval.create({
+            data: {
+              invoiceId,
+              approverId: approver.id,
+              status: "PENDING",
+            },
+          });
+        }
+      }
+    }
+
+    // Relational Side Effect: Approval Resolution
+    if (event === "APPROVED") {
+      await tx.approval.updateMany({
+        where: { invoiceId, status: "PENDING" },
+        data: {
+          status: "APPROVED",
+          respondedAt: new Date(),
+          comment: reason ?? null,
+        },
+      });
+    } else if (event === "REJECTED") {
+      await tx.approval.updateMany({
+        where: { invoiceId, status: "PENDING" },
+        data: {
+          status: "REJECTED",
+          respondedAt: new Date(),
+          comment: reason ?? "Rejected by reviewer",
+        },
+      });
+    }
+
+    // Relational Side Effect: Automated Payment Creation / Scheduling
+    if (rule.to === "SCHEDULED" && event === "APPROVED") {
+      const existingPayment = await tx.payment.findFirst({ where: { invoiceId } });
+      if (!existingPayment) {
+        await tx.payment.create({
+          data: {
+            organizationId: invoice.organizationId,
+            invoiceId,
+            amount: invoice.totalAmount,
+            currency: invoice.currency,
+            paymentMethod: "BANK_TRANSFER",
+            scheduledDate: invoice.dueDate ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            status: "SCHEDULED",
+          },
+        });
+      } else if (existingPayment.status === "AWAITING_SCHEDULE") {
+        await tx.payment.update({
+          where: { id: existingPayment.id },
+          data: { status: "SCHEDULED" },
+        });
+      }
+    }
+
+    // Relational Side Effect: Payment Finalization
+    if (rule.to === "PAID") {
+      await tx.payment.updateMany({
+        where: { invoiceId, status: { not: "PAID" } },
+        data: {
+          status: "PAID",
+          processedAt: new Date(),
+        },
+      });
+    }
+
     await tx.auditLog.create({
       data: {
         organizationId: invoice.organizationId,

@@ -3,7 +3,7 @@ import { UploadCloud, Zap, FileText, X } from "lucide-react";
 import { Card, CardHeader, CardContent } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import { Alert } from "../../../components/ui/Alert";
-import { createInvoice } from "../../../api/invoices";
+import { createInvoice, processInvoice } from "../../../api/invoices";
 
 export interface QueuedFile {
   id: string;
