@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopNav } from "./TopNav";
-import { DemoRoleSwitcher } from "./DemoRoleSwitcher";
 
 // Doc 08 §8.7 global page template: Multi-device Responsive Sidebar + TopNav + Content.
 export function AppLayout() {
@@ -71,7 +70,6 @@ export function AppLayout() {
       />
 
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        <DemoRoleSwitcher />
         <TopNav onOpenMobileMenu={() => setIsMobileOpen(true)} />
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-[1680px] w-full mx-auto px-3.5 sm:px-5 py-2">
