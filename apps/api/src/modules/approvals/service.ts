@@ -14,7 +14,9 @@ export async function listApprovals(params: {
   const where = {
     invoice: { organizationId: params.organizationId },
     ...(params.approverId ? { approverId: params.approverId } : {}),
-    ...(params.status ? { status: params.status as unknown as never } : { status: "PENDING" as unknown as never }),
+    ...(params.status
+      ? { status: params.status as unknown as never }
+      : { status: "PENDING" as unknown as never }),
   };
 
   const [rows, total] = await Promise.all([
@@ -48,7 +50,7 @@ export async function approveApproval(
   organizationId: string,
   approvalId: string,
   userId?: string,
-  notes?: string
+  notes?: string,
 ) {
   const approval = await prisma.approval.findFirst({
     where: { id: approvalId },
@@ -58,7 +60,9 @@ export async function approveApproval(
     throw ApiError.notFound("Approval not found");
   }
   if (approval.status !== "PENDING") {
-    throw ApiError.conflict(`Approval has already been resolved with status "${approval.status}"`);
+    throw ApiError.conflict(
+      `Approval has already been resolved with status "${approval.status}"`,
+    );
   }
 
   // AGENTS.md rule 4: applyTransition changes workflow_instances.current_state and invoices.status
@@ -79,7 +83,7 @@ export async function rejectApproval(
   organizationId: string,
   approvalId: string,
   userId?: string,
-  reason?: string
+  reason?: string,
 ) {
   const approval = await prisma.approval.findFirst({
     where: { id: approvalId },
@@ -89,10 +93,14 @@ export async function rejectApproval(
     throw ApiError.notFound("Approval not found");
   }
   if (approval.status !== "PENDING") {
-    throw ApiError.conflict(`Approval has already been resolved with status "${approval.status}"`);
+    throw ApiError.conflict(
+      `Approval has already been resolved with status "${approval.status}"`,
+    );
   }
   if (!reason || reason.trim().length === 0) {
-    throw ApiError.badRequest("A reason is required when rejecting an approval");
+    throw ApiError.badRequest(
+      "A reason is required when rejecting an approval",
+    );
   }
 
   await applyTransition({
@@ -107,4 +115,3 @@ export async function rejectApproval(
     include: { invoice: { include: { supplier: true } } },
   });
 }
-
