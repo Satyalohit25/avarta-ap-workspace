@@ -20,16 +20,17 @@ export function createApp() {
     cors({
       origin: (origin, callback) => {
         if (!origin) return callback(null, true);
-        if (
+        const isAllowed =
           customOrigins.includes("*") ||
           customOrigins.includes(origin) ||
           origin.endsWith(".vercel.app") ||
           origin.includes("localhost") ||
-          origin.includes("127.0.0.1")
-        ) {
+          origin.includes("127.0.0.1");
+
+        if (isAllowed) {
           return callback(null, true);
         }
-        return callback(null, true); // Permissive for client showcase / demo API
+        return callback(new Error(`Origin ${origin} not allowed by CORS policy`));
       },
       credentials: true,
     })

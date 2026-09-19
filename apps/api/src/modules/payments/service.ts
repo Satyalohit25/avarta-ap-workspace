@@ -84,6 +84,12 @@ export async function executePayment(
 ) {
   const payment = await prisma.payment.findFirst({ where: { id: paymentId, organizationId } });
   if (!payment) throw ApiError.notFound("Payment not found");
+  if (payment.status === "PAID") {
+    throw ApiError.conflict("Payment has already been executed and is marked as PAID.");
+  }
+  if (payment.status !== "SCHEDULED" && payment.status !== "AWAITING_SCHEDULE") {
+    throw ApiError.conflict(`Payment cannot be executed from status "${payment.status}"`);
+  }
 
   await applyTransition({ invoiceId: payment.invoiceId, event: "PAYMENT_RUN", triggeredBy: userId });
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Search, User, Sun, Moon, Menu, LogOut, HelpCircle } from "lucide-react";
+import { Bell, Search, Sun, Moon, Menu, LogOut, HelpCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../app/AuthContext";
 import { useTheme } from "../../app/ThemeContext";
@@ -13,7 +13,7 @@ interface TopNavProps {
 }
 
 export function TopNav({ onOpenMobileMenu }: TopNavProps) {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [commandOpen, setCommandOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
-  ArrowLeft,
   Calendar,
   Building2,
   Link2,
@@ -37,7 +36,6 @@ import { SkeletonRows } from "../../components/Skeleton";
 import { Button } from "../../components/ui/Button";
 import { MetricStrip } from "../../components/ui/MetricStrip";
 import { BadgeKey } from "../../components/ui/BadgeKey";
-import { Card, CardContent, CardHeader } from "../../components/ui/Card";
 import { Timeline, TimelineEvent } from "../../components/ui/Timeline";
 import { Dialog } from "../../components/ui/Dialog";
 import { Sheet } from "../../components/ui/Sheet";

@@ -57,6 +57,9 @@ export async function approveApproval(
   if (!approval || approval.invoice.organizationId !== organizationId) {
     throw ApiError.notFound("Approval not found");
   }
+  if (approval.status !== "PENDING") {
+    throw ApiError.conflict(`Approval has already been resolved with status "${approval.status}"`);
+  }
 
   // AGENTS.md rule 4: applyTransition changes workflow_instances.current_state and invoices.status
   await applyTransition({
@@ -85,12 +88,18 @@ export async function rejectApproval(
   if (!approval || approval.invoice.organizationId !== organizationId) {
     throw ApiError.notFound("Approval not found");
   }
+  if (approval.status !== "PENDING") {
+    throw ApiError.conflict(`Approval has already been resolved with status "${approval.status}"`);
+  }
+  if (!reason || reason.trim().length === 0) {
+    throw ApiError.badRequest("A reason is required when rejecting an approval");
+  }
 
   await applyTransition({
     invoiceId: approval.invoiceId,
     event: "REJECTED",
     triggeredBy: userId,
-    reason,
+    reason: reason.trim(),
   });
 
   return prisma.approval.findUnique({

@@ -10,10 +10,7 @@ import {
   Sliders,
   Webhook,
   Mail,
-  Clock,
-  ShieldCheck,
   Send,
-  Radio,
   ExternalLink,
 } from "lucide-react";
 import { PageHeader } from "../../components/layout/PageHeader";
@@ -371,7 +368,7 @@ export default function NotificationsPage() {
                     </div>
 
                     <div className="pt-2 flex justify-end">
-                      <Button type="submit">Save Channel Routing</Button>
+                      <Button type="submit">{savedSettings ? "Saved ✓" : "Save Channel Routing"}</Button>
                     </div>
                   </CardContent>
                 </Card>

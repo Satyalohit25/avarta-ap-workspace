@@ -27,7 +27,6 @@ import {
   XCircle,
   ArrowRight,
   Calendar,
-  Building2,
   AlertTriangle,
   PackageCheck,
   Layers,

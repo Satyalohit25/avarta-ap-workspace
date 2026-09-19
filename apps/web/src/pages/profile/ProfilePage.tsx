@@ -3,13 +3,10 @@ import { useAuth } from "../../app/AuthContext";
 import {
   User,
   Plus,
-  ShieldOff,
   ShieldCheck,
-  Key,
   Lock,
   Laptop,
   CheckCircle2,
-  AlertCircle,
   Copy,
   Check,
   Camera,

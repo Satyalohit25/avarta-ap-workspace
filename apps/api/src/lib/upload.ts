@@ -7,17 +7,6 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (_req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname);
-    cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
-  },
-});
-
 const allowedMimes = [
   "application/pdf",
   "image/png",
@@ -25,13 +14,31 @@ const allowedMimes = [
   "image/jpg",
 ];
 
+const allowedExtensions = [".pdf", ".png", ".jpg", ".jpeg"];
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const ext = path.extname(file.originalname).toLowerCase();
+    const safeExt = allowedExtensions.includes(ext) ? ext : ".pdf";
+    cb(null, `${file.fieldname}-${uniqueSuffix}${safeExt}`);
+  },
+});
+
 export const upload = multer({
   storage,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10 MB limit
   },
   fileFilter: (_req, file, cb) => {
-    if (allowedMimes.includes(file.mimetype)) {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const isMimeValid = allowedMimes.includes(file.mimetype.toLowerCase());
+    const isExtValid = allowedExtensions.includes(ext);
+
+    if (isMimeValid && isExtValid) {
       cb(null, true);
     } else {
       cb(new Error("Invalid file type. Only PDF, PNG, and JPG files up to 10MB are allowed."));

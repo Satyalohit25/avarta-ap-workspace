@@ -46,8 +46,14 @@ export async function listExceptions(params: {
 }
 
 export async function assignException(organizationId: string, exceptionId: string, userId: string) {
-  const exception = await prisma.exception.findFirst({ where: { id: exceptionId, organizationId } });
+  const [exception, targetUser] = await Promise.all([
+    prisma.exception.findFirst({ where: { id: exceptionId, organizationId } }),
+    prisma.user.findFirst({ where: { id: userId, organizationId, status: "ACTIVE" } }),
+  ]);
+
   if (!exception) throw ApiError.notFound("Exception not found");
+  if (!targetUser) throw ApiError.badRequest("Assignee user not found or inactive in organization");
+
   return prisma.exception.update({
     where: { id: exceptionId },
     data: { assignedToId: userId, status: "ASSIGNED" },
@@ -73,6 +79,10 @@ export async function resolveException(
     where: { id: exceptionId, organizationId },
   });
   if (!exception) throw ApiError.notFound("Exception not found");
+
+  if (exception.status === "RESOLVED" || exception.status === "REJECTED") {
+    throw ApiError.conflict(`Exception is already in "${exception.status}" status.`);
+  }
 
   const updatedException = await prisma.exception.update({
     where: { id: exceptionId },

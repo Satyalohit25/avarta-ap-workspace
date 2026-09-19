@@ -43,7 +43,10 @@ export async function login(email: string, password: string) {
 }
 
 export async function getCurrentUser(userId: string) {
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || user.status !== "ACTIVE") {
+    throw ApiError.unauthorized("User account is inactive or disabled");
+  }
   return {
     id: user.id,
     name: user.fullName,

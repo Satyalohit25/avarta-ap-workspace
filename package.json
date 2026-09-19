@@ -19,7 +19,9 @@
     "test": "vitest run",
     "test:unit": "vitest run",
     "test:e2e": "pnpm --filter @ap-saas/web test:e2e",
-    "lint": "eslint . --cache --cache-location .eslintcache"
+    "lint": "eslint . --cache --cache-location .eslintcache",
+    "typecheck": "pnpm -r typecheck",
+    "check": "pnpm typecheck && pnpm lint && pnpm test"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.67.0",

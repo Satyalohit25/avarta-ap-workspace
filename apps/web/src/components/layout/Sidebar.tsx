@@ -19,7 +19,6 @@ import {
 import { listExceptions } from "../../api/exceptions";
 import { listInvoices } from "../../api/invoices";
 import { listApprovals } from "../../api/approvals";
-import { useAuth } from "../../app/AuthContext";
 import { AvartaCrest } from "../brand/AvartaCrest";
 
 interface NavItemDef {
@@ -91,7 +90,6 @@ export function Sidebar({
 }: SidebarProps) {
   const isRail = (isRailProp ?? isCollapsed) && !isMobileOpen;
   const [counts, setCounts] = useState<Record<string, number>>({});
-  const { user } = useAuth();
   const location = useLocation();
 
   const loadCounts = useCallback(async () => {
@@ -130,11 +128,6 @@ export function Sidebar({
       clearInterval(interval);
     };
   }, [loadCounts]);
-
-  const isCurrent = (to: string) => {
-    if (to === "/overview") return location.pathname === "/overview";
-    return location.pathname.startsWith(to);
-  };
 
   // Auto-close mobile drawer on route navigation
   useEffect(() => {

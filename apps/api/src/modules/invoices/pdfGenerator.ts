@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 
 export function generateInvoicePdfBuffer(params: {
   invoiceNumber: string;

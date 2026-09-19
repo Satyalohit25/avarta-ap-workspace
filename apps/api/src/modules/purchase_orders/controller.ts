@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { ApiError } from "../../lib/errors";
 import * as poService from "./service";
-import { createPoSchema } from "./validation";
+import { createPoSchema, recordGrnSchema } from "./validation";
 
 function orgId(req: Request): string {
   if (!req.auth) throw ApiError.unauthorized();
@@ -49,7 +49,8 @@ export async function toggleReceivingHandler(req: Request, res: Response, next: 
 
 export async function recordGrnHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    const grn = await poService.recordGoodsReceipt(orgId(req), req.params.poId, req.body);
+    const input = recordGrnSchema.parse(req.body);
+    const grn = await poService.recordGoodsReceipt(orgId(req), req.params.poId, input);
     res.status(201).json({ data: grn });
   } catch (err) {
     next(err);

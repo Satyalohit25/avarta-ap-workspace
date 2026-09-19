@@ -7,7 +7,7 @@ export const createSupplierSchema = z.object({
   gstNumber: z.string().optional(),
   country: z.string().default("IN"),
   currency: z.string().length(3).default("INR"),
-  paymentTermsDays: z.number().int().default(30),
+  paymentTermsDays: z.number().int().min(0, "Payment terms cannot be negative").max(365, "Payment terms cannot exceed 365 days").default(30),
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),

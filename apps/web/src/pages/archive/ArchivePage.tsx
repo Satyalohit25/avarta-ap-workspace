@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { listInvoices, InvoiceListItem } from "../../api/invoices";
-import { StatusBadge } from "../../components/StatusBadge";
 import { EmptyState } from "../../components/EmptyState";
 import { SkeletonRows } from "../../components/Skeleton";
 import { PageHeader } from "../../components/layout/PageHeader";
@@ -13,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
-import { Card, CardHeader, CardContent } from "../../components/ui/Card";
+import { Card } from "../../components/ui/Card";
 import { StatsCard } from "../../components/ui/StatsCard";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
@@ -32,10 +31,6 @@ import {
   FileCheck2,
   Lock,
   ExternalLink,
-  Layers,
-  Calendar,
-  Building2,
-  Hash,
   Clock,
 } from "lucide-react";
 import { AvartaCrest } from "../../components/brand/AvartaCrest";

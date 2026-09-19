@@ -71,20 +71,29 @@ export async function updateHandler(req: Request, res: Response, next: NextFunct
 export async function getDocumentFileHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const document = await prisma.document.findFirst({
-      where: { id: req.params.documentId },
+      where: {
+        id: req.params.documentId,
+        invoiceId: req.params.invoiceId,
+        invoice: { organizationId: orgId(req) },
+      },
       include: { invoice: { include: { supplier: true } } },
     });
 
-    if (!document || document.invoice.organizationId !== orgId(req)) {
+    if (!document) {
       throw ApiError.notFound("Document not found");
     }
 
-    const uploadsDir = path.join(process.cwd(), "uploads");
+    const uploadsDir = path.resolve(process.cwd(), "uploads");
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    const filePath = path.join(uploadsDir, document.storageKey);
+    // Prevent directory traversal attacks (CWE-22)
+    const safeStorageKey = path.basename(document.storageKey);
+    const filePath = path.resolve(uploadsDir, safeStorageKey);
+    if (!filePath.startsWith(uploadsDir)) {
+      throw ApiError.forbidden("Access denied: invalid storage path");
+    }
     if (!fs.existsSync(filePath)) {
       // Auto-generate statutory PDF voucher if seeded storage file is missing
       const pdfBuffer = generateInvoicePdfBuffer({

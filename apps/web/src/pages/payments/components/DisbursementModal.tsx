@@ -5,7 +5,6 @@ import { formatCurrency, formatDate } from "../../../lib/formatters";
 import { PaymentRow } from "../../../api/payments";
 import {
   Wallet,
-  Building2,
   CheckCircle2,
   ShieldCheck,
   CreditCard,
@@ -18,8 +17,6 @@ import {
   Download,
   RotateCcw,
   Clock,
-  ArrowRight,
-  ChevronDown,
   Info,
 } from "lucide-react";
 import { AvartaCrest } from "../../../components/brand/AvartaCrest";

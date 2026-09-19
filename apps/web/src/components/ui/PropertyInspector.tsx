@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, Calendar, FileCheck, Copy, Check, Hash, FileSpreadsheet, ShieldCheck } from "lucide-react";
+import { Calendar, FileCheck, Copy, Check, Hash, FileSpreadsheet, ShieldCheck } from "lucide-react";
 
 export interface PropertyInspectorProps {
   vendorGstin?: string | null;

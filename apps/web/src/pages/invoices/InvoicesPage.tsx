@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
@@ -11,7 +11,6 @@ import {
   CalendarCheck,
   Archive,
   CheckSquare,
-  Loader2,
 } from "lucide-react";
 import { InvoiceListItem, listInvoices, transitionInvoice } from "../../api/invoices";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -61,12 +60,10 @@ export default function InvoicesPage() {
   // Keep search query synced with URL search param
   useEffect(() => {
     const s = searchParams.get("search") ?? "";
-    if (s !== searchQuery) {
-      setSearchQuery(s);
-    }
+    setSearchQuery((prev) => (prev !== s ? s : prev));
   }, [searchParams]);
 
-  function handleSearchChange(q: string) {
+  const handleSearchChange = useCallback((q: string) => {
     setSearchQuery(q);
     setCurrentPage(1);
     const nextParams = new URLSearchParams(searchParams);
@@ -76,9 +73,9 @@ export default function InvoicesPage() {
       nextParams.delete("search");
     }
     setSearchParams(nextParams, { replace: true });
-  }
+  }, [searchParams, setSearchParams]);
 
-  function handleTabChange(tabId: string) {
+  const handleTabChange = useCallback((tabId: string) => {
     setCurrentPage(1);
     setSelectedIds(new Set());
     const nextParams = new URLSearchParams(searchParams);
@@ -88,9 +85,9 @@ export default function InvoicesPage() {
       nextParams.delete("status");
     }
     setSearchParams(nextParams);
-  }
+  }, [searchParams, setSearchParams]);
 
-  const loadData = () => {
+  const loadData = useCallback(() => {
     setLoading(true);
     listInvoices({ status })
       .then((res) => setInvoices(res.data))
@@ -99,11 +96,11 @@ export default function InvoicesPage() {
     listInvoices()
       .then((res) => setAllInvoices(res.data))
       .catch(() => {});
-  };
+  }, [status]);
 
   useEffect(() => {
     loadData();
-  }, [status]);
+  }, [loadData]);
 
   function handleSort(field: SortField) {
     if (sortField === field) {
@@ -295,14 +292,13 @@ export default function InvoicesPage() {
 
     setIsBulkOperating(true);
     let successCount = 0;
-    let failCount = 0;
 
     for (const inv of selectedList) {
       try {
         await transitionInvoice(inv.id, "ARCHIVE");
         successCount++;
       } catch {
-        failCount++;
+        // Invoice cannot be transitioned to ARCHIVE from its state
       }
     }
 
@@ -323,14 +319,17 @@ export default function InvoicesPage() {
     }
   }
 
-  const tabs = [
-    { id: "", label: `All Invoices (${counts.all || allInvoices.length})`, content: null },
-    { id: "PROCESSING", label: `Processing (${counts.processing})`, content: null },
-    { id: "EXCEPTION", label: `Exceptions (${counts.exception})`, content: null },
-    { id: "PENDING_APPROVAL", label: `Waiting Approval (${counts.pending_approval})`, content: null },
-    { id: "SCHEDULED", label: `Scheduled (${counts.scheduled})`, content: null },
-    { id: "PAID", label: `Paid (${counts.paid})`, content: null },
-  ];
+  const tabs = useMemo(
+    () => [
+      { id: "", label: `All Invoices (${counts.all || allInvoices.length})`, content: null },
+      { id: "PROCESSING", label: `Processing (${counts.processing})`, content: null },
+      { id: "EXCEPTION", label: `Exceptions (${counts.exception})`, content: null },
+      { id: "PENDING_APPROVAL", label: `Waiting Approval (${counts.pending_approval})`, content: null },
+      { id: "SCHEDULED", label: `Scheduled (${counts.scheduled})`, content: null },
+      { id: "PAID", label: `Paid (${counts.paid})`, content: null },
+    ],
+    [counts, allInvoices.length],
+  );
 
   const activeFilterTokens = useMemo<FilterToken[]>(() => {
     const tokens: FilterToken[] = [];
@@ -352,7 +351,7 @@ export default function InvoicesPage() {
       });
     }
     return tokens;
-  }, [status, searchQuery, tabs]);
+  }, [status, searchQuery, tabs, handleTabChange, handleSearchChange]);
 
   const handleClearAllFilters = () => {
     handleTabChange("");

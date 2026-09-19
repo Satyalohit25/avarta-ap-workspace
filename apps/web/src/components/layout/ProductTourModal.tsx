@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  HelpCircle,
   X,
   ArrowRight,
   ShieldCheck,
@@ -9,13 +8,11 @@ import {
   AlertTriangle,
   FileText,
   Wallet,
-  Building2,
   RefreshCw,
   Archive,
   Sparkles,
   Layers,
   Users,
-  ExternalLink,
   ChevronRight,
 } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -236,7 +233,6 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
               {/* Active Step Details Card */}
               {(() => {
                 const cur = steps[activeStep];
-                const Icon = cur.icon;
                 return (
                   <div className="p-5 rounded-2xl border border-indigo-100 dark:border-indigo-950 bg-gradient-to-br from-indigo-50/40 via-white to-neutral-50/50 dark:from-indigo-950/20 dark:via-zinc-900 dark:to-zinc-900 shadow-xs relative overflow-hidden">
                     <div className="flex items-start justify-between mb-3">

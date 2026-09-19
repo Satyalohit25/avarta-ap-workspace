@@ -17,14 +17,14 @@ export function listApprovals() {
 }
 
 export function approveApproval(approvalId: string, notes?: string) {
-  return apiRequest<{ success: boolean; data: any }>(`/approvals/${approvalId}/approve`, {
+  return apiRequest<{ success: boolean; data: unknown }>(`/approvals/${approvalId}/approve`, {
     method: "POST",
     body: { notes },
   });
 }
 
 export function rejectApproval(approvalId: string, reason: string) {
-  return apiRequest<{ success: boolean; data: any }>(`/approvals/${approvalId}/reject`, {
+  return apiRequest<{ success: boolean; data: unknown }>(`/approvals/${approvalId}/reject`, {
     method: "POST",
     body: { reason },
   });

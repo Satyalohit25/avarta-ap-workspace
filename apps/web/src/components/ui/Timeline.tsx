@@ -1,4 +1,4 @@
-import { LucideIcon, Sparkles, User, CheckCircle2, AlertTriangle, FileText, ArrowRight, ShieldCheck } from "lucide-react";
+import { LucideIcon, Sparkles, User, CheckCircle2, AlertTriangle } from "lucide-react";
 
 export interface TimelineEvent {
   id: string;

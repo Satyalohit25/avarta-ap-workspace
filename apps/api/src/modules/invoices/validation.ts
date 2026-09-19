@@ -1,14 +1,19 @@
 import { z } from "zod";
 
+const amountSchema = z.union([z.string(), z.number()]).refine(
+  (val) => !isNaN(Number(val)) && Number(val) >= 0,
+  { message: "Amount must be a valid non-negative number" }
+);
+
 export const createInvoiceSchema = z.object({
   supplierId: z.string().uuid().optional().nullable().or(z.literal("")),
   invoiceNumber: z.string().min(1),
   invoiceDate: z.string().optional().nullable().or(z.literal("")),
   dueDate: z.string().optional().nullable().or(z.literal("")),
   currency: z.string().length(3).default("INR"),
-  subtotalAmount: z.string().or(z.number()).optional(),
-  taxAmount: z.string().or(z.number()).optional(),
-  totalAmount: z.string().or(z.number()),
+  subtotalAmount: amountSchema.optional(),
+  taxAmount: amountSchema.optional(),
+  totalAmount: amountSchema,
   purchaseOrderId: z.string().uuid().optional().nullable().or(z.literal("")),
   source: z.enum(["UPLOAD", "EMAIL", "PORTAL", "SCANNER", "MOBILE", "API", "EDI", "ERP"]).optional(),
   lines: z
@@ -31,9 +36,9 @@ export const updateInvoiceSchema = z.object({
   invoiceDate: z.string().optional().nullable().or(z.literal("")),
   dueDate: z.string().optional().nullable().or(z.literal("")),
   currency: z.string().length(3).optional(),
-  subtotalAmount: z.string().or(z.number()).optional(),
-  taxAmount: z.string().or(z.number()).optional(),
-  totalAmount: z.string().or(z.number()).optional(),
+  subtotalAmount: amountSchema.optional(),
+  taxAmount: amountSchema.optional(),
+  totalAmount: amountSchema.optional(),
   purchaseOrderId: z.string().uuid().optional().nullable().or(z.literal("")),
   lines: z
     .array(
@@ -59,7 +64,17 @@ export const listInvoicesQuerySchema = z.object({
 
 // Doc 18 §18.6 — action verbs only; the API never accepts an arbitrary
 // target state (Doc 14 §14.11).
-export const transitionSchema = z.object({
-  action: z.enum(["APPROVE", "REJECT", "RETRY_VALIDATION", "RUN_MATCHING"]),
-  comment: z.string().optional(),
-});
+export const transitionSchema = z
+  .object({
+    action: z.enum(["APPROVE", "REJECT", "RETRY_VALIDATION", "RUN_MATCHING"]),
+    comment: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.action === "REJECT" && (!data.comment || data.comment.trim().length === 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["comment"],
+        message: "A comment or reason is required when rejecting an invoice",
+      });
+    }
+  });

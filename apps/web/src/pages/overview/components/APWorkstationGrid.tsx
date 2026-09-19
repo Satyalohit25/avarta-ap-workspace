@@ -3,22 +3,11 @@ import { useNavigate } from "react-router-dom";
 import {
   Clock,
   AlertTriangle,
-  FileQuestion,
-  Copy,
-  Receipt,
   ArrowRight,
-  Bell,
-  Check,
-  CheckCircle2,
   Building2,
-  Cpu,
-  Layers,
-  Sparkles,
-  ExternalLink,
+  Check,
   Zap,
-  Calendar,
-  ShieldAlert,
-  ArrowUpRight,
+  Bell,
 } from "lucide-react";
 import { formatCurrency, formatCompactCurrency } from "../../../lib/formatters";
 import { DashboardOverview, BlockerGroup, BlockerInvoiceItem } from "../../../api/dashboard";

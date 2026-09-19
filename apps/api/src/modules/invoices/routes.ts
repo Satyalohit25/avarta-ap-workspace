@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth";
 import { requireRole } from "../../middleware/permissions";
+import { requireIdempotencyKey } from "../../middleware/idempotency";
 import { upload } from "../../lib/upload";
 import {
   createHandler,
@@ -45,6 +46,7 @@ invoiceRoutes.post(
 invoiceRoutes.post(
   "/:invoiceId/erp-sync",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
+  requireIdempotencyKey,
   erpSyncHandler
 );
 

@@ -4,7 +4,6 @@ import {
   User,
   LogOut,
   Building2,
-  Sparkles,
   RotateCcw,
   Check,
   Compass,
@@ -12,10 +11,7 @@ import {
   Sun,
   Moon,
   ChevronDown,
-  Shield,
-  Layers,
   ChevronRight,
-  ExternalLink,
 } from "lucide-react";
 import { useAuth } from "../../app/AuthContext";
 import { useTheme } from "../../app/ThemeContext";
@@ -42,11 +38,6 @@ export function UserWorkspaceMenu({
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isDemoMode = import.meta.env.VITE_DEMO_MODE === "true";
-
-  const currentAccount =
-    DEMO_ACCOUNTS.find(
-      (a) => a.email === user?.email || a.email.split("@")[0] === user?.email?.split("@")[0]
-    ) ?? DEMO_ACCOUNTS[1];
 
   // Close on outside click
   useEffect(() => {

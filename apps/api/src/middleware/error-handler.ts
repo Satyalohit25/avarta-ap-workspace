@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { ZodError } from "zod";
 import { ApiError } from "../lib/errors";
 
 // Doc 14 §14.7 standard error response shape.
@@ -9,6 +10,17 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
         code: err.code,
         message: err.message,
         details: err.details,
+        requestId: req.requestId,
+      },
+    });
+  }
+
+  if (err instanceof ZodError) {
+    return res.status(400).json({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Request validation failed",
+        details: err.flatten(),
         requestId: req.requestId,
       },
     });

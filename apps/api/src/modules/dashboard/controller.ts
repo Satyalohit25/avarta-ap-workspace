@@ -242,10 +242,24 @@ export async function overviewHandler(req: Request, res: Response, next: NextFun
       };
     });
 
-    const mismatchExceptions: any[] = [];
-    const missingPoExceptions: any[] = [];
-    const duplicateExceptions: any[] = [];
-    const complianceExceptions: any[] = [];
+    interface AttentionItem {
+      id: string;
+      exceptionId?: string;
+      invoiceNumber: string;
+      vendor: string;
+      amount: number;
+      currency: string;
+      daysWaiting: number;
+      assignedTo: string;
+      detailReason: string;
+      urgency: "urgent" | "routine";
+      type: string;
+    }
+
+    const mismatchExceptions: AttentionItem[] = [];
+    const missingPoExceptions: AttentionItem[] = [];
+    const duplicateExceptions: AttentionItem[] = [];
+    const complianceExceptions: AttentionItem[] = [];
 
     for (const exc of openExceptions) {
       const inv = exc.invoice;
@@ -315,7 +329,7 @@ export async function overviewHandler(req: Request, res: Response, next: NextFun
 
     const totalBlockedInvoices = blockerGroups.reduce((acc, g) => acc + g.invoices.length, 0);
     const totalBlockedAmount = blockerGroups.reduce(
-      (acc, g) => acc + g.invoices.reduce((sum: number, inv: any) => sum + inv.amount, 0),
+      (acc, g) => acc + g.invoices.reduce((sum: number, inv: { amount: number }) => sum + inv.amount, 0),
       0
     );
 

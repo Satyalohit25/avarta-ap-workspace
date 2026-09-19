@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "../../../lib/formatters";
 import { DashboardOverview } from "../../../api/dashboard";
-import { ArrowUpRight, TrendingDown, TrendingUp, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 
 interface APFinancialHorizonStripProps {
   data: DashboardOverview | null;

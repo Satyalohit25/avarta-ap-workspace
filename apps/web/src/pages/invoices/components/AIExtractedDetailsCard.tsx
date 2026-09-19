@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   ChevronDown,
   ChevronUp,
-  Sparkles,
   AlertCircle,
   Clock,
   ShieldCheck,
@@ -37,8 +36,8 @@ export function AIExtractedDetailsCard({
   invoiceDate,
   totalAmount,
   currency,
-  supplierName,
-  purchaseOrderId,
+  supplierName: _supplierName,
+  purchaseOrderId: _purchaseOrderId,
   linesCount = 0,
   extractedAtDate,
   status,
