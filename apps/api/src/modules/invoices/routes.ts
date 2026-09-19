@@ -4,6 +4,7 @@ import { requireRole } from "../../middleware/permissions";
 import { requireIdempotencyKey } from "../../middleware/idempotency";
 import { upload } from "../../lib/upload";
 import {
+  auditHandler,
   createHandler,
   getDocumentFileHandler,
   getHandler,
@@ -20,6 +21,7 @@ invoiceRoutes.use(requireAuth);
 
 invoiceRoutes.get("/needs-attention", listHandler);
 invoiceRoutes.get("/", listHandler);
+invoiceRoutes.get("/:invoiceId/audit", auditHandler);
 invoiceRoutes.post(
   "/",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),

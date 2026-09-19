@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { ApiError } from "../../lib/errors";
+import { Role } from "../../middleware/permissions";
 import * as approvalService from "./service";
 
 export async function listHandler(req: Request, res: Response, next: NextFunction) {
@@ -18,6 +19,7 @@ export async function approveHandler(req: Request, res: Response, next: NextFunc
       req.auth.organizationId,
       req.params.approvalId,
       req.auth.userId,
+      req.auth.role as Role,
       req.body?.notes
     );
     res.json({ data: result });

@@ -2,6 +2,8 @@ import { prisma } from "../../config/database";
 import { ApiError } from "../../lib/errors";
 import { parsePagination, paginationMeta } from "../../lib/pagination";
 import { applyTransition } from "../../workflow/engine";
+import { Role } from "../../middleware/permissions";
+import { canRoleApproveAmount, getTierForAmount } from "./thresholds";
 
 export async function listApprovals(params: {
   organizationId: string;
@@ -50,6 +52,7 @@ export async function approveApproval(
   organizationId: string,
   approvalId: string,
   userId?: string,
+  userRole?: Role,
   notes?: string,
 ) {
   const approval = await prisma.approval.findFirst({
@@ -63,6 +66,17 @@ export async function approveApproval(
     throw ApiError.conflict(
       `Approval has already been resolved with status "${approval.status}"`,
     );
+  }
+
+  // AGENTS.md / Blueprint: Enforce amount approval thresholds by role
+  if (userRole) {
+    const amount = Number(approval.invoice.totalAmount);
+    if (!canRoleApproveAmount(userRole, amount)) {
+      const tier = getTierForAmount(amount);
+      throw ApiError.forbidden(
+        `Role "${userRole}" is not authorized to approve invoices of amount ${amount}. Required roles: ${tier.allowedRoles.join(", ")}`
+      );
+    }
   }
 
   // AGENTS.md rule 4: applyTransition changes workflow_instances.current_state and invoices.status

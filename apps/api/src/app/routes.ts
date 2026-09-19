@@ -8,6 +8,8 @@ import { paymentRoutes } from "../modules/payments/routes";
 import { dashboardRoutes } from "../modules/dashboard/routes";
 import { purchaseOrderRoutes } from "../modules/purchase_orders/routes";
 import { publicRoutes } from "../modules/public/routes";
+import { auditRoutes } from "../modules/audit/routes";
+import { reportRoutes } from "../modules/reports/routes";
 
 export const router = Router();
 
@@ -20,4 +22,8 @@ router.use("/approvals", approvalRoutes);
 router.use("/payments", paymentRoutes);
 router.use("/purchase-orders", purchaseOrderRoutes);
 router.use("/dashboard", dashboardRoutes);
+router.use("/audit", auditRoutes);
+router.use("/reports", reportRoutes);
+
+
 

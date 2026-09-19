@@ -36,7 +36,7 @@ import { SkeletonRows } from "../../components/Skeleton";
 import { Button } from "../../components/ui/Button";
 import { MetricStrip } from "../../components/ui/MetricStrip";
 import { BadgeKey } from "../../components/ui/BadgeKey";
-import { Timeline, TimelineEvent } from "../../components/ui/Timeline";
+import { TimelineEvent } from "../../components/ui/Timeline";
 import { Dialog } from "../../components/ui/Dialog";
 import { Sheet } from "../../components/ui/Sheet";
 import { Alert } from "../../components/ui/Alert";
@@ -63,6 +63,7 @@ import {
   ProcessingOverlay,
   ProcessingStage,
 } from "./components/ProcessingOverlay";
+import { AuditTimeline } from "./components/AuditTimeline";
 
 type InvoiceDetailData = InvoiceListItem & {
   lines?: unknown[];
@@ -1358,7 +1359,7 @@ export default function InvoiceDetailPage() {
         <div className="space-y-5">
           {/* Chronological Event Timeline */}
           <div className="pt-1">
-            <Timeline events={timelineEvents} />
+            <AuditTimeline events={timelineEvents} onRefresh={load} />
           </div>
 
           {/* Footer Metadata */}

@@ -1,76 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import {
+  evaluateThreeWayMatch,
+  PurchaseOrderMatchContext,
+} from "./matcher";
 
-interface GrnLine {
-  lineNumber: number;
-  description: string;
-  receivedQuantity: number; // can be negative for returned/defective goods
-  status: "ACCEPTED" | "RETURNED" | "INSPECTION_PENDING";
-  inspectionNotes?: string;
-}
-
-interface PurchaseOrderMatchContext {
-  poNumber: string;
-  status: string;
-  closedForReceiving: boolean;
-  totalAuthorizedAmount: number;
-  remainingAmount: number;
-  goodsReceiptLines: GrnLine[];
-}
-
-interface ThreeWayMatchResult {
-  passed: boolean;
-  exceptionType?: "QUANTITY_DIFFERENCE" | "PRICE_DIFFERENCE" | "NONE";
-  netReceivedQuantity: number;
-  totalReturnedQuantity: number;
-  reason?: string;
-}
-
-function evaluateThreeWayMatch(
-  po: PurchaseOrderMatchContext,
-  invoicedQuantity: number,
-  invoicedAmount: number
-): ThreeWayMatchResult {
-  // Rule 1: Closed for receiving liability cap (Tata Chemicals Slide 8)
-  if (po.closedForReceiving || po.status === "CLOSED_FOR_RECEIVING") {
-    if (invoicedAmount > po.remainingAmount) {
-      return {
-        passed: false,
-        exceptionType: "PRICE_DIFFERENCE",
-        netReceivedQuantity: 0,
-        totalReturnedQuantity: 0,
-        reason: `PO ${po.poNumber} is Closed for Receiving. Billed amount (${invoicedAmount}) exceeds remaining balance (${po.remainingAmount}).`,
-      };
-    }
-  }
-
-  // Rule 2: Calculate net received quantity with negative return quantities (Tata Chemicals Slide 8)
-  let netReceived = 0;
-  let totalReturned = 0;
-
-  for (const line of po.goodsReceiptLines) {
-    if (line.receivedQuantity < 0) {
-      totalReturned += Math.abs(line.receivedQuantity);
-    }
-    netReceived += line.receivedQuantity;
-  }
-
-  if (po.goodsReceiptLines.length > 0 && invoicedQuantity > netReceived && netReceived > 0) {
-    return {
-      passed: false,
-      exceptionType: "QUANTITY_DIFFERENCE",
-      netReceivedQuantity: netReceived,
-      totalReturnedQuantity: totalReturned,
-      reason: `Invoice bills for ${invoicedQuantity} units, but Net Accepted GRN is ${netReceived} units (${totalReturned} units returned during Quality Inspection).`,
-    };
-  }
-
-  return {
-    passed: true,
-    exceptionType: "NONE",
-    netReceivedQuantity: netReceived,
-    totalReturnedQuantity: totalReturned,
-  };
-}
 
 describe("Tata Chemicals 3-Way Matching & GRN Quality Inspection Law", () => {
   it("accounts for negative GRN lines for returned goods and flags QUANTITY_DIFFERENCE", () => {
@@ -160,4 +93,36 @@ describe("Tata Chemicals 3-Way Matching & GRN Quality Inspection Law", () => {
     expect(paymentRemittance.clearingDocumentNumber).toBe("2533000040");
     expect(paymentRemittance.status).toBe("PAID");
   });
+
+  describe("runThreeWayMatching workflow execution", () => {
+    it("automatically passes non-PO invoices and advances workflow state", async () => {
+      const { prisma } = await import("../config/database");
+      const workflowEngine = await import("./engine");
+      const { runThreeWayMatching } = await import("./matcher");
+
+      vi.spyOn(prisma.invoice, "findFirst").mockResolvedValue({
+        id: "inv-non-po",
+        organizationId: "org-1",
+        purchaseOrderId: null,
+        lines: [],
+        totalAmount: 5000 as any,
+      } as any);
+
+      const transitionSpy = vi.spyOn(workflowEngine, "applyTransition").mockResolvedValue({} as any);
+
+      const result = await runThreeWayMatching({
+        organizationId: "org-1",
+        invoiceId: "inv-non-po",
+      });
+
+      expect(result.passed).toBe(true);
+      expect(transitionSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ invoiceId: "inv-non-po", event: "MATCHING_START" })
+      );
+      expect(transitionSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ invoiceId: "inv-non-po", event: "MATCHING_SUCCESS" })
+      );
+    });
+  });
 });
+

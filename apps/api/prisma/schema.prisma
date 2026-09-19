@@ -475,3 +475,21 @@ model GoodsReceiptLine {
   status          String  @default("ACCEPTED") // ACCEPTED | RETURNED | INSPECTION_PENDING
   inspectionNotes String?
 }
+
+// AGENTS.md Rule 5: Financial operations require idempotency keys.
+// DB-backed dedup store — prevents duplicate payments on network retries.
+// Keys expire after 24 hours. Responses are cached for replay.
+model IdempotencyKey {
+  id             String   @id @default(uuid())
+  key            String
+  organizationId String
+  method         String   // POST, PUT, PATCH
+  path           String   // e.g. /api/payments/:id/execute
+  statusCode     Int?
+  responseBody   Json?
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime // now() + 24h
+
+  @@unique([key, organizationId])
+  @@index([expiresAt])
+}

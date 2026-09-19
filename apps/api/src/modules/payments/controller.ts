@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { ApiError } from "../../lib/errors";
 import * as paymentService from "./service";
+import { runBatchPayments } from "./batch-runner";
 import { executePaymentSchema, schedulePaymentSchema } from "./validation";
 
 function orgId(req: Request): string {
@@ -40,3 +41,20 @@ export async function executeHandler(req: Request, res: Response, next: NextFunc
     next(err);
   }
 }
+
+export async function batchRunHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const paymentIds = Array.isArray(req.body?.paymentIds) ? req.body.paymentIds : undefined;
+    const cutoffDate = req.body?.cutoffDate ? new Date(req.body.cutoffDate) : undefined;
+    const result = await runBatchPayments({
+      organizationId: orgId(req),
+      userId: req.auth?.userId,
+      paymentIds,
+      cutoffDate,
+    });
+    res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+

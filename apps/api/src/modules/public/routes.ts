@@ -111,3 +111,30 @@ publicRoutes.get("/invoices/track/:token", async (req: Request, res: Response): 
     res.status(500).json({ error: "Failed to retrieve invoice status" });
   }
 });
+
+// Inbound email intake webhook (Step 12)
+publicRoutes.post("/invoices/email-webhook", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { from, to, subject, body, attachments, organizationId } = req.body;
+    if (!from || !to || !subject) {
+      res.status(400).json({ error: "Missing required fields: from, to, subject" });
+      return;
+    }
+    const { processInboundEmail } = await import("./email-webhook");
+    const result = await processInboundEmail({
+      from,
+      to,
+      subject,
+      body,
+      attachments,
+      organizationId,
+    });
+    res.status(201).json({ data: result });
+  } catch (err: unknown) {
+    console.error("Email webhook processing error:", err);
+    res.status(500).json({
+      error: err instanceof Error ? err.message : "Failed to process inbound email",
+    });
+  }
+});
+

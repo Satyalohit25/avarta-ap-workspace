@@ -158,3 +158,20 @@ export async function erpSyncHandler(req: Request, res: Response, next: NextFunc
   }
 }
 
+export async function auditHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { listAuditLogs } = await import("../audit/service");
+    const result = await listAuditLogs({
+      organizationId: orgId(req),
+      entityType: "invoice",
+      entityId: req.params.invoiceId,
+      page: req.query.page ? Number(req.query.page) : undefined,
+      pageSize: req.query.pageSize ? Number(req.query.pageSize) : undefined,
+    });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+

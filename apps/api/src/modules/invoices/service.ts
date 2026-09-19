@@ -4,6 +4,8 @@ import { prisma } from "../../config/database";
 import { ApiError } from "../../lib/errors";
 import { parsePagination, paginationMeta } from "../../lib/pagination";
 import { applyTransition, startWorkflow } from "../../workflow/engine";
+import { runThreeWayMatching } from "../../workflow/matcher";
+import { validateGstinChecksum, validateTaxArithmetic } from "./tax-validator";
 import { extractInvoiceFromFile } from "../../ai/extractor";
 import * as repo from "./repository";
 import { toInvoiceDetail, toInvoiceListItem } from "./mapper";
@@ -321,80 +323,7 @@ export async function processInvoice(organizationId: string, invoiceId: string, 
   await applyTransition({ invoiceId, event: "VALIDATION_SUCCESS", triggeredBy: userId });
 
   // Match (Doc 04 Stage 4: 3-Way Matching PO <-> GRN <-> Invoice per Tata Chemicals standard)
-  await applyTransition({ invoiceId, event: "MATCHING_START", triggeredBy: userId });
-
-  if (invoice.purchaseOrderId) {
-    const po = await prisma.purchaseOrder.findUnique({
-      where: { id: invoice.purchaseOrderId },
-      include: {
-        goodsReceipts: {
-          include: { lines: true },
-        },
-      },
-    });
-
-    // Rule 1: PO Closed for Receiving check (Tata Chemicals Slide 8)
-    if (po && (po.status === "CLOSED_FOR_RECEIVING" || po.closedForReceiving)) {
-      const remaining = Number(po.remainingAmount);
-      const invoiceTotal = Number(invoice.totalAmount);
-      if (invoiceTotal > remaining) {
-        await applyTransition({ invoiceId, event: "MATCHING_FAILURE", triggeredBy: userId });
-        await prisma.exception.create({
-          data: {
-            organizationId,
-            invoiceId,
-            type: "PRICE_DIFFERENCE",
-            severity: "HIGH",
-            title: "PO Closed for Receiving — Liability Cap Exceeded",
-            description: `Purchase Order ${po.poNumber} is marked 'Closed for Receiving'. Billed amount ($${invoiceTotal}) exceeds remaining balance ($${remaining}).`,
-            status: "OPEN",
-          },
-        });
-        return getInvoice(organizationId, invoiceId);
-      }
-    }
-
-    // Rule 2: 3-Way Line Match with GRN and Negative Return Quantities (Tata Chemicals Slide 8)
-    if (po && po.goodsReceipts.length > 0) {
-      let netReceivedQty = 0;
-      let totalReturnedQty = 0;
-
-      for (const grn of po.goodsReceipts) {
-        for (const line of grn.lines) {
-          const qty = Number(line.receivedQuantity);
-          if (qty < 0) {
-            totalReturnedQty += Math.abs(qty);
-          }
-          netReceivedQty += qty;
-        }
-      }
-
-      const lines = await prisma.invoiceLine.findMany({ where: { invoiceId } });
-      const totalInvoicedQty = lines.reduce((acc, l) => acc + Number(l.quantity), 0);
-
-      // Discrepancy check: Invoiced qty exceeds net accepted goods
-      if (totalInvoicedQty > netReceivedQty && netReceivedQty > 0) {
-        await applyTransition({ invoiceId, event: "MATCHING_FAILURE", triggeredBy: userId });
-        await prisma.exception.create({
-          data: {
-            organizationId,
-            invoiceId,
-            type: "QUANTITY_DIFFERENCE",
-            severity: "HIGH",
-            title: "3-Way Match Failed: Goods Return / Rejection Detected on GRN",
-            description: `Invoice bills for ${totalInvoicedQty} units, but Net Accepted GRN quantity is only ${netReceivedQty} units (${totalReturnedQty} units returned during Quality Inspection on GRN).`,
-            status: "OPEN",
-          },
-        });
-        return getInvoice(organizationId, invoiceId);
-      }
-    }
-
-    await applyTransition({ invoiceId, event: "MATCHING_SUCCESS", triggeredBy: userId });
-  } else {
-    // Non-PO invoice matching
-    await applyTransition({ invoiceId, event: "MATCHING_SUCCESS", triggeredBy: userId });
-  }
+  await runThreeWayMatching({ organizationId, invoiceId, userId });
 
   return getInvoice(organizationId, invoiceId);
 }
@@ -467,8 +396,45 @@ async function runValidations(
     });
   }
 
+  // Statutory GSTIN Checksum Verification (Step 10)
+  if (invoice.supplierId) {
+    const supplier = await prisma.supplier.findUnique({ where: { id: invoice.supplierId } });
+    if (supplier?.gstNumber && !validateGstinChecksum(supplier.gstNumber)) {
+      failures.push({
+        ruleCode: "GSTIN_CHECKSUM",
+        ruleName: "GSTIN Checksum",
+        message: `Supplier GSTIN "${supplier.gstNumber}" failed statutory Modulo-36 checksum verification.`,
+        exceptionType: "INVALID_GST",
+        severity: "HIGH",
+      });
+    }
+  }
+
+  // Statutory Tax Arithmetic Verification (Step 10)
+  const subtotal = Number(invoice.subtotalAmount || 0);
+  const tax = Number(invoice.taxAmount || 0);
+  const total = Number(invoice.totalAmount || 0);
+  if (subtotal > 0 && total > 0) {
+    const taxCheck = validateTaxArithmetic(subtotal, tax, total);
+    if (!taxCheck.isValid) {
+      failures.push({
+        ruleCode: "TAX_CALCULATION",
+        ruleName: "Tax Arithmetic Balance",
+        message: `Subtotal (${subtotal}) + Tax (${tax}) does not equal Total (${total}). Discrepancy: ${taxCheck.difference.toFixed(2)}.`,
+        exceptionType: "TAX_DIFFERENCE",
+        severity: "HIGH",
+      });
+    }
+  }
+
   // Always record a passing/failing row per rule for the Validation tab (Doc 06.4).
-  const allRuleCodes = ["VENDOR_EXISTS", "DUPLICATE_CHECK", "AI_CONFIDENCE"];
+  const allRuleCodes = [
+    "VENDOR_EXISTS",
+    "DUPLICATE_CHECK",
+    "AI_CONFIDENCE",
+    "GSTIN_CHECKSUM",
+    "TAX_CALCULATION",
+  ];
   for (const ruleCode of allRuleCodes) {
     const failure = failures.find((f) => f.ruleCode === ruleCode);
     await prisma.validation.create({
@@ -548,6 +514,8 @@ export async function transitionInvoice(
   } else if (action === "REJECT") {
     if (!comment) throw ApiError.badRequest("Comment is required for rejection.");
     await applyTransition({ invoiceId, event: "REJECTED", triggeredBy: userId, reason: comment });
+  } else if (action === "RUN_MATCHING") {
+    await runThreeWayMatching({ organizationId, invoiceId, userId });
   }
 
   return getInvoice(organizationId, invoiceId);
@@ -559,16 +527,8 @@ export async function syncInvoiceToErp(
   targetErp?: string,
   userId?: string
 ) {
-  const invoice = await repo.findInvoiceById(organizationId, invoiceId);
-  if (!invoice) throw ApiError.notFound("Invoice not found");
-
-  await applyTransition({
-    invoiceId,
-    event: "ERP_SUCCESS",
-    triggeredBy: userId,
-    reason: `Posted journal entry to ${targetErp ?? "ERP Connector"}`,
-  });
-
+  const { syncInvoiceWithErp } = await import("../erp/service");
+  await syncInvoiceWithErp({ organizationId, invoiceId, userId, targetErp });
   return getInvoice(organizationId, invoiceId);
 }
 

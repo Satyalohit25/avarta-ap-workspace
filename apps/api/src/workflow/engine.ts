@@ -3,6 +3,8 @@ import { prisma } from "../config/database";
 import { ApiError } from "../lib/errors";
 import { findTransition, WorkflowEvent } from "./transitions";
 import { STATE_TO_INVOICE_STATUS, WorkflowState } from "./states";
+import { runWithEngineBypass } from "../config/tenant-guard";
+import { getAllowedRolesForAmount } from "../modules/approvals/thresholds";
 
 interface ApplyTransitionInput {
   invoiceId: string;
@@ -21,7 +23,8 @@ interface ApplyTransitionInput {
  * to either field directly.
  */
 export async function applyTransition({ invoiceId, event, triggeredBy, reason }: ApplyTransitionInput) {
-  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  return runWithEngineBypass(async () => {
+    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const instance = await tx.workflowInstance.findUnique({ where: { invoiceId } });
     if (!instance) {
       throw ApiError.notFound("Workflow instance not found for this invoice");
@@ -70,10 +73,12 @@ export async function applyTransition({ invoiceId, event, triggeredBy, reason }:
         where: { invoiceId, status: "PENDING" },
       });
       if (!existingApproval) {
+        const amount = Number(invoice.totalAmount);
+        const allowedRoles = getAllowedRolesForAmount(amount);
         const approver = await tx.user.findFirst({
           where: {
             organizationId: invoice.organizationId,
-            role: { in: ["APPROVER", "FINANCE_MANAGER", "ADMINISTRATOR"] },
+            role: { in: allowedRoles },
             status: "ACTIVE",
           },
         });
@@ -157,6 +162,7 @@ export async function applyTransition({ invoiceId, event, triggeredBy, reason }:
     });
 
     return { invoice, workflowInstance: updatedInstance };
+    });
   });
 }
 

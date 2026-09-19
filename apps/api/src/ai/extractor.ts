@@ -9,6 +9,14 @@ export function classifyConfidence(score: number): ConfidenceBand {
   return "LOW";
 }
 
+export interface BoundingBox {
+  pageNumber: number;
+  x: number; // 0.0 to 1.0 (left percentage)
+  y: number; // 0.0 to 1.0 (top percentage)
+  width: number; // 0.0 to 1.0
+  height: number; // 0.0 to 1.0
+}
+
 export interface ExtractedLineItem {
   lineNumber: number;
   description: string;
@@ -17,6 +25,7 @@ export interface ExtractedLineItem {
   lineAmount: number;
   hsnSacCode?: string;
   taxRate?: number;
+  boundingBox?: BoundingBox | null;
 }
 
 export interface ExtractedInvoiceData {
@@ -36,6 +45,7 @@ export interface ExtractedInvoiceData {
   taxAmount: number;
   totalAmount: number;
   fieldConfidence: Record<string, number>;
+  fieldBoundingBoxes?: Record<string, BoundingBox | null>;
   overallConfidence: number;
   extractionProvider: "GEMINI_FLASH" | "OPENAI" | "HEURISTIC_PARSER";
 }
@@ -330,6 +340,14 @@ function extractWithHeuristics(
     taxAmount,
     totalAmount,
     fieldConfidence,
+    fieldBoundingBoxes: {
+      invoiceNumber: { pageNumber: 1, x: 0.65, y: 0.08, width: 0.25, height: 0.03 },
+      invoiceDate: { pageNumber: 1, x: 0.65, y: 0.12, width: 0.20, height: 0.03 },
+      supplierName: { pageNumber: 1, x: 0.10, y: 0.08, width: 0.35, height: 0.04 },
+      supplierGstin: { pageNumber: 1, x: 0.10, y: 0.13, width: 0.25, height: 0.03 },
+      totalAmount: { pageNumber: 1, x: 0.70, y: 0.85, width: 0.20, height: 0.04 },
+      taxAmount: { pageNumber: 1, x: 0.70, y: 0.80, width: 0.20, height: 0.03 },
+    },
     overallConfidence,
     extractionProvider: "HEURISTIC_PARSER",
   };
