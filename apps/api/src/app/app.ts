@@ -68,6 +68,7 @@ export function createApp() {
   });
 
   app.use("/api/v1", router);
+  app.use("/api", router);
 
   app.use(errorHandler);
 

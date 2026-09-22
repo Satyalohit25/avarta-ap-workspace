@@ -10,6 +10,7 @@ import { purchaseOrderRoutes } from "../modules/purchase_orders/routes";
 import { publicRoutes } from "../modules/public/routes";
 import { auditRoutes } from "../modules/audit/routes";
 import { reportRoutes } from "../modules/reports/routes";
+import { demoRoutes } from "../modules/demo/routes";
 
 export const router = Router();
 
@@ -24,6 +25,7 @@ router.use("/purchase-orders", purchaseOrderRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/audit", auditRoutes);
 router.use("/reports", reportRoutes);
+router.use("/demo", demoRoutes);
 
 
 

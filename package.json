@@ -15,6 +15,8 @@
     "db:migrate": "pnpm --filter @ap-saas/api db:migrate",
     "db:deploy": "pnpm --filter @ap-saas/api db:deploy",
     "db:seed": "pnpm --filter @ap-saas/api db:seed",
+    "db:reset-demo": "pnpm --filter @ap-saas/api db:seed",
+    "demo:reset": "pnpm --filter @ap-saas/api db:seed",
     "db:setup": "pnpm --filter @ap-saas/api db:setup",
     "test": "vitest run",
     "test:unit": "vitest run",

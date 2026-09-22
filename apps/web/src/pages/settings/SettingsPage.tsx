@@ -1,4 +1,5 @@
 import { useState, FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardHeader, CardContent } from "../../components/ui/Card";
 import {
   Table,
@@ -23,8 +24,14 @@ import {
   FileCheck2,
   CheckCircle2,
   Database,
+  Users,
+  RotateCcw,
+  Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import { AvartaCrest } from "../../components/brand/AvartaCrest";
+import { DEMO_ACCOUNTS } from "../../lib/constants";
+import { resetDemoEnvironment } from "../../api/demo";
 
 const CANONICAL_AUDIT_LOGS = [
   {
@@ -124,8 +131,33 @@ const ERP_INTEGRATIONS = [
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const defaultTab = tabParam === "users" || tabParam === "team" ? "users" : (tabParam || "org");
   const [saved, setSaved] = useState(false);
   const [showAddRuleModal, setShowAddRuleModal] = useState(false);
+  const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
+  const [isResettingDemo, setIsResettingDemo] = useState(false);
+
+  async function handleResetDemo() {
+    setIsResettingDemo(true);
+    try {
+      const res = await resetDemoEnvironment();
+      toast.success(
+        "Demo Dataset Reset Successfully",
+        `${res.data.counts.invoices} invoices across 9 scenarios repopulated with relative dates anchored to today.`
+      );
+      setShowResetConfirmModal(false);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to reset demo dataset";
+      toast.error("Reset Failed", message);
+    } finally {
+      setIsResettingDemo(false);
+    }
+  }
 
   const [formData, setFormData] = useState({
     orgName: "Acme Manufacturing Pvt Ltd",
@@ -263,7 +295,7 @@ export default function SettingsPage() {
       )}
 
       <Tabs
-        defaultTabId="org"
+        defaultTabId={defaultTab}
         variant="line"
         tabs={[
           {
@@ -717,6 +749,147 @@ export default function SettingsPage() {
                     </Table>
                   </CardContent>
                 </Card>
+              </div>
+            ),
+          },
+          {
+            id: "users",
+            label: "Team & Workspace Governance",
+            icon: <Users size={15} />,
+            content: (
+              <div className="space-y-6 pt-2">
+                {/* Canonical Users Table */}
+                <Card level="surface">
+                  <CardHeader
+                    title="CANONICAL TEAM USERS & RBAC DELEGATION"
+                    description="Standard demonstration personas with role-based segregation of duties"
+                  />
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>User / Identity</TableHead>
+                          <TableHead>Email Address</TableHead>
+                          <TableHead>Canonical Role</TableHead>
+                          <TableHead>Authorized Scope</TableHead>
+                          <TableHead className="text-right">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {DEMO_ACCOUNTS.map((acc) => {
+                          const IconComponent = acc.icon;
+                          return (
+                            <TableRow key={acc.email}>
+                              <TableCell className="text-body-sm">
+                                <div className="flex items-center gap-2.5">
+                                  <div className={`p-1.5 rounded-md ${acc.bgColor} ${acc.color}`}>
+                                    <IconComponent size={14} />
+                                  </div>
+                                  <span className="font-semibold text-neutral-900 dark:text-zinc-100">{acc.name}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="font-mono text-micro text-neutral-600 dark:text-zinc-400">
+                                {acc.email}
+                              </TableCell>
+                              <TableCell>
+                                <span className={`inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full font-semibold ${acc.bgColor} ${acc.color}`}>
+                                  {acc.role}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-caption text-neutral-600 dark:text-zinc-400">
+                                {acc.role === "Administrator" && "Tenant administration, system settings, Tier 3 (> ₹5L) approvals"}
+                                {acc.role === "Finance Manager" && "Complete operational AP, batch payments execution, Tier 2 approvals"}
+                                {acc.role === "Finance Executive" && "Invoice capture, exception triage, supplier maintenance (No approvals)"}
+                                {acc.role === "Approver" && "Invoice review and Tier 1 (≤ ₹1L) authorization"}
+                                {acc.role === "Read Only" && "Full read-only register visibility and audit trail inspection"}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
+                                  <CheckCircle2 size={11} />
+                                  <span>Active</span>
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+
+                {/* Demo Environment Reset Control Card */}
+                <Card level="surface" className="border-amber-200/80 dark:border-amber-900/50 bg-amber-50/20 dark:bg-amber-950/10">
+                  <CardHeader
+                    title="DEMO ENVIRONMENT RESET & SCENARIO RESTORATION"
+                    description="Instantly wipe transient presentation edits and re-seed all 9 named demonstration scenarios"
+                  />
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1.5 max-w-xl">
+                        <div className="flex items-center gap-2">
+                          <Sparkles size={16} className="text-amber-600 dark:text-amber-400" />
+                          <h4 className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100">
+                            Prismatic Dynamic State Restoration
+                          </h4>
+                        </div>
+                        <p className="text-caption text-neutral-600 dark:text-zinc-400 leading-relaxed">
+                          Clicking reset immediately deletes mutated demo records and restores the pristine 28-invoice baseline across 9 coherent scenarios (Clean 3-Way Match, Price Discrepancies, GRN Returns, Statutory GSTIN checks, Tiered Approvals, Fraud Defense, and H2H Batch Banking).
+                          All due dates, issue dates, and audit timelines will dynamically anchor relative to <strong>today's date</strong>.
+                        </p>
+                      </div>
+                      <Button
+                        variant="primary"
+                        className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 gap-1.5 cursor-pointer"
+                        onClick={() => setShowResetConfirmModal(true)}
+                        disabled={isResettingDemo}
+                      >
+                        <RotateCcw size={14} className={isResettingDemo ? "animate-spin" : ""} />
+                        <span>{isResettingDemo ? "Resetting Scenario Dataset..." : "Reset Demo Environment"}</span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Confirmation Modal */}
+                {showResetConfirmModal && (
+                  <div className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-xl p-6 max-w-md w-full shadow-xl space-y-4">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 shrink-0">
+                          <AlertTriangle size={20} />
+                        </div>
+                        <div>
+                          <h3 className="text-h3 text-neutral-900 dark:text-zinc-100 font-semibold">
+                            Confirm Demo Environment Reset
+                          </h3>
+                          <p className="text-caption text-neutral-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                            Are you sure you want to reset the demo database? This will clear all pending approvals, released payments, and uploaded invoices, restoring the clean 9-scenario baseline anchored to today.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-neutral-100 dark:border-zinc-800">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowResetConfirmModal(false)}
+                          disabled={isResettingDemo}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5 cursor-pointer"
+                          onClick={handleResetDemo}
+                          disabled={isResettingDemo}
+                        >
+                          <RotateCcw size={14} className={isResettingDemo ? "animate-spin" : ""} />
+                          <span>{isResettingDemo ? "Resetting..." : "Confirm & Reset Dataset"}</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ),
           },
