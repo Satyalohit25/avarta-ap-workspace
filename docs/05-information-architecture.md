@@ -105,23 +105,29 @@ Search should find:
 
 ---
 
-# Application Structure
+# Application Structure (Canonical 11-Item Navigation per Doc 18 §18.2)
 
 ```text
-ClearOps AP Workspace
+Avarta AP Workspace
 
-├── Dashboard
-├── Inbox
-├── Invoices
-├── Exceptions
-├── Approvals
-├── Payments
-├── Suppliers
-├── Purchase Orders
-├── Reports
-├── Audit
-├── Integrations
-└── Settings
+Core Workspace:
+├── Overview (Mission Control / Actionable Queue)
+├── Inbox (Intake & OCR Extraction Workstation)
+├── Invoices (All Invoices Register & Filter Hub)
+├── Exceptions (14 Operational & Statutory Exception Queues)
+├── Approvals (Tiered Multi-Level Approval Queue)
+└── Payments (Disbursement Schedule & Batch Execution)
+
+Vendors & Procurement:
+├── Suppliers (Vendor Master & GSTIN Verification)
+└── Purchase Orders (PO Tracking & Goods Receipts)
+
+Intelligence & Compliance:
+├── Reports (AP Aging, DPO & Cash Flow Analytics)
+├── Archive (Immutable Historical General Ledger)
+└── Settings (Company Profile, ERP Sync & Audit Policies)
+
+(Top Bar Hub: Profile & Notifications; Audit is a tab on Invoice/Exception Details)
 ```
 
 ---

@@ -230,9 +230,10 @@ export function UserWorkspaceMenu({
               </div>
 
               <div className="grid grid-cols-2 gap-1.5">
-                {DEMO_ACCOUNTS.map((account) => {
+                {DEMO_ACCOUNTS.map((account, idx) => {
                   const isActive = account.email === user?.email;
                   const AccountIcon = account.icon;
+                  const isLastOdd = idx === DEMO_ACCOUNTS.length - 1 && DEMO_ACCOUNTS.length % 2 !== 0;
                   return (
                     <button
                       key={account.email}
@@ -240,6 +241,8 @@ export function UserWorkspaceMenu({
                       onClick={() => handleSwitch(account)}
                       disabled={switching}
                       className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                        isLastOdd ? "col-span-2" : ""
+                      } ${
                         isActive
                           ? "bg-white dark:bg-zinc-800 border-indigo-500 dark:border-indigo-400 shadow-2xs ring-1 ring-indigo-500/25"
                           : "bg-white/80 dark:bg-zinc-850 border-neutral-200/80 dark:border-zinc-750 hover:border-neutral-300 dark:hover:border-zinc-700 hover:bg-white dark:hover:bg-zinc-800"

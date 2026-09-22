@@ -1,4 +1,4 @@
-import { Shield, Users, FileCheck, Eye } from "lucide-react";
+import { Shield, Users, FileCheck, Eye, BookOpen } from "lucide-react";
 import type { CurrentUser } from "../api/auth";
 
 export interface DemoAccountConfig {
@@ -52,6 +52,16 @@ export const DEMO_ACCOUNTS: DemoAccountConfig[] = [
     icon: Eye,
     color: "text-amber-600 dark:text-amber-400",
     bgColor: "bg-amber-50 dark:bg-amber-950/40",
+  },
+  {
+    email: "readonly@avarta.dev",
+    password: "password123",
+    name: "Rohan Readonly",
+    role: "Read Only",
+    apiRole: "READ_ONLY",
+    icon: BookOpen,
+    color: "text-slate-600 dark:text-slate-400",
+    bgColor: "bg-slate-50 dark:bg-slate-950/40",
   },
 ];
 

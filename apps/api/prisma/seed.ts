@@ -42,10 +42,10 @@ async function main() {
     },
   });
 
-  // 2. Canonical Users (4 Roles)
+  // 2. Canonical Users (5 Roles per Doc 18 & AGENTS.md)
   const passwordHash = await bcrypt.hash("password123", 10);
 
-  const [adminUser, managerUser, executiveUser, approverUser] = await Promise.all([
+  const [adminUser, managerUser, executiveUser, approverUser, readonlyUser] = await Promise.all([
     prisma.user.create({
       data: {
         organizationId: org.id,
@@ -80,6 +80,15 @@ async function main() {
         passwordHash,
         fullName: "Arjun Approver",
         role: "APPROVER",
+      },
+    }),
+    prisma.user.create({
+      data: {
+        organizationId: org.id,
+        email: "readonly@avarta.dev",
+        passwordHash,
+        fullName: "Rohan Readonly",
+        role: "READ_ONLY",
       },
     }),
   ]);
@@ -146,7 +155,62 @@ async function main() {
     purchaseOrders[po.poNumber] = created.id;
   }
 
-  // 5. Invoices (17 Invoices covering 14 Workflow Scenes)
+  // 4b. Goods Receipt Notes (GRN) for 3-Way Matching per Tata Chemicals Standard
+  await prisma.goodsReceipt.create({
+    data: {
+      organizationId: org.id,
+      purchaseOrderId: purchaseOrders["PO-FY26-0142"],
+      grnNumber: "GRN-FY26-0081",
+      receiptDate: new Date("2026-01-20"),
+      vendorDeliveryNote: "DN-TS-8819",
+      status: "ACCEPTED",
+      comments: "Full shipment received and verified against Gate Pass GP-4091.",
+      lines: {
+        create: [
+          { lineNumber: 1, description: "Hot-Rolled Steel Coil (3mm)", itemCode: "ITM-STL-001", receivedQuantity: 200, unitOfMeasure: "MT", status: "ACCEPTED" },
+          { lineNumber: 2, description: "Cold-Rolled Sheet (1.2mm)", itemCode: "ITM-STL-002", receivedQuantity: 150, unitOfMeasure: "MT", status: "ACCEPTED" },
+        ],
+      },
+    },
+  });
+
+  await prisma.goodsReceipt.create({
+    data: {
+      organizationId: org.id,
+      purchaseOrderId: purchaseOrders["PO-FY26-0143"],
+      grnNumber: "GRN-FY26-0082",
+      receiptDate: new Date("2026-01-22"),
+      vendorDeliveryNote: "BD-WB-9912",
+      status: "ACCEPTED",
+      comments: "Delivered to central logistics depot.",
+      lines: {
+        create: [
+          { lineNumber: 1, description: "Surface Cargo — Mumbai to Delhi (500kg)", itemCode: "SRV-LOG-001", receivedQuantity: 4, unitOfMeasure: "CONSIGNMENT", status: "ACCEPTED" },
+        ],
+      },
+    },
+  });
+
+  await prisma.goodsReceipt.create({
+    data: {
+      organizationId: org.id,
+      purchaseOrderId: purchaseOrders["PO-FY26-0881"],
+      grnNumber: "GRN-FY26-0083",
+      receiptDate: new Date("2026-01-25"),
+      vendorDeliveryNote: "DEL-US-4421",
+      status: "SUBJECT_TO_INSPECTION",
+      comments: "Subject to Quality Inspection. 1 monitor unit arrived with chassis transit dent.",
+      lines: {
+        create: [
+          { lineNumber: 1, description: "Dell PowerEdge R750 Rack Server", itemCode: "ITM-SRV-750", receivedQuantity: 2, unitOfMeasure: "UNIT", status: "ACCEPTED", inspectionNotes: "All seals intact, serials verified." },
+          { lineNumber: 2, description: "Dell 27\" UltraSharp Monitor U2723QE", itemCode: "ITM-MON-27", receivedQuantity: 7, unitOfMeasure: "UNIT", status: "ACCEPTED", inspectionNotes: "7 units verified operational." },
+          { lineNumber: 3, description: "Dell 27\" UltraSharp Monitor U2723QE (Damaged)", itemCode: "ITM-MON-27", receivedQuantity: -1, unitOfMeasure: "UNIT", status: "RETURNED", inspectionNotes: "Transit damage return note #RET-881." },
+        ],
+      },
+    },
+  });
+
+  // 5. Invoices (28 Invoices covering 14 Workflow Scenes & Comprehensive Edge Cases)
   const now = new Date();
 
   function addDays(days: number) {
@@ -457,6 +521,202 @@ async function main() {
       confidence: 96.0,
       daysDue: 30,
     },
+    // --- ADDITIONAL SCENARIOS FOR COMPLETE TEST COVERAGE & PAGINATION VOLUME ---
+    {
+      num: "INV-2026-1017",
+      supCode: "SUP-001",
+      poNum: "PO-FY26-0142",
+      currency: "INR",
+      amount: 150000,
+      paid: 75000, // 50% partial payment edge case
+      wfState: "PROCESSING_PAYMENT",
+      status: "PROCESSING",
+      source: "PORTAL",
+      confidence: 97.0,
+      daysDue: -10, // Overdue
+      payment: { status: "PROCESSING", method: "BANK_TRANSFER", date: addDays(-10), ref: "PAY-PARTIAL-1017" },
+    },
+    {
+      num: "INV-2026-1018",
+      supCode: "SUP-004",
+      poNum: "PO-FY26-0881",
+      currency: "USD",
+      amount: 5200,
+      paid: 0,
+      wfState: "MATCHING_FAILED",
+      status: "EXCEPTION",
+      source: "API",
+      confidence: 94.0,
+      daysDue: 15,
+      exception: {
+        type: "PRICE_DIFFERENCE",
+        severity: "HIGH",
+        title: "3-Way Match: Unit Price Variance Exceeds Policy",
+        desc: "Invoiced price USD 5,200.00 vs PO benchmark USD 4,850.00 (+7.2% variance beyond ±2% threshold).",
+        assignedTo: managerUser.id,
+      },
+    },
+    {
+      num: "INV-2026-1019",
+      supCode: "SUP-002",
+      poNum: "PO-FY26-0143",
+      currency: "INR",
+      amount: 26000,
+      paid: 0,
+      wfState: "MATCHING_FAILED",
+      status: "EXCEPTION",
+      source: "UPLOAD",
+      confidence: 95.5,
+      daysDue: 8,
+      exception: {
+        type: "QUANTITY_DIFFERENCE",
+        severity: "MEDIUM",
+        title: "3-Way Match: Billed Quantity Mismatch",
+        desc: "Billed quantity (6 consignments) exceeds verified Goods Receipt delivery note quantity (4 consignments).",
+        assignedTo: executiveUser.id,
+      },
+    },
+    {
+      num: "INV-2026-1020",
+      supCode: "SUP-003",
+      poNum: null,
+      currency: "INR",
+      amount: 34200,
+      paid: 0,
+      wfState: "VALIDATION_FAILED",
+      status: "EXCEPTION",
+      source: "EMAIL",
+      confidence: 92.0,
+      daysDue: 22,
+      exception: {
+        type: "TAX_DIFFERENCE",
+        severity: "MEDIUM",
+        title: "Statutory Tax Arithmetic Discrepancy",
+        desc: "Line subtotal (INR 28,000) + 18% GST (INR 5,040) does not match invoice total INR 34,200 (variance: INR 1,160).",
+        assignedTo: executiveUser.id,
+      },
+    },
+    {
+      num: "INV-2026-1021",
+      supCode: "SUP-006",
+      poNum: null,
+      currency: "INR",
+      amount: 115000,
+      paid: 0,
+      wfState: "VALIDATION_FAILED",
+      status: "EXCEPTION",
+      source: "UPLOAD",
+      confidence: 89.0,
+      daysDue: 12,
+      exception: {
+        type: "INVALID_GST",
+        severity: "CRITICAL",
+        title: "Statutory Compliance: Invalid GSTIN Checksum",
+        desc: "Vendor GSTIN '33AABCM4321D1ZZ' failed statutory Modulo-36 check-digit verification.",
+        assignedTo: managerUser.id,
+      },
+    },
+    {
+      num: "INV-2026-1022",
+      supCode: "SUP-005",
+      poNum: null,
+      currency: "EUR",
+      amount: 14500,
+      paid: 0,
+      wfState: "VALIDATION_FAILED",
+      status: "EXCEPTION",
+      source: "SCANNER",
+      confidence: 86.0,
+      daysDue: -2, // Overdue
+      exception: {
+        type: "FRAUD_RISK",
+        severity: "CRITICAL",
+        title: "Remittance Discrepancy / Bank Details On Hold",
+        desc: "Bank IBAN on scanned invoice does not match authenticated vendor master record in ERP.",
+        assignedTo: adminUser.id,
+      },
+    },
+    {
+      num: "INV-2026-1023",
+      supCode: "SUP-002",
+      poNum: null,
+      currency: "INR",
+      amount: 450, // Micro-amount edge case
+      paid: 0,
+      wfState: "SCHEDULED",
+      status: "SCHEDULED",
+      source: "EDI",
+      confidence: 99.5,
+      daysDue: 1, // Maturing tomorrow
+      payment: { status: "SCHEDULED", method: "UPI_CORPORATE", date: addDays(1), ref: "PAY-MICRO-1023" },
+    },
+    {
+      num: "INV-2026-1024",
+      supCode: "SUP-001",
+      poNum: "PO-FY26-0142",
+      currency: "INR",
+      amount: 825000, // Tier 3 (> ₹5,00,000) requires Administrator sign-off
+      paid: 0,
+      wfState: "WAITING_APPROVAL",
+      status: "PENDING_APPROVAL",
+      source: "UPLOAD",
+      confidence: 99.0,
+      daysDue: 28,
+      approval: { approverId: adminUser.id, status: "PENDING", comment: "Tier 3 executive authorization required for disbursements exceeding INR 5,00,000." },
+    },
+    {
+      num: "INV-2026-1025",
+      supCode: "SUP-007",
+      poNum: null,
+      currency: "GBP",
+      amount: 2400,
+      paid: 2400,
+      wfState: "PAID",
+      status: "PAID",
+      source: "EMAIL",
+      confidence: 98.0,
+      daysDue: -32, // Overdue paid
+      payment: { status: "PAID", method: "WIRE_SWIFT", date: addDays(-30), ref: "PAY-SWIFT-9912" },
+    },
+    {
+      num: "INV-2026-1026",
+      supCode: "SUP-008",
+      poNum: null,
+      currency: "CAD",
+      amount: 4800,
+      paid: 4800,
+      wfState: "ARCHIVED",
+      status: "ARCHIVED",
+      source: "PORTAL",
+      confidence: 99.0,
+      daysDue: -60,
+    },
+    {
+      num: "INV-2026-1027",
+      supCode: "SUP-003",
+      poNum: null,
+      currency: "INR",
+      amount: 18900,
+      paid: 0,
+      wfState: "VALIDATED",
+      status: "PROCESSING",
+      source: "SCANNER",
+      confidence: 96.0,
+      daysDue: 19,
+    },
+    {
+      num: "INV-2026-1028",
+      supCode: "SUP-005",
+      poNum: "PO-FY26-0902",
+      currency: "EUR",
+      amount: 9800,
+      paid: 9800,
+      wfState: "ERP_SYNC",
+      status: "SYNCED",
+      source: "ERP",
+      confidence: 100.0,
+      daysDue: -18,
+    },
   ];
 
   for (const item of invoiceSeedList) {
@@ -738,17 +998,18 @@ async function main() {
   console.log("-------------------------------------------------------");
   console.log("Seeded Entities:");
   console.log(` - 1 Organization (${org.name})`);
-  console.log(" - 4 Users (admin, manager, executive, approver)");
+  console.log(" - 5 Users (admin, manager, executive, approver, readonly)");
   console.log(" - 8 Suppliers (Tata Steel, BlueDart, Amazon, Dell, Siemens, Maersk, FedEx, Salesforce)");
-  console.log(" - 5 Reconciled Purchase Orders");
-  console.log(" - 17 Invoices covering 14 Workflow Scenes (with line items)");
-  console.log(" - 4 Representative Open Exceptions");
-  console.log(" - 2 Pending Approvals, 2 Scheduled Payments, 2 Paid Payments");
+  console.log(" - 5 Reconciled Purchase Orders + 3 Goods Receipt Notes (GRN)");
+  console.log(" - 28 Invoices covering all workflow stages, tiers, currencies, and edge cases");
+  console.log(" - 8 Open Operational & Statutory Exceptions");
+  console.log(" - 3 Pending Approvals (Tier 1/2/3), 4 Scheduled Payments, 4 Paid Payments");
   console.log("Standard Login Credentials (password123 for all):");
   console.log("  admin@avarta.dev (or @clearops.dev)      (Administrator)");
   console.log("  manager@avarta.dev (or @clearops.dev)    (Finance Manager)");
   console.log("  executive@avarta.dev (or @clearops.dev)  (Finance Executive)");
   console.log("  approver@avarta.dev (or @clearops.dev)   (Approver)");
+  console.log("  readonly@avarta.dev (or @clearops.dev)   (Read Only)");
   console.log("-------------------------------------------------------");
 }
 

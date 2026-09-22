@@ -595,48 +595,50 @@ PROCESSING
 
 # APPENDIX F — USER ROLES
 
-Core roles:
+Core roles (Canonical 5-role model per Doc 18 & AGENTS.md):
 
 ```text
-ADMIN
-AP CLERK
-AP MANAGER
-APPROVER
+ADMINISTRATOR
 FINANCE MANAGER
+FINANCE EXECUTIVE
+APPROVER
+READ ONLY
 ```
 
 Responsibilities:
 
 ```text
-ADMIN
-├── Users
-├── Permissions
-├── Settings
-└── Integrations
-
-AP CLERK
-├── Invoice processing
-├── Exceptions
-├── Supplier information
-└── Documentation
-
-AP MANAGER
-├── Exceptions
-├── Approvals
-├── Workflow oversight
-└── Reporting
-
-APPROVER
-├── Review
-├── Approve
-├── Reject
-└── Request information
+ADMINISTRATOR
+├── Users & Role Management
+├── Tenant Permissions
+├── System Settings
+├── ERP Integrations
+└── Tier 3 (> ₹5,00,000) Approval Authority
 
 FINANCE MANAGER
-├── Payments
-├── Financial oversight
-├── Reports
-└── ERP status
+├── Full operational workflow access
+├── Payment batch runner & execution
+├── Tier 2 (₹1,00,000 – ₹5,00,000) Approvals
+├── Financial liquidity oversight & DPO reports
+└── ERP sync clearance
+
+FINANCE EXECUTIVE (Operational AP Specialist)
+├── Invoice ingestion & capture verification
+├── Line item & 3-way match exception resolution
+├── Supplier master maintenance & tax validation
+├── Non-disbursement workflow actions
+└── (No approval authority)
+
+APPROVER
+├── Invoice review & document verification
+├── Line item verification
+├── Tier 1 (≤ ₹1,00,000) Approve / Reject actions
+└── Request information & comment logging
+
+READ ONLY (Auditor / Executive Leadership / CFO)
+├── Immutable historical audit trail inspection
+├── Financial report & aging bucket visibility
+└── Read-only register inspection across all stages
 ```
 
 Permissions must be enforced server-side.

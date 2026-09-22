@@ -5,6 +5,7 @@ export const SEEDED_ACCOUNTS = {
   admin: { email: "admin@avarta.dev", password: "password123", role: "Administrator" },
   executive: { email: "executive@avarta.dev", password: "password123", role: "Finance Executive" },
   approver: { email: "approver@avarta.dev", password: "password123", role: "Approver" },
+  readonly: { email: "readonly@avarta.dev", password: "password123", role: "Read Only" },
 };
 
 export async function loginAs(

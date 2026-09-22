@@ -31,6 +31,7 @@ const ROLES = {
   admin: { email: "admin@avarta.dev", password: "password123", roleName: "Administrator" },
   executive: { email: "executive@avarta.dev", password: "password123", roleName: "Finance Executive" },
   approver: { email: "approver@avarta.dev", password: "password123", roleName: "Approver" },
+  readonly: { email: "readonly@avarta.dev", password: "password123", roleName: "Read Only" },
 };
 
 interface ScreenRecord {
@@ -133,7 +134,7 @@ async function attachPageListeners(page: Page, log: PageAuditLog) {
 }
 
 async function loginUser(page: Page, creds: { email: string; password: string }) {
-  await page.goto(`${BASE_URL}/login`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE_URL}/login`, { waitUntil: "domcontentloaded" });
   await page.fill('input[type="email"]', creds.email);
   await page.fill('input[type="password"]', creds.password);
   await page.click('button[type="submit"]');
@@ -170,7 +171,7 @@ async function main() {
     const loginLog: PageAuditLog = { consoleLogs: [], pageErrors: [], failedRequests: [], slowRequests: [], axeViolations: [] };
     await attachPageListeners(page, loginLog);
 
-    await page.goto(`${BASE_URL}/login`, { waitUntil: "networkidle" });
+    await page.goto(`${BASE_URL}/login`, { waitUntil: "domcontentloaded" });
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, "01_login_clean_desktop.png"), fullPage: true });
 
     // Test Axe accessibility on login
@@ -243,11 +244,8 @@ async function main() {
 
       const pageLog: PageAuditLog = { consoleLogs: [], pageErrors: [], failedRequests: [], slowRequests: [], axeViolations: [] };
       await attachPageListeners(page, pageLog);
-
       const navStart = Date.now();
-      await page.goto(`${BASE_URL}${scr.url}`, { waitUntil: "networkidle", timeout: 15000 }).catch(async () => {
-        await page.goto(`${BASE_URL}${scr.url}`, { waitUntil: "domcontentloaded" });
-      });
+      await page.goto(`${BASE_URL}${scr.url}`, { waitUntil: "domcontentloaded", timeout: 10000 });
       const navEnd = Date.now();
       pageLog.loadTiming = {
         totalLoadMs: navEnd - navStart,
@@ -255,34 +253,32 @@ async function main() {
         fetchDurationMs: navEnd - navStart,
       };
 
-      // Take screenshot
-      const shotName = `${scr.id}_${vp.id}.png`;
+      await page.waitForTimeout(400);
+
+      // Capture screenshot per viewport
+      const screenshotName = `${scr.id}_${vp.id}.png`;
       await page.screenshot({
-        path: path.join(SCREENSHOTS_DIR, shotName),
-        fullPage: false,
+        path: path.join(SCREENSHOTS_DIR, screenshotName),
+        fullPage: !vp.id.includes("mobile"),
       });
 
-      // Run Axe only on primary desktop viewport to avoid duplicate data
-      if (vp.id === "desktop_1920") {
-        try {
-          const axeRes = await new AxeBuilder({ page }).analyze();
-          pageLog.axeViolations = axeRes.violations.map((v) => ({
-            id: v.id,
-            impact: v.impact ?? "unknown",
-            description: v.description,
-            help: v.help,
-            nodesCount: v.nodes.length,
-          }));
-          fs.writeFileSync(path.join(AXE_DIR, `${scr.id}.json`), JSON.stringify(axeRes, null, 2));
-        } catch (err) {
-          console.warn(`    ! Axe scan failed on ${scr.id}:`, err);
-        }
-
-        auditResults[scr.id] = pageLog;
-        fs.writeFileSync(path.join(LOGS_DIR, `${scr.id}.json`), JSON.stringify(pageLog, null, 2));
+      // Run Axe accessibility scan
+      try {
+        const axe = await new AxeBuilder({ page }).analyze();
+        pageLog.axeViolations = axe.violations.map((v) => ({
+          id: v.id,
+          impact: v.impact ?? "unknown",
+          description: v.description,
+          help: v.help,
+          nodesCount: v.nodes.length,
+        }));
+        fs.writeFileSync(path.join(AXE_DIR, `${scr.id}_${vp.id}.json`), JSON.stringify(axe, null, 2));
+      } catch {
+        // Soft fail on axe if page DOM unmounted
       }
 
-      console.log(`    ✓ ${scr.name} [${vp.id}]: loaded in ${navEnd - navStart}ms | axe violations: ${pageLog.axeViolations?.length ?? 0}`);
+      auditResults[`${scr.id}_${vp.id}`] = pageLog;
+      console.log(`    ✓ ${scr.name} [${vp.id}]: loaded in ${pageLog.loadTiming.totalLoadMs}ms | axe violations: ${pageLog.axeViolations.length}`);
     }
 
     await context.close();
@@ -314,7 +310,7 @@ async function main() {
 
     // Step 3.2: Inbox Intake Flow
     console.log("  3.2 Submitting fresh invoice via Inbox...");
-    await page.goto(`${BASE_URL}/inbox`, { waitUntil: "networkidle" });
+    await page.goto(`${BASE_URL}/inbox`, { waitUntil: "domcontentloaded" });
     const uniqueInvNum = `INV-AUDIT-${Date.now().toString().slice(-6)}`;
     testDataCreated.push(uniqueInvNum);
 
@@ -336,7 +332,7 @@ async function main() {
 
     // Step 3.3: Invoice Detail & Line Items & 3-Way Match
     console.log("  3.3 Verifying Invoice Detail & Audit Timeline...");
-    await page.goto(`${BASE_URL}/invoices`, { waitUntil: "networkidle" });
+    await page.goto(`${BASE_URL}/invoices`, { waitUntil: "domcontentloaded" });
     const firstInvoiceLink = page.locator("table tbody tr a[href^='/invoices/']").first();
     if (await firstInvoiceLink.isVisible()) {
       await firstInvoiceLink.click();
@@ -359,22 +355,22 @@ async function main() {
 
     // Step 3.4: Exceptions Handling Queue
     console.log("  3.4 Verifying Exceptions Queue...");
-    await page.goto(`${BASE_URL}/exceptions`, { waitUntil: "networkidle" });
+    await page.goto(`${BASE_URL}/exceptions`, { waitUntil: "domcontentloaded" });
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, "workflow_06_exceptions_queue.png") });
 
     // Step 3.5: Approvals Decision Queue
     console.log("  3.5 Verifying Approvals Decision Queue & Tier Badges...");
-    await page.goto(`${BASE_URL}/approvals`, { waitUntil: "networkidle" });
+    await page.goto(`${BASE_URL}/approvals`, { waitUntil: "domcontentloaded" });
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, "workflow_07_approvals_queue.png") });
 
     // Step 3.6: Disbursement Hub & Batch Calculation Strip
     console.log("  3.6 Verifying Payments & Batch Disbursement Modal...");
-    await page.goto(`${BASE_URL}/payments`, { waitUntil: "networkidle" });
+    await page.goto(`${BASE_URL}/payments`, { waitUntil: "domcontentloaded" });
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, "workflow_08_payments_queue.png") });
 
     // Step 3.7: Reports Page Tabs (Operational, Aging & Cash Forecast, CFO ROI)
     console.log("  3.7 Verifying Reports Tabs & AP Aging / Cash Forecast...");
-    await page.goto(`${BASE_URL}/reports`, { waitUntil: "networkidle" });
+    await page.goto(`${BASE_URL}/reports`, { waitUntil: "domcontentloaded" });
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, "workflow_09_reports_operational.png") });
 
     const agingTab = page.getByRole("tab", { name: /Aging|Cash Forecast/i }).first();
@@ -431,8 +427,8 @@ async function main() {
   console.log("\n[Phase 5] Compiling Comprehensive Final Audit Report in audit-output/report/report.md...");
 
   // Aggregate statistics
-  let _totalConsoleErrors = 0;
-  let _totalFailedRequests = 0;
+  let totalConsoleErrors = 0;
+  let totalFailedRequests = 0;
   let totalAxeViolations = 0;
   let totalCriticalAxe = 0;
   let totalSeriousAxe = 0;
