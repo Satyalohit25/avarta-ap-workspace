@@ -31,4 +31,5 @@ apps/web/e2e/*.cjs
 **/*.timestamp-*.mjs
 **/*.log
 audit-output/
-
+pm-audit-output/
+**/pm-audit-output/
