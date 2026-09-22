@@ -178,6 +178,9 @@ export default function ProfilePage() {
                         <img
                           src={avatarUrl}
                           alt={fullName}
+                          width={80}
+                          height={80}
+                          loading="lazy"
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -199,6 +202,8 @@ export default function ProfilePage() {
                       <Camera size={13} />
                       <input
                         id="avatar-upload-input"
+                        name="avatarFile"
+                        aria-label="Upload profile display picture"
                         type="file"
                         accept="image/*"
                         onChange={handleAvatarUpload}

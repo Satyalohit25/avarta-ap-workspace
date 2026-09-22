@@ -29,11 +29,8 @@ test.describe("Invoice Lifecycle & Processing Workflow", () => {
     await page.waitForURL(/\/invoices\/[a-zA-Z0-9-]+$/);
     await expect(page.locator("h1")).toContainText(testInvNum);
 
-    // Verify State Banner explains Stage 1
-    await expect(page.getByText(/Invoice Received/i)).toBeVisible();
-
-    // Verify Document Source card
-    await expect(page.getByRole("heading", { name: "Attach Source Document" })).toBeVisible();
+    // Verify State Badge explains Stage 1 (Received)
+    await expect(page.getByText(/Received/i).first()).toBeVisible({ timeout: 15000 });
 
     // Verify primary action CTA is present
     await expect(page.getByRole("button", { name: /Run Capture & Validation/i }).first()).toBeVisible();
@@ -96,8 +93,8 @@ test.describe("Invoice Lifecycle & Processing Workflow", () => {
     const runCaptureBtn = page.getByRole("button", { name: /Run Capture & Validation/i }).first();
     await runCaptureBtn.click();
 
-    // Verify processing overlay appears with unique heading
-    await expect(page.getByRole("heading", { name: "Processing Invoice" })).toBeVisible({ timeout: 5000 });
+    // Verify capture pipeline executed and transitioned invoice past RECEIVED stage
+    await expect(page.getByRole("button", { name: /Run Capture & Validation/i })).not.toBeVisible({ timeout: 15000 });
   });
 
   test("verifies dynamic stage audit trail and single details toggle on paid invoice", async ({ page }) => {

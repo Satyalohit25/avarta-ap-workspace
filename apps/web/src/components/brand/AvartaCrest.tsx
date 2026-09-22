@@ -78,6 +78,8 @@ export function AvartaCrest({
         <img
           src={imageSrc}
           alt={alt}
+          width={512}
+          height={512}
           className={`w-full h-full object-contain ${blendModeClass} ${glowClass} transition-opacity duration-200 select-none pointer-events-none`}
           loading="eager"
         />
@@ -96,6 +98,8 @@ export function AvartaCrest({
           <img
             src={imageSrc}
             alt={alt}
+            width={512}
+            height={512}
             style={{
               position: "absolute",
               width: "188%",
@@ -122,6 +126,8 @@ export function AvartaCrest({
           <img
             src={imageSrc}
             alt={alt}
+            width={512}
+            height={512}
             style={{
               position: "absolute",
               width: "550%",
@@ -148,6 +154,8 @@ export function AvartaCrest({
       <img
         src={imageSrc}
         alt=""
+        width={680}
+        height={680}
         className={`w-[85%] max-w-[680px] h-auto object-contain opacity-[0.05] dark:opacity-[0.07] ${blendModeClass} filter contrast-125`}
         loading="lazy"
       />

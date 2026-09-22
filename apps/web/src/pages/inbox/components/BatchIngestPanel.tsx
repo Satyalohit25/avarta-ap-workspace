@@ -151,6 +151,8 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
         >
           <input
             ref={batchFileInputRef}
+            id="batch-invoice-file-upload"
+            name="batchFiles"
             type="file"
             multiple
             accept=".pdf,.png,.jpg,.jpeg"

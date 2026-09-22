@@ -386,6 +386,7 @@ export function InvoiceForm({
             <input
               ref={fileInputRef}
               id="shared-invoice-file-upload"
+              name="invoiceFile"
               type="file"
               accept=".pdf,.png,.jpg,.jpeg"
               onChange={handleFileInputChange}
@@ -588,6 +589,10 @@ export function InvoiceForm({
                       </td>
                       <td className="py-2 px-2">
                         <input
+                          id={`invoice-line-${l.id ?? index}-desc`}
+                          name={`line_${l.id ?? index}_desc`}
+                          autoComplete="off"
+                          aria-label={`Line ${index + 1} item description`}
                           type="text"
                           value={l.description}
                           onChange={(e) => handleUpdateLine(l.id ?? String(index), "description", e.target.value)}
@@ -597,6 +602,10 @@ export function InvoiceForm({
                       </td>
                       <td className="py-2 px-2 text-right">
                         <input
+                          id={`invoice-line-${l.id ?? index}-qty`}
+                          name={`line_${l.id ?? index}_qty`}
+                          autoComplete="off"
+                          aria-label={`Line ${index + 1} quantity`}
                           type="number"
                           min="1"
                           value={l.quantity}
@@ -606,6 +615,10 @@ export function InvoiceForm({
                       </td>
                       <td className="py-2 px-2 text-right">
                         <input
+                          id={`invoice-line-${l.id ?? index}-rate`}
+                          name={`line_${l.id ?? index}_rate`}
+                          autoComplete="off"
+                          aria-label={`Line ${index + 1} unit price`}
                           type="number"
                           min="0"
                           step="0.01"
@@ -616,6 +629,9 @@ export function InvoiceForm({
                       </td>
                       <td className="py-2 px-2 text-right">
                         <select
+                          id={`invoice-line-${l.id ?? index}-tax`}
+                          name={`line_${l.id ?? index}_tax`}
+                          aria-label={`Line ${index + 1} tax slab`}
                           value={l.taxRate ?? 18}
                           onChange={(e) => handleUpdateLine(l.id ?? String(index), "taxRate", Number(e.target.value))}
                           className="h-8 px-2 rounded text-micro font-mono border border-neutral-200 dark:border-zinc-700 bg-transparent text-neutral-800 dark:text-zinc-200 focus:border-indigo-500 focus:outline-none"

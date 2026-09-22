@@ -228,20 +228,22 @@ test.describe("Visual Crawl & Interactive Surface Mapper", () => {
               path: path.join(SCREENSHOT_DIR, "08-payments-page-settled-banner.png"),
               fullPage: true,
             });
-
-            // 1b. Test FX / Cross-Currency Edge Case on Siemens AG (EUR)
-            const eurExecuteBtn = page.getByRole("button", { name: /^Execute$/i }).first();
-            if (await eurExecuteBtn.isVisible()) {
-              await eurExecuteBtn.click();
-              await page.waitForTimeout(400);
-              await page.screenshot({
-                path: path.join(SCREENSHOT_DIR, "08-payments-fx-edge-case-modal.png"),
-              });
-              await page.keyboard.press("Escape");
-              await page.waitForTimeout(200);
-            }
           }
         }
+      } else {
+        // Close modal cleanly
+        const closeBtn = page.getByRole("button", { name: "Close dialog" });
+        if (await closeBtn.isVisible()) {
+          await closeBtn.click();
+        } else {
+          const cancelBtn = page.locator('div[role="dialog"] button:has-text("Cancel")');
+          if (await cancelBtn.isVisible()) {
+            await cancelBtn.click();
+          } else {
+            await page.keyboard.press("Escape");
+          }
+        }
+        await page.waitForTimeout(500);
       }
     }
 

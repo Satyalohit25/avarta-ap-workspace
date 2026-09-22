@@ -267,6 +267,10 @@ export default function SuppliersPage() {
 
         <div className="relative w-full sm:w-72">
           <Input
+            id="supplier-search-filter"
+            name="searchQuery"
+            autoComplete="off"
+            aria-label="Search vendor, code, GST"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search vendor, code, GST..."
@@ -1001,10 +1005,14 @@ export default function SuppliersPage() {
                 placeholder="+91 98765 43210"
               />
               <div>
-                <label className="block text-label text-neutral-700 dark:text-zinc-300 font-medium mb-1.5">
+                <label htmlFor="supplier-contact-address" className="block text-label text-neutral-700 dark:text-zinc-300 font-medium mb-1.5">
                   Registered Street Address
                 </label>
                 <textarea
+                  id="supplier-contact-address"
+                  name="contactAddress"
+                  autoComplete="street-address"
+                  aria-label="Registered Street Address"
                   value={contactAddress}
                   onChange={(e) => setContactAddress(e.target.value)}
                   placeholder="Plot 42, Hinjewadi Phase II, Pune 411501, Maharashtra, India"

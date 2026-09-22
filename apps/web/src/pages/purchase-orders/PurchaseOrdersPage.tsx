@@ -469,6 +469,7 @@ export default function PurchaseOrdersPage() {
           <div className="w-40 shrink-0">
             <Select
               name="matchingStatusFilter"
+              aria-label="Filter by matching status"
               value={matchingFilter}
               onValueChange={setMatchingFilter}
               options={[
@@ -483,6 +484,10 @@ export default function PurchaseOrdersPage() {
           {/* Search Box */}
           <div className="relative w-full sm:w-64">
             <Input
+              id="po-search-filter"
+              name="searchQuery"
+              autoComplete="off"
+              aria-label="Search purchase orders by PO number or supplier"
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search PO # or supplier..."
@@ -1083,14 +1088,40 @@ export default function PurchaseOrdersPage() {
                     )}
                   </div>
                   <Input
+                    id={`po-line-desc-${line.id}`}
+                    name={`po_desc_${line.id}`}
+                    autoComplete="off"
+                    aria-label="Item description"
                     placeholder="Item description (e.g. Cold Rolled Steel Coils IS 2062)"
                     value={line.description}
                     onChange={(e) => updateLineItem(line.id, "description", e.target.value)}
                   />
                   <div className="grid grid-cols-4 gap-2">
-                    <Input placeholder="HSN/SAC" value={line.hsnSac} onChange={(e) => updateLineItem(line.id, "hsnSac", e.target.value)} />
-                    <Input type="number" placeholder="Qty" min="0" step="0.01" value={line.quantity || ""} onChange={(e) => updateLineItem(line.id, "quantity", Number(e.target.value))} />
+                    <Input
+                      id={`po-line-hsn-${line.id}`}
+                      name={`po_hsn_${line.id}`}
+                      autoComplete="off"
+                      aria-label="HSN or SAC code"
+                      placeholder="HSN/SAC"
+                      value={line.hsnSac}
+                      onChange={(e) => updateLineItem(line.id, "hsnSac", e.target.value)}
+                    />
+                    <Input
+                      id={`po-line-qty-${line.id}`}
+                      name={`po_qty_${line.id}`}
+                      autoComplete="off"
+                      aria-label="Quantity"
+                      type="number"
+                      placeholder="Qty"
+                      min="0"
+                      step="0.01"
+                      value={line.quantity || ""}
+                      onChange={(e) => updateLineItem(line.id, "quantity", Number(e.target.value))}
+                    />
                     <select
+                      id={`po-line-uom-${line.id}`}
+                      name={`po_uom_${line.id}`}
+                      aria-label="Unit of measure"
                       className="h-9 w-full rounded-md border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2 text-body-sm text-neutral-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
                       value={line.unitOfMeasure}
                       onChange={(e) => updateLineItem(line.id, "unitOfMeasure", e.target.value)}
@@ -1099,7 +1130,18 @@ export default function PurchaseOrdersPage() {
                         <option key={u} value={u}>{u}</option>
                       ))}
                     </select>
-                    <Input type="number" placeholder="Unit Rate" min="0" step="0.01" value={line.unitPrice || ""} onChange={(e) => updateLineItem(line.id, "unitPrice", Number(e.target.value))} />
+                    <Input
+                      id={`po-line-rate-${line.id}`}
+                      name={`po_rate_${line.id}`}
+                      autoComplete="off"
+                      aria-label="Unit rate"
+                      type="number"
+                      placeholder="Unit Rate"
+                      min="0"
+                      step="0.01"
+                      value={line.unitPrice || ""}
+                      onChange={(e) => updateLineItem(line.id, "unitPrice", Number(e.target.value))}
+                    />
                   </div>
                   {Number(line.lineTotal) > 0 && (
                     <div className="text-right text-caption font-mono font-semibold text-neutral-700 dark:text-zinc-300">

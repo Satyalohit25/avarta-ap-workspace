@@ -30,4 +30,5 @@ apps/web/*_verified.png
 apps/web/e2e/*.cjs
 **/*.timestamp-*.mjs
 **/*.log
+audit-output/
 

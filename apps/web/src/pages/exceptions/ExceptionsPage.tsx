@@ -230,6 +230,10 @@ export default function ExceptionsPage() {
 
         <div className="relative w-full sm:w-72">
           <Input
+            id="exceptions-search-filter"
+            name="searchQuery"
+            autoComplete="off"
+            aria-label="Filter exceptions by invoice number or vendor"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Filter exceptions by # or vendor..."
@@ -240,6 +244,7 @@ export default function ExceptionsPage() {
                   type="button"
                   onClick={() => handleSearchChange("")}
                   className="text-neutral-400 hover:text-neutral-600 dark:hover:text-zinc-200"
+                  aria-label="Clear search"
                 >
                   <X size={14} />
                 </button>
@@ -406,6 +411,9 @@ export default function ExceptionsPage() {
 
               <textarea
                 id="resolutionNote"
+                name="resolutionNote"
+                autoComplete="off"
+                aria-label="Resolution justification note"
                 rows={4}
                 required
                 minLength={10}

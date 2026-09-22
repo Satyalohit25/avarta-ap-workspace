@@ -110,7 +110,14 @@ export function UserWorkspaceMenu({
       >
         <span className="relative h-7 w-7 rounded-full overflow-hidden bg-neutral-200 dark:bg-zinc-700 ring-1.5 ring-indigo-500/30 flex items-center justify-center font-medium text-caption shrink-0">
           {avatarUrl ? (
-            <img src={avatarUrl} alt={user?.name ?? "Account"} className="w-full h-full object-cover" />
+            <img
+              src={avatarUrl}
+              alt={user?.name ?? "Account"}
+              width={28}
+              height={28}
+              loading="lazy"
+              className="w-full h-full object-cover"
+            />
           ) : (
             <User size={14} strokeWidth={2} className="text-neutral-600 dark:text-zinc-300" />
           )}
@@ -144,7 +151,14 @@ export function UserWorkspaceMenu({
             <div className="flex items-start gap-3">
               <span className="h-10 w-10 rounded-full overflow-hidden bg-neutral-100 dark:bg-zinc-800 ring-2 ring-indigo-500/20 flex items-center justify-center shrink-0">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt={user?.name} className="w-full h-full object-cover" />
+                  <img
+                    src={avatarUrl}
+                    alt={user?.name ?? "Account User"}
+                    width={40}
+                    height={40}
+                    loading="lazy"
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <User size={20} className="text-neutral-500 dark:text-zinc-400" />
                 )}

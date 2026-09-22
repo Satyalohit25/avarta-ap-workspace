@@ -392,10 +392,14 @@ export function LineItemMatchingTable({
         {selectedLineForReason && (
           <div className="p-4 bg-neutral-50 dark:bg-zinc-800/60 border-t border-neutral-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-150">
             <div className="space-y-1 min-w-0 flex-1">
-              <span className="text-micro font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400">
+              <label htmlFor="override-decision-reason" className="text-micro font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400 block">
                 Document {selectedLineForReason.action === "ACCEPT" ? "Override Reason" : "Exception Flag"}:
-              </span>
+              </label>
               <input
+                id="override-decision-reason"
+                name="overrideReason"
+                autoComplete="off"
+                aria-label={`Document ${selectedLineForReason.action === "ACCEPT" ? "Override Reason" : "Exception Flag"}`}
                 type="text"
                 value={reasonInput}
                 onChange={(e) => setReasonInput(e.target.value)}

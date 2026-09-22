@@ -87,6 +87,9 @@ export function Command({ isOpen, onClose }: CommandProps) {
                 className="text-neutral-400 dark:text-zinc-500 shrink-0"
               />
               <CommandPrimitive.Input
+                id="command-palette-search-input"
+                name="commandSearch"
+                autoComplete="off"
                 value={query}
                 onValueChange={setQuery}
                 placeholder="Search invoices, suppliers, or switch persona..."

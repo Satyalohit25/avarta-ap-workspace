@@ -395,6 +395,10 @@ export default function InvoicesPage() {
 
         <div className="relative w-full sm:w-72">
           <Input
+            id="invoice-search-filter"
+            name="searchQuery"
+            autoComplete="off"
+            aria-label="Filter by invoice number or vendor"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Filter by invoice # or vendor..."
@@ -405,6 +409,7 @@ export default function InvoicesPage() {
                   type="button"
                   onClick={() => handleSearchChange("")}
                   className="text-neutral-400 hover:text-neutral-600 dark:hover:text-zinc-200"
+                  aria-label="Clear search"
                 >
                   <X size={14} />
                 </button>

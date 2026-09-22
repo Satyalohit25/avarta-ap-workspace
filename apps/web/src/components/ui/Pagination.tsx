@@ -71,6 +71,8 @@ export function Pagination({
           <div className="flex items-center gap-1.5 text-caption">
             <span className="hidden md:inline text-neutral-500 dark:text-zinc-500">Rows:</span>
             <select
+              id="pagination-page-size"
+              name="pageSize"
               value={pageSize}
               onChange={(e) => {
                 onPageSizeChange(Number(e.target.value));

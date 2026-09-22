@@ -509,11 +509,15 @@ export default function ApprovalsPage() {
             {/* 5. Rejection Comment Form */}
             {showRejectForm ? (
               <div className="space-y-3 p-4 rounded-xl border border-rose-200 dark:border-rose-950 bg-rose-50/30 dark:bg-rose-950/20 animate-in fade-in-50 duration-150">
-                <div className="flex items-center gap-1.5 text-body-sm font-semibold text-rose-800 dark:text-rose-300">
+                <label htmlFor="approval-rejection-reason" className="flex items-center gap-1.5 text-body-sm font-semibold text-rose-800 dark:text-rose-300">
                   <AlertTriangle size={15} />
                   <span>Rejection Reason (Required for Audit Trail)</span>
-                </div>
+                </label>
                 <textarea
+                  id="approval-rejection-reason"
+                  name="rejectComment"
+                  autoComplete="off"
+                  aria-label="Rejection Reason (Required for Audit Trail)"
                   value={rejectComment}
                   onChange={(e) => setRejectComment(e.target.value)}
                   placeholder="Specify clear reason for rejecting this invoice (e.g. rate disagreement, wrong PO allocation)..."

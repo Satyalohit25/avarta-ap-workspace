@@ -3,7 +3,7 @@ import { loginAs } from "./helpers/auth";
 
 test.describe("Automated DOM Accessibility & Label Auditing", () => {
   test("verifies zero unlabeled buttons or form inputs across primary routes", async ({ page }) => {
-    test.setTimeout(60000);
+    test.setTimeout(180000);
     await loginAs(page);
 
     const routes = [

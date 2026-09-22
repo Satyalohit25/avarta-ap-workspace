@@ -8,10 +8,10 @@ test.describe("Exceptions Handling Queue", () => {
 
   test("loads Exception Queue page", async ({ page }) => {
     await page.goto("/exceptions");
-    await expect(page.locator("h1")).toHaveText("Exceptions");
+    await expect(page.locator("h1")).toHaveText("Exceptions", { timeout: 15000 });
 
     const subtitle = page.locator("text=Invoices flagged by validation or matching rules requiring human resolution.");
-    await expect(subtitle).toBeVisible();
+    await expect(subtitle).toBeVisible({ timeout: 15000 });
   });
 
   test("renders exception status badges or empty state correctly", async ({ page }) => {

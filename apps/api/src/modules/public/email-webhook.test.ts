@@ -16,15 +16,22 @@ describe("Inbound Email Intake Webhook (Step 12)", () => {
       organizationId: "org-1",
     } as any);
 
-    const invoiceCreateSpy = vi.spyOn(prisma.invoice, "create").mockResolvedValue({
-      id: "inv-eml-1",
-      invoiceNumber: "INV-9901",
-      organizationId: "org-1",
-      source: "EMAIL",
-    } as any);
+    const invoiceCreateSpy = vi
+      .spyOn(prisma.invoice, "create")
+      .mockResolvedValue({
+        id: "inv-eml-1",
+        invoiceNumber: "INV-9901",
 
-    const workflowSpy = vi.spyOn(workflowEngine, "startWorkflow").mockResolvedValue({} as any);
-    const docCreateSpy = vi.spyOn(prisma.document, "create").mockResolvedValue({} as any);
+        organizationId: "org-1",
+        source: "EMAIL",
+      } as any);
+
+    const workflowSpy = vi
+      .spyOn(workflowEngine, "startWorkflow")
+      .mockResolvedValue({} as any);
+    const docCreateSpy = vi
+      .spyOn(prisma.document, "create")
+      .mockResolvedValue({} as any);
 
     const result = await processInboundEmail({
       from: "billing@tatachemicals.com",
@@ -49,7 +56,7 @@ describe("Inbound Email Intake Webhook (Step 12)", () => {
           source: "EMAIL",
           invoiceNumber: "INV-9901",
         }),
-      })
+      }),
     );
     expect(workflowSpy).toHaveBeenCalledWith("inv-eml-1");
     expect(docCreateSpy).toHaveBeenCalledWith(
@@ -57,7 +64,7 @@ describe("Inbound Email Intake Webhook (Step 12)", () => {
         data: expect.objectContaining({
           fileName: "invoice-9901.pdf",
         }),
-      })
+      }),
     );
   });
 });

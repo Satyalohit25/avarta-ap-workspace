@@ -10,8 +10,22 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helpText, leftIcon, rightIcon, className, id, ...props }, ref) => {
-    const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
+  ({ label, error, helpText, leftIcon, rightIcon, className, id, name, autoComplete, ...props }, ref) => {
+    const fallbackId = (label ? label.toLowerCase().replace(/[^a-z0-9]/g, "-") : undefined)
+      ?? (props.placeholder ? props.placeholder.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) : undefined)
+      ?? "input-field";
+    const inputId = id ?? name ?? fallbackId;
+    const inputName = name ?? inputId;
+    const inputAutoComplete = autoComplete ?? (
+      props.type === "password"
+        ? "current-password"
+        : props.type === "email"
+        ? "email"
+        : props.type === "tel"
+        ? "tel"
+        : "off"
+    );
+    const inputAriaLabel = props["aria-label"] ?? (!label ? (props.placeholder ?? inputName) : undefined);
 
     return (
       <div className="space-y-1.5 w-full">
@@ -25,6 +39,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             id={inputId}
+            name={inputName}
+            autoComplete={inputAutoComplete}
+            aria-label={inputAriaLabel}
             className={cn(
               "flex h-9 w-full rounded-md border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1 text-body-sm text-neutral-900 dark:text-zinc-100 shadow-2xs transition-all placeholder:text-neutral-400 dark:placeholder:text-zinc-500 hover:border-neutral-300 dark:hover:border-zinc-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400 dark:focus-visible:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50",
               leftIcon && "pl-9",

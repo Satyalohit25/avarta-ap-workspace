@@ -326,6 +326,8 @@ Generated via Avarta AP Workspace Executive Model (Market Source: Ardent Partner
             </div>
             <input
               id="sim-monthly-volume"
+              name="monthlyVolume"
+              aria-label="Monthly Invoice Volume"
               type="range"
               min="200"
               max="15000"
@@ -358,6 +360,8 @@ Generated via Avarta AP Workspace Executive Model (Market Source: Ardent Partner
             </div>
             <input
               id="sim-avg-invoice"
+              name="avgInvoiceValue"
+              aria-label="Average Invoice Value"
               type="range"
               min={selectedCurrency === "INR" ? 5000 : 100}
               max={selectedCurrency === "INR" ? 300000 : 5000}
@@ -400,6 +404,8 @@ Generated via Avarta AP Workspace Executive Model (Market Source: Ardent Partner
             </div>
             <input
               id="sim-ftes"
+              name="currentFtes"
+              aria-label="Current AP Team Size"
               type="range"
               min="1"
               max="20"

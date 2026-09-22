@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { Bell, Search, Sun, Moon, Menu, LogOut, HelpCircle } from "lucide-react";
+import { Bell, Search, Sun, Moon, Menu, HelpCircle } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../app/AuthContext";
 import { useTheme } from "../../app/ThemeContext";
 import { Command } from "../ui/Command";
 import { Separator } from "../ui/Separator";
@@ -13,7 +12,6 @@ interface TopNavProps {
 }
 
 export function TopNav({ onOpenMobileMenu }: TopNavProps) {
-  const { logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [commandOpen, setCommandOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
@@ -115,16 +113,6 @@ export function TopNav({ onOpenMobileMenu }: TopNavProps) {
             onOpenTour={() => setTourOpen(true)}
             onOpenCommand={() => setCommandOpen(true)}
           />
-
-          <button
-            onClick={logout}
-            className="inline-flex items-center gap-1.5 text-body-sm text-neutral-500 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-100 ml-0.5 px-2 py-1 rounded-md hover:bg-neutral-100 dark:hover:bg-zinc-800 transition-colors font-medium cursor-pointer"
-            title="Sign out of Avarta"
-          >
-            <LogOut size={14} className="text-neutral-400 dark:text-zinc-500" />
-            <span className="hidden md:inline">Sign out</span>
-            <span className="sr-only md:not-sr-only">Sign out</span>
-          </button>
         </div>
       </header>
 

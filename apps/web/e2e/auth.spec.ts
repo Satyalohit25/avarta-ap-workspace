@@ -38,6 +38,7 @@ test.describe("Authentication Flow & Login UI", () => {
 
   test("logs out user and redirects to login", async ({ page }) => {
     await loginAs(page, SEEDED_ACCOUNTS.manager);
+    await page.locator('button[aria-haspopup="true"]').first().click();
     await page.click("text=Sign out");
     await page.waitForURL("**/login");
     await expect(page).toHaveURL(/\/login$/);

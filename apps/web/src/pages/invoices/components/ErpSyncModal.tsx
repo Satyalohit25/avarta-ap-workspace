@@ -468,11 +468,14 @@ export function ErpSyncModal({
             <div className="pt-1 text-micro font-mono text-neutral-400 dark:text-zinc-500 flex items-center justify-between border-t border-neutral-100 dark:border-zinc-800">
               <span className="truncate max-w-[320px]">Ref: {voucherRef}</span>
 
-              <label className="flex items-center gap-1.5 cursor-pointer select-none text-neutral-500 dark:text-zinc-400 hover:text-neutral-800 dark:hover:text-zinc-200">
+              <label htmlFor="simulate-erp-failure" className="flex items-center gap-1.5 cursor-pointer select-none text-neutral-500 dark:text-zinc-400 hover:text-neutral-800 dark:hover:text-zinc-200">
                 <input
+                  id="simulate-erp-failure"
+                  name="simulateFailure"
                   type="checkbox"
                   checked={simulateFailure}
                   onChange={(e) => setSimulateFailure(e.target.checked)}
+                  aria-label="Simulate ERP Gateway Timeout"
                   className="rounded border-neutral-300 dark:border-zinc-700 text-red-600 focus:ring-red-500"
                 />
                 <span>Simulate ERP Gateway Timeout</span>

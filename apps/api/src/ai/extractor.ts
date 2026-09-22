@@ -1,4 +1,3 @@
-
 import fs from "fs";
 
 export type ConfidenceBand = "HIGH" | "MEDIUM" | "LOW";
@@ -57,7 +56,7 @@ export interface ExtractedInvoiceData {
 export async function extractInvoiceFromFile(
   filePath: string,
   mimeType: string,
-  originalName: string
+  originalName: string,
 ): Promise<ExtractedInvoiceData> {
   const geminiKey = process.env.GEMINI_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
@@ -67,7 +66,10 @@ export async function extractInvoiceFromFile(
       const data = await extractWithGemini(filePath, mimeType, geminiKey);
       if (data) return data;
     } catch (err) {
-      console.warn("Gemini extraction failed, falling back to heuristic parser:", err);
+      console.warn(
+        "Gemini extraction failed, falling back to heuristic parser:",
+        err,
+      );
     }
   }
 
@@ -76,7 +78,10 @@ export async function extractInvoiceFromFile(
       const data = await extractWithOpenAI(filePath, mimeType, openaiKey);
       if (data) return data;
     } catch (err) {
-      console.warn("OpenAI extraction failed, falling back to heuristic parser:", err);
+      console.warn(
+        "OpenAI extraction failed, falling back to heuristic parser:",
+        err,
+      );
     }
   }
 
@@ -90,7 +95,7 @@ export async function extractInvoiceFromFile(
 async function extractWithGemini(
   filePath: string,
   mimeType: string,
-  apiKey: string
+  apiKey: string,
 ): Promise<ExtractedInvoiceData | null> {
   const fileBuffer = fs.readFileSync(filePath);
   const base64Data = fileBuffer.toString("base64");
@@ -126,7 +131,10 @@ Return ONLY valid JSON matching this schema:
               { text: prompt },
               {
                 inlineData: {
-                  mimeType: mimeType === "application/pdf" ? "application/pdf" : mimeType,
+                  mimeType:
+                    mimeType === "application/pdf"
+                      ? "application/pdf"
+                      : mimeType,
                   data: base64Data,
                 },
               },
@@ -138,7 +146,7 @@ Return ONLY valid JSON matching this schema:
           temperature: 0.1,
         },
       }),
-    }
+    },
   );
 
   if (!response.ok) return null;
@@ -161,7 +169,7 @@ Return ONLY valid JSON matching this schema:
 async function extractWithOpenAI(
   filePath: string,
   mimeType: string,
-  apiKey: string
+  apiKey: string,
 ): Promise<ExtractedInvoiceData | null> {
   if (mimeType === "application/pdf") return null;
 
@@ -217,12 +225,14 @@ async function extractWithOpenAI(
 function extractWithHeuristics(
   _filePath: string,
   _mimeType: string,
-  originalName: string
+  originalName: string,
 ): ExtractedInvoiceData {
   const cleanName = originalName.toLowerCase();
   const today = new Date();
   const invoiceDate = today.toISOString().split("T")[0];
-  const dueDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const dueDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0];
 
   // Derive vendor and catalog from filename or defaults
   let supplierName = "Tata Steel Ltd";
@@ -264,7 +274,11 @@ function extractWithHeuristics(
         taxRate: 18,
       },
     ];
-  } else if (cleanName.includes("dell") || cleanName.includes("laptop") || cleanName.includes("tech")) {
+  } else if (
+    cleanName.includes("dell") ||
+    cleanName.includes("laptop") ||
+    cleanName.includes("tech")
+  ) {
     supplierName = "Dell Technologies India";
     gstin = "29AABCD1234E1ZF";
     poNumber = "PO-2026-003";
@@ -279,7 +293,11 @@ function extractWithHeuristics(
         taxRate: 18,
       },
     ];
-  } else if (cleanName.includes("amazon") || cleanName.includes("cloud") || cleanName.includes("aws")) {
+  } else if (
+    cleanName.includes("amazon") ||
+    cleanName.includes("cloud") ||
+    cleanName.includes("aws")
+  ) {
     supplierName = "Amazon Business";
     gstin = "29AABCA9999M1ZQ";
     poNumber = "PO-2026-004";
@@ -341,12 +359,36 @@ function extractWithHeuristics(
     totalAmount,
     fieldConfidence,
     fieldBoundingBoxes: {
-      invoiceNumber: { pageNumber: 1, x: 0.65, y: 0.08, width: 0.25, height: 0.03 },
-      invoiceDate: { pageNumber: 1, x: 0.65, y: 0.12, width: 0.20, height: 0.03 },
-      supplierName: { pageNumber: 1, x: 0.10, y: 0.08, width: 0.35, height: 0.04 },
-      supplierGstin: { pageNumber: 1, x: 0.10, y: 0.13, width: 0.25, height: 0.03 },
-      totalAmount: { pageNumber: 1, x: 0.70, y: 0.85, width: 0.20, height: 0.04 },
-      taxAmount: { pageNumber: 1, x: 0.70, y: 0.80, width: 0.20, height: 0.03 },
+      invoiceNumber: {
+        pageNumber: 1,
+        x: 0.65,
+        y: 0.08,
+        width: 0.25,
+        height: 0.03,
+      },
+      invoiceDate: {
+        pageNumber: 1,
+        x: 0.65,
+        y: 0.12,
+        width: 0.2,
+        height: 0.03,
+      },
+      supplierName: {
+        pageNumber: 1,
+        x: 0.1,
+        y: 0.08,
+        width: 0.35,
+        height: 0.04,
+      },
+      supplierGstin: {
+        pageNumber: 1,
+        x: 0.1,
+        y: 0.13,
+        width: 0.25,
+        height: 0.03,
+      },
+      totalAmount: { pageNumber: 1, x: 0.7, y: 0.85, width: 0.2, height: 0.04 },
+      taxAmount: { pageNumber: 1, x: 0.7, y: 0.8, width: 0.2, height: 0.03 },
     },
     overallConfidence,
     extractionProvider: "HEURISTIC_PARSER",

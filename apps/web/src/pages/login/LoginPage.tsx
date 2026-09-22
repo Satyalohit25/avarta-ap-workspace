@@ -118,7 +118,9 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               <Input
                 id="loginEmail"
+                name="email"
                 type="email"
+                autoComplete="username"
                 label="Email"
                 value={email}
                 onChange={(e) => {
@@ -133,7 +135,9 @@ export default function LoginPage() {
 
               <Input
                 id="loginPassword"
+                name="password"
                 type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
                 label="Password"
                 value={password}
                 onChange={(e) => {

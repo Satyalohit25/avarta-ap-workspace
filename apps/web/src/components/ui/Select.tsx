@@ -38,12 +38,16 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     },
     _ref,
   ) => {
-    const selectId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
+    const fallbackId = (label ? label.toLowerCase().replace(/[^a-z0-9]/g, "-") : undefined)
+      ?? (placeholder ? placeholder.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) : undefined)
+      ?? (name ? name.toLowerCase().replace(/[^a-z0-9]/g, "-") : "select-field");
+    const selectId = id ?? name ?? fallbackId;
+    const selectName = name ?? selectId;
 
     function handleChange(val: string) {
       onValueChange?.(val);
       if (onChange) {
-        onChange({ target: { value: val, name } });
+        onChange({ target: { value: val, name: selectName } });
       }
     }
 
@@ -65,7 +69,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         >
           <SelectPrimitive.Trigger
             id={selectId}
-            aria-label={props["aria-label"] ?? label ?? selectId}
+            aria-label={props["aria-label"] ?? label ?? name ?? placeholder ?? "Select option"}
             className={cn(
               "flex h-9 w-full items-center justify-between rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-body-sm text-neutral-900 dark:text-zinc-100 shadow-2xs transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400 dark:focus-visible:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50",
               error

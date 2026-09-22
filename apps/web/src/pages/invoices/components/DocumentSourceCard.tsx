@@ -158,6 +158,9 @@ export function DocumentSourceCard({
                 <img
                   src={previewUrl}
                   alt={primaryDoc.fileName}
+                  width={800}
+                  height={600}
+                  loading="lazy"
                   className="max-w-full max-h-full object-contain rounded-sm"
                   onError={() => setPreviewError(true)}
                 />
@@ -225,6 +228,8 @@ export function DocumentSourceCard({
             >
               <input
                 ref={fileInputRef}
+                id="invoice-source-replace-upload"
+                name="invoiceSourceFile"
                 type="file"
                 accept=".pdf,.png,.jpg,.jpeg"
                 onChange={handleFileInputChange}

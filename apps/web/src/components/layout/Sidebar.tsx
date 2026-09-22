@@ -324,96 +324,31 @@ export function Sidebar({
         ))}
       </nav>
 
-      {/* Pinned Bottom: Settings & Single-Row Collapse Icon */}
-      <div className="p-2.5 border-t border-neutral-200/80 dark:border-zinc-800/80 shrink-0">
-        {isRail ? (
-          <div className="space-y-1">
-            <NavLink
-              to="/settings"
-              title="Settings"
-              aria-label="Settings"
-              className={({ isActive }) =>
-                `flex items-center justify-center w-10 h-10 mx-auto rounded-lg transition-all duration-150 ${
-                  isActive
-                    ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold ring-1 ring-indigo-500/30 dark:ring-indigo-400/30 shadow-2xs"
-                    : "text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100/80 dark:hover:bg-zinc-800/60 hover:text-neutral-900 dark:hover:text-zinc-100"
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <Settings
-                  size={18}
-                  strokeWidth={isActive ? 2 : 1.75}
-                  className={
-                    isActive
-                      ? "text-indigo-600 dark:text-indigo-400"
-                      : "text-neutral-400 dark:text-zinc-500"
-                  }
-                />
-              )}
-            </NavLink>
-
-            {onToggleCollapse && (
-              <button
-                type="button"
-                onClick={onToggleCollapse}
-                className="hidden md:flex items-center justify-center w-10 h-10 mx-auto rounded-lg text-neutral-500 hover:text-neutral-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-neutral-100/80 dark:hover:bg-zinc-800/60 transition-colors"
-                aria-label="Expand sidebar"
-                title="Expand sidebar"
-              >
-                <PanelLeftOpen
-                  size={17}
-                  className="text-neutral-400 dark:text-zinc-500"
-                />
-              </button>
+      {/* Pinned Bottom: Sidebar Collapse / Expand Toggle */}
+      {onToggleCollapse && (
+        <div className="p-2 border-t border-neutral-200/80 dark:border-zinc-800/80 shrink-0 flex items-center justify-center">
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className={`flex items-center rounded-lg text-neutral-500 hover:text-neutral-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-neutral-100/80 dark:hover:bg-zinc-800/60 transition-colors ${
+              isRail
+                ? "w-10 h-10 justify-center"
+                : "w-full h-9 px-3 gap-2 text-caption font-medium justify-start text-neutral-500 hover:text-neutral-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+            }`}
+            aria-label={isRail ? "Expand sidebar" : "Collapse sidebar"}
+            title={isRail ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isRail ? (
+              <PanelLeftOpen size={17} className="text-neutral-400 dark:text-zinc-500" />
+            ) : (
+              <>
+                <PanelLeftClose size={16} className="text-neutral-400 dark:text-zinc-500" />
+                <span>Collapse sidebar</span>
+              </>
             )}
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5">
-            <NavLink
-              to="/settings"
-              title="Settings"
-              aria-label="Settings"
-              className={({ isActive }) =>
-                `flex-1 flex items-center gap-3 h-10 px-3 rounded-lg text-body-sm font-medium transition-all duration-150 ${
-                  isActive
-                    ? "bg-indigo-50/80 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-semibold ring-1 ring-indigo-500/20 dark:ring-indigo-400/25 shadow-2xs"
-                    : "text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100/80 dark:hover:bg-zinc-800/60 hover:text-neutral-900 dark:hover:text-zinc-100"
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <div className="flex items-center justify-center shrink-0">
-                    <Settings
-                      size={18}
-                      strokeWidth={isActive ? 2 : 1.75}
-                      className={
-                        isActive
-                          ? "text-indigo-600 dark:text-indigo-400"
-                          : "text-neutral-400 dark:text-zinc-500"
-                      }
-                    />
-                  </div>
-                  <span className="leading-normal">Settings</span>
-                </>
-              )}
-            </NavLink>
-
-            {onToggleCollapse && (
-              <button
-                type="button"
-                onClick={onToggleCollapse}
-                className="hidden md:flex items-center justify-center w-9 h-10 rounded-lg text-neutral-400 hover:text-neutral-900 dark:text-zinc-500 dark:hover:text-zinc-100 hover:bg-neutral-100/80 dark:hover:bg-zinc-800/60 transition-colors shrink-0"
-                aria-label="Collapse sidebar"
-                title="Collapse sidebar"
-              >
-                <PanelLeftClose size={16} />
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+          </button>
+        </div>
+      )}
     </aside>
   );
 }
