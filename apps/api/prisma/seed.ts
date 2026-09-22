@@ -8,6 +8,7 @@ async function main() {
 
   // Dependency-ordered clean table wipe inside transaction
   await prisma.$transaction([
+    prisma.idempotencyKey.deleteMany(),
     prisma.auditLog.deleteMany(),
     prisma.notification.deleteMany(),
     prisma.comment.deleteMany(),
@@ -20,6 +21,8 @@ async function main() {
     prisma.document.deleteMany(),
     prisma.invoiceLine.deleteMany(),
     prisma.invoice.deleteMany(),
+    prisma.goodsReceiptLine.deleteMany(),
+    prisma.goodsReceipt.deleteMany(),
     prisma.purchaseOrder.deleteMany(),
     prisma.supplier.deleteMany(),
     prisma.user.deleteMany(),

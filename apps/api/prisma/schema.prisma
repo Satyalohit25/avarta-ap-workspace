@@ -449,7 +449,7 @@ model GoodsReceipt {
   id              String   @id @default(uuid())
   organizationId  String
   purchaseOrderId String
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   grnNumber       String
   receiptDate     DateTime @default(now())
   vendorDeliveryNote String?
