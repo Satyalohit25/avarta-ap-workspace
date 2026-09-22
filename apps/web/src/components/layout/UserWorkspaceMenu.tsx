@@ -163,75 +163,124 @@ export function UserWorkspaceMenu({
 
       {/* The Space Where Everything Exists: Dropdown / Popover Hub */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-84 sm:w-92 bg-white dark:bg-zinc-900 border border-neutral-200/90 dark:border-zinc-800 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-neutral-800 dark:text-zinc-200 divide-y divide-neutral-100 dark:divide-zinc-800/80">
+        <div className="absolute right-0 top-full mt-2 w-[420px] sm:w-[480px] bg-white dark:bg-zinc-900 border border-neutral-200/90 dark:border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-neutral-800 dark:text-zinc-200 divide-y divide-neutral-100 dark:divide-zinc-800/80">
           {/* Section 1: User & Organization Identity */}
-          <div className="p-3.5 bg-neutral-50/70 dark:bg-zinc-900/50">
-            <div className="flex items-start gap-3">
-              <span className="h-10 w-10 rounded-full overflow-hidden bg-neutral-100 dark:bg-zinc-800 ring-2 ring-indigo-500/20 flex items-center justify-center shrink-0">
-                {avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt={user?.name ?? "Account User"}
-                    width={40}
-                    height={40}
-                    loading="lazy"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <User size={20} className="text-neutral-500 dark:text-zinc-400" />
-                )}
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="font-semibold text-neutral-900 dark:text-zinc-100 text-body-sm truncate">
-                    {user?.name ?? "Account User"}
-                  </span>
-                  <span className="text-micro font-mono font-semibold px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                    {displayRole}
-                  </span>
-                </div>
-                <span className="text-caption text-neutral-500 dark:text-zinc-400 font-mono truncate block mt-0.5">
-                  {user?.email ?? "manager@avarta.dev"}
+          <div className="p-4 bg-neutral-50/70 dark:bg-zinc-900/50">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3 min-w-0">
+                <span className="h-10 w-10 rounded-full overflow-hidden bg-neutral-100 dark:bg-zinc-800 ring-2 ring-indigo-500/20 flex items-center justify-center shrink-0">
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={user?.name ?? "Account User"}
+                      width={40}
+                      height={40}
+                      loading="lazy"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User size={20} className="text-neutral-500 dark:text-zinc-400" />
+                  )}
                 </span>
-                <div className="flex items-center gap-1.5 mt-1.5 text-micro text-neutral-600 dark:text-zinc-400">
-                  <Building2 size={12} className="text-neutral-400 shrink-0" />
-                  <span className="truncate font-medium">Acme Manufacturing Pvt Ltd</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-neutral-900 dark:text-zinc-100 text-body-sm truncate">
+                      {user?.name ?? "Account User"}
+                    </span>
+                    <span className="text-micro font-mono font-semibold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                      {displayRole}
+                    </span>
+                  </div>
+                  <span className="text-caption text-neutral-500 dark:text-zinc-400 font-mono truncate block mt-0.5">
+                    {user?.email ?? "manager@avarta.dev"}
+                  </span>
+                  <div className="flex items-center gap-1.5 mt-1.5 text-micro text-neutral-600 dark:text-zinc-400">
+                    <Building2 size={12} className="text-neutral-400 shrink-0" />
+                    <span className="truncate font-medium">Acme Manufacturing Pvt Ltd</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="mt-3 pt-2.5 border-t border-neutral-200/60 dark:border-zinc-800/60 flex items-center justify-between">
-              <Link
-                to="/profile"
-                onClick={() => setIsOpen(false)}
-                className="text-micro font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors"
-              >
-                <span>Manage Profile & Settings</span>
-                <ChevronRight size={12} />
-              </Link>
+              {/* Quick Theme Switcher Button */}
               <button
                 type="button"
                 onClick={toggleTheme}
                 aria-label="Toggle Theme"
-                className="flex items-center gap-1.5 px-2 py-0.5 text-micro font-medium rounded-md text-neutral-600 dark:text-zinc-400 hover:bg-neutral-200/60 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-2.5 py-1 text-micro font-medium rounded-lg border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-850 text-neutral-700 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0 shadow-2xs"
                 title={`Switch to ${theme === "light" ? "Dark" : "Light"} mode`}
               >
                 {theme === "light" ? <Moon size={12} /> : <Sun size={12} />}
                 <span className="capitalize">{theme === "light" ? "Dark" : "Light"}</span>
               </button>
             </div>
+
+            <div className="mt-3 pt-2.5 border-t border-neutral-200/60 dark:border-zinc-800/60 flex items-center justify-between">
+              <Link
+                to="/profile"
+                onClick={() => setIsOpen(false)}
+                className="text-micro font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors group"
+              >
+                <span>Manage Profile &amp; Settings</span>
+                <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+              <span className="text-[10.5px] font-mono text-neutral-400 dark:text-zinc-500">
+                Primary Workspace
+              </span>
+            </div>
           </div>
 
-          {/* Section 2: Demo Role Switcher & Reset (Only in Demo Mode) */}
+          {/* Section 2: Demo Persona Switcher (Balanced 2x3 Grid) */}
           {isDemoMode && (
-            <div className="p-3 bg-indigo-50/30 dark:bg-indigo-950/20">
-              <div className="flex items-center justify-between mb-2">
+            <div className="p-3.5 bg-indigo-50/20 dark:bg-indigo-950/15">
+              <div className="flex items-center justify-between mb-2.5 px-0.5">
                 <div className="flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-indigo-600 animate-pulse" />
-                  <span className="text-micro font-mono font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
-                    Demo Role Switcher
+                  <span className="text-[10.5px] font-mono font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
+                    Demo Persona Switcher
                   </span>
                 </div>
+                <span className="text-[10px] text-neutral-400 dark:text-zinc-500">
+                  Instant switch
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {DEMO_ACCOUNTS.map((account) => {
+                  const isActive = account.email === user?.email;
+                  const AccountIcon = account.icon;
+                  return (
+                    <button
+                      key={account.email}
+                      type="button"
+                      onClick={() => handleSwitch(account)}
+                      disabled={switching}
+                      className={`p-2 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                        isActive
+                          ? "bg-white dark:bg-zinc-800 border-indigo-500 dark:border-indigo-400 shadow-2xs ring-1.5 ring-indigo-500/20"
+                          : "bg-white/80 dark:bg-zinc-850 border-neutral-200/80 dark:border-zinc-750 hover:border-neutral-300 dark:hover:border-zinc-650 hover:bg-white dark:hover:bg-zinc-800"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${account.bgColor}`}>
+                          <AccountIcon size={14} className={account.color} />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100 block leading-tight truncate">
+                            {account.name.split(" ")[0]}
+                          </span>
+                          <span className="text-[10px] font-mono text-neutral-500 dark:text-zinc-400 block truncate mt-0.5">
+                            {account.role}
+                          </span>
+                        </div>
+                      </div>
+                      {isActive && (
+                        <Check size={14} className="text-indigo-600 dark:text-indigo-400 font-bold shrink-0 ml-1" />
+                      )}
+                    </button>
+                  );
+                })}
+
+                {/* 6th Slot: Balanced Reset Demo Tile completing the 2x3 grid */}
                 <button
                   type="button"
                   onClick={() => {
@@ -239,70 +288,42 @@ export function UserWorkspaceMenu({
                     setShowResetModal(true);
                   }}
                   disabled={resetting}
-                  className="flex items-center gap-1 text-[11px] text-neutral-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-                  title="Reset demo data to initial clean state"
+                  className="p-2 rounded-xl border border-dashed border-amber-300 dark:border-amber-800/80 bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/50 dark:hover:bg-amber-900/30 text-left transition-all cursor-pointer flex items-center justify-between gap-2 group"
                 >
-                  <RotateCcw size={10} className={resetting ? "animate-spin text-indigo-600" : ""} />
-                  <span>Reset Demo</span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300">
+                      <RotateCcw size={13} className={resetting ? "animate-spin" : "group-hover:-rotate-45 transition-transform"} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-body-sm font-semibold text-amber-900 dark:text-amber-200 block leading-tight truncate">
+                        Reset Demo Data
+                      </span>
+                      <span className="text-[10px] font-mono text-amber-700/80 dark:text-amber-400/80 block truncate mt-0.5">
+                        Restore Baseline
+                      </span>
+                    </div>
+                  </div>
                 </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-1.5">
-                {DEMO_ACCOUNTS.map((account, idx) => {
-                  const isActive = account.email === user?.email;
-                  const AccountIcon = account.icon;
-                  const isLastOdd = idx === DEMO_ACCOUNTS.length - 1 && DEMO_ACCOUNTS.length % 2 !== 0;
-                  return (
-                    <button
-                      key={account.email}
-                      type="button"
-                      onClick={() => handleSwitch(account)}
-                      disabled={switching}
-                      className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                        isLastOdd ? "col-span-2" : ""
-                      } ${
-                        isActive
-                          ? "bg-white dark:bg-zinc-800 border-indigo-500 dark:border-indigo-400 shadow-2xs ring-1 ring-indigo-500/25"
-                          : "bg-white/80 dark:bg-zinc-850 border-neutral-200/80 dark:border-zinc-750 hover:border-neutral-300 dark:hover:border-zinc-700 hover:bg-white dark:hover:bg-zinc-800"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <div className={`w-5 h-5 rounded flex items-center justify-center ${account.bgColor}`}>
-                          <AccountIcon size={12} className={account.color} />
-                        </div>
-                        {isActive && <Check size={13} className="text-indigo-600 dark:text-indigo-400 font-bold" />}
-                      </div>
-                      <div className="mt-1.5">
-                        <span className="text-caption font-semibold text-neutral-900 dark:text-zinc-100 block truncate leading-tight">
-                          {account.name.split(" ")[0]}
-                        </span>
-                        <span className="text-[10px] font-mono text-neutral-500 dark:text-zinc-400 block truncate">
-                          {account.role}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
               </div>
             </div>
           )}
 
-          {/* Section 3: Workspace Tools & Learning Center */}
-          <div className="p-2 space-y-0.5">
+          {/* Section 3: Workspace Tools (Streamlined Side-by-Side) */}
+          <div className="p-2.5 grid grid-cols-2 gap-2 bg-neutral-50/40 dark:bg-zinc-900/40">
             <button
               type="button"
               onClick={() => {
                 setIsOpen(false);
                 onOpenTour();
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-body-sm font-medium text-neutral-700 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-zinc-100 transition-colors cursor-pointer group"
+              className="flex items-center gap-2.5 p-2 rounded-lg text-body-sm font-medium text-neutral-700 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-zinc-100 transition-colors cursor-pointer group border border-transparent hover:border-neutral-200 dark:hover:border-zinc-700"
             >
-              <Compass size={16} className="text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform" />
-              <div className="flex-1 text-left">
-                <span className="block leading-tight">Interactive Product Tour</span>
-                <span className="text-micro text-neutral-500 dark:text-zinc-400 block">Step-by-step walkthrough & workflows</span>
+              <Compass size={16} className="text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-110 transition-transform" />
+              <div className="flex-1 text-left min-w-0">
+                <span className="block text-caption font-semibold leading-tight truncate">Product Tour</span>
+                <span className="text-micro text-neutral-500 dark:text-zinc-400 truncate block mt-0.5">60s walkthrough</span>
               </div>
-              <span className="text-micro font-mono bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded font-semibold">
+              <span className="text-micro font-mono bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded font-semibold shrink-0">
                 Tour
               </span>
             </button>
@@ -313,30 +334,34 @@ export function UserWorkspaceMenu({
                 setIsOpen(false);
                 onOpenCommand();
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-body-sm font-medium text-neutral-700 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-zinc-100 transition-colors cursor-pointer group"
+              className="flex items-center gap-2.5 p-2 rounded-lg text-body-sm font-medium text-neutral-700 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-zinc-100 transition-colors cursor-pointer group border border-transparent hover:border-neutral-200 dark:hover:border-zinc-700"
             >
-              <Command size={16} className="text-neutral-500 dark:text-zinc-400 group-hover:scale-110 transition-transform" />
-              <div className="flex-1 text-left">
-                <span className="block leading-tight">Command Palette</span>
-                <span className="text-micro text-neutral-500 dark:text-zinc-400 block">Fast jump to invoices, POs, actions</span>
+              <Command size={16} className="text-neutral-500 dark:text-zinc-400 shrink-0 group-hover:scale-110 transition-transform" />
+              <div className="flex-1 text-left min-w-0">
+                <span className="block text-caption font-semibold leading-tight truncate">Command Bar</span>
+                <span className="text-micro text-neutral-500 dark:text-zinc-400 font-mono truncate block mt-0.5">Search &amp; jump</span>
               </div>
-              <kbd className="text-micro font-mono bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 text-neutral-600 dark:text-zinc-300 px-1.5 py-0.5 rounded">
+              <kbd className="text-micro font-mono bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 text-neutral-600 dark:text-zinc-300 px-1.5 py-0.5 rounded shrink-0">
                 Ctrl+K
               </kbd>
             </button>
           </div>
 
-          {/* Section 4: Sign Out */}
-          <div className="p-2 bg-neutral-50/50 dark:bg-zinc-900/50">
+          {/* Section 4: Session Status & Sign Out */}
+          <div className="p-2.5 px-3.5 bg-neutral-50/70 dark:bg-zinc-900/60 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-micro font-mono text-neutral-500 dark:text-zinc-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>TLS 1.3 Corporate Session</span>
+            </div>
             <button
               type="button"
               onClick={() => {
                 setIsOpen(false);
                 logout();
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-body-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-caption font-semibold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 px-2.5 py-1 rounded-md transition-colors cursor-pointer"
             >
-              <LogOut size={15} />
+              <LogOut size={13} />
               <span>Sign out</span>
             </button>
           </div>
