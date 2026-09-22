@@ -172,11 +172,11 @@ export default function LoginPage() {
         {/* 1-Tap Quick Demo Launchers for Mobile & Client Presentations */}
         <div className="mt-4 p-3 rounded-2xl bg-white/70 dark:bg-zinc-900/70 border border-neutral-200/80 dark:border-zinc-800/80 shadow-xs backdrop-blur-xs text-center">
           <div className="flex items-center justify-between mb-2 px-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-500 dark:text-zinc-400 font-semibold">
-              ⚡ Instant 1-Tap Demo Sign-in
+            <span className="text-[10.5px] font-medium tracking-wide text-neutral-600 dark:text-zinc-400">
+              Quick Persona Sign-in
             </span>
-            <span className="text-[10px] font-mono text-neutral-400 dark:text-zinc-500">
-              pwd: password123
+            <span className="text-[10px] text-neutral-400 dark:text-zinc-500">
+              Select persona to launch
             </span>
           </div>
 

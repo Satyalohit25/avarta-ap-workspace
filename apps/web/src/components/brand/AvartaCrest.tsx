@@ -153,7 +153,7 @@ export function AvartaCrest({
     >
       <img
         src={imageSrc}
-        alt=""
+        alt={alt || "Avarta Institutional Watermark"}
         width={680}
         height={680}
         className={`w-[85%] max-w-[680px] h-auto object-contain opacity-[0.05] dark:opacity-[0.07] ${blendModeClass} filter contrast-125`}

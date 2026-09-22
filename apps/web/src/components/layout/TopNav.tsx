@@ -64,12 +64,6 @@ export function TopNav({ onOpenMobileMenu }: TopNavProps) {
               Ctrl+K
             </kbd>
           </button>
-
-          {import.meta.env.VITE_DEMO_MODE === "true" && (
-            <span className="hidden xl:inline-flex items-center gap-1 text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 shrink-0">
-              DEMO
-            </span>
-          )}
         </div>
 
         <div className="flex items-center gap-1 sm:gap-1.5">

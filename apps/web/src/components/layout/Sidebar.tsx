@@ -209,16 +209,15 @@ export function Sidebar({
       >
         {NAV_SECTIONS.map((section, sectionIdx) => (
           <div key={section.title} className="space-y-0.5">
-            {/* Section Header (Expanded Mode) */}
-            {!isRail && (
-              <h4 className="px-2 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-zinc-500 font-sans select-none">
-                {section.title}
-              </h4>
-            )}
-
-            {/* Subtle Divider (Rail Mode) */}
-            {isRail && sectionIdx > 0 && (
-              <div className="w-5 mx-auto border-t border-neutral-200/70 dark:border-zinc-800/80 my-2" />
+            {/* Clean Section Divider between logical groups */}
+            {sectionIdx > 0 && (
+              <div
+                className={
+                  isRail
+                    ? "w-5 mx-auto border-t border-neutral-200/70 dark:border-zinc-800/80 my-2"
+                    : "border-t border-neutral-100 dark:border-zinc-800/60 my-2 mx-1"
+                }
+              />
             )}
 
             {/* Navigation Items */}

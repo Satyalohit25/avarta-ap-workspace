@@ -32,7 +32,7 @@ export function APWorkstationGrid({
 }: APWorkstationGridProps) {
   const navigate = useNavigate();
 
-  const [activeQueueTab, setActiveQueueTab] = useState<"ALL" | "APPROVALS" | "EXCEPTIONS" | "OVERDUE">("ALL");
+  const [activeQueueTab, setActiveQueueTab] = useState<"ALL" | "APPROVALS" | "EXCEPTIONS" | "OVERDUE">("OVERDUE");
   const [activeRightTab, setActiveRightTab] = useState<"FLOW" | "OUTLOOK" | "EXPOSURE">("FLOW");
   const [pingedItems, setPingedItems] = useState<Record<string, boolean>>({});
   const [pingFeedback, setPingFeedback] = useState<{ name: string; invoiceNumber: string } | null>(null);

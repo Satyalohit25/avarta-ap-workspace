@@ -36,7 +36,7 @@ export function APFinancialHorizonStrip({
 
   const anchors = [
     {
-      label: "TOTAL AP OUTSTANDING",
+      label: "TOTAL OUTSTANDING",
       value: formatCurrency(totalOutstanding, currency),
       subtitle: `${data?.totalInvoices || 0} invoices tracked`,
       delta: {
@@ -48,7 +48,7 @@ export function APFinancialHorizonStrip({
       highlight: false,
     },
     {
-      label: "ACTION REQUIRED / BLOCKED",
+      label: "ACTION REQUIRED",
       value: formatCurrency(currentBlocked, currency),
       subtitle: `${totalBlockedCount} blocked in queue`,
       delta: {
@@ -60,7 +60,7 @@ export function APFinancialHorizonStrip({
       highlight: currentBlocked > 0,
     },
     {
-      label: "PAYMENT OUTLOOK (DUE 7D)",
+      label: "DUE THIS WEEK",
       value: formatCurrency(due7DaysAmount, currency),
       subtitle: `${due7DaysCount} maturing this week`,
       delta: {
@@ -72,7 +72,7 @@ export function APFinancialHorizonStrip({
       highlight: false,
     },
     {
-      label: "SCHEDULED FOR PAYMENT",
+      label: "SCHEDULED",
       value: formatCurrency(scheduledAmount, currency),
       subtitle: `${scheduledCount} batches queued`,
       delta: {

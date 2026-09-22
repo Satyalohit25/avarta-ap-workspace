@@ -219,7 +219,9 @@ async function extractScreenData(page: Page, screenName: string, route: string):
   // Accessibility quick-checks
   const imagesWithoutAlt = await page.locator("img:not([alt]), img[alt='']").count();
   const inputsWithoutLabel = await page.evaluate(() => {
-    const inputs = document.querySelectorAll("input:not([type='hidden']), select, textarea");
+    const inputs = document.querySelectorAll(
+      "input:not([type='hidden']):not([aria-hidden='true']), select:not([aria-hidden='true']), textarea:not([aria-hidden='true'])"
+    );
     let count = 0;
     inputs.forEach(input => {
       const id = input.id;

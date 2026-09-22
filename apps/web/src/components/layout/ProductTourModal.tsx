@@ -318,7 +318,7 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
                   Oversees the entire AP workspace, monitors processing velocity, executes treasury disbursements, and signs off on escalated exceptions.
                 </p>
                 <div className="text-[11px] font-mono text-neutral-500 dark:text-zinc-400">
-                  Account: <span className="font-semibold text-neutral-800 dark:text-zinc-200">manager@avarta.dev</span> (pwd: password123)
+                  Account: <span className="font-semibold text-neutral-800 dark:text-zinc-200">manager@avarta.dev</span>
                 </div>
               </div>
 
@@ -335,7 +335,7 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
                   Reviews matched invoice line items against budgets, verifies supplier delivery, and approves or rejects payables with mandatory audit reasons.
                 </p>
                 <div className="text-[11px] font-mono text-neutral-500 dark:text-zinc-400">
-                  Account: <span className="font-semibold text-neutral-800 dark:text-zinc-200">approver@avarta.dev</span> (pwd: password123)
+                  Account: <span className="font-semibold text-neutral-800 dark:text-zinc-200">approver@avarta.dev</span>
                 </div>
               </div>
 
@@ -352,7 +352,7 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
                   Handles daily invoice intake in `/inbox`, runs OCR extraction verification, executes 3-way line item matching, and resolves price/quantity exceptions.
                 </p>
                 <div className="text-[11px] font-mono text-neutral-500 dark:text-zinc-400">
-                  Account: <span className="font-semibold text-neutral-800 dark:text-zinc-200">executive@avarta.dev</span> (pwd: password123)
+                  Account: <span className="font-semibold text-neutral-800 dark:text-zinc-200">executive@avarta.dev</span>
                 </div>
               </div>
 
@@ -369,7 +369,7 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
                   Governs system approval threshold rules, manages user permissions, monitors immutable audit logs, and registers verified vendors.
                 </p>
                 <div className="text-[11px] font-mono text-neutral-500 dark:text-zinc-400">
-                  Account: <span className="font-semibold text-neutral-800 dark:text-zinc-200">admin@avarta.dev</span> (pwd: password123)
+                  Account: <span className="font-semibold text-neutral-800 dark:text-zinc-200">admin@avarta.dev</span>
                 </div>
               </div>
             </div>

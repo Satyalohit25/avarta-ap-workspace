@@ -761,7 +761,7 @@ export default function SettingsPage() {
                 {/* Canonical Users Table */}
                 <Card level="surface">
                   <CardHeader
-                    title="CANONICAL TEAM USERS & RBAC DELEGATION"
+                    title="Team Members & Role-Based Access"
                     description="Standard demonstration personas with role-based segregation of duties"
                   />
                   <CardContent className="p-0">
@@ -770,7 +770,7 @@ export default function SettingsPage() {
                         <TableRow>
                           <TableHead>User / Identity</TableHead>
                           <TableHead>Email Address</TableHead>
-                          <TableHead>Canonical Role</TableHead>
+                          <TableHead>Role</TableHead>
                           <TableHead>Authorized Scope</TableHead>
                           <TableHead className="text-right">Status</TableHead>
                         </TableRow>
@@ -820,7 +820,7 @@ export default function SettingsPage() {
                 {/* Demo Environment Reset Control Card */}
                 <Card level="surface" className="border-amber-200/80 dark:border-amber-900/50 bg-amber-50/20 dark:bg-amber-950/10">
                   <CardHeader
-                    title="DEMO ENVIRONMENT RESET & SCENARIO RESTORATION"
+                    title="Demo Environment Data Reset"
                     description="Instantly wipe transient presentation edits and re-seed all 9 named demonstration scenarios"
                   />
                   <CardContent className="p-5 space-y-4">
@@ -829,7 +829,7 @@ export default function SettingsPage() {
                         <div className="flex items-center gap-2">
                           <Sparkles size={16} className="text-amber-600 dark:text-amber-400" />
                           <h4 className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100">
-                            Prismatic Dynamic State Restoration
+                            Dynamic Scenario State Reset
                           </h4>
                         </div>
                         <p className="text-caption text-neutral-600 dark:text-zinc-400 leading-relaxed">

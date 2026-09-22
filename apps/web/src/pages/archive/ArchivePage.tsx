@@ -265,6 +265,9 @@ Verified by Avarta Workflow & Compliance Engine (Doc 01 §1.4).
       <div className="flex items-center justify-between gap-4">
         <div className="relative w-full sm:w-80">
           <Input
+            id="archive-search-filter"
+            name="archiveSearch"
+            aria-label="Search invoice number, vendor, or journal reference"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search invoice #, vendor, or journal ref..."

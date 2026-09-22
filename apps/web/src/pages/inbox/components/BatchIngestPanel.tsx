@@ -183,10 +183,10 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
                     e.stopPropagation();
                     handleLoadDemoFiles();
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/70 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-micro font-semibold transition-all shadow-2xs cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-zinc-700 bg-neutral-50 dark:bg-zinc-800 hover:bg-neutral-100 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-200 text-micro font-medium transition-all shadow-2xs cursor-pointer"
                 >
-                  <Zap size={13} className="text-amber-500" />
-                  <span>Quick-Load 3 Demo Invoices</span>
+                  <FileText size={13} className="text-neutral-500 dark:text-zinc-400" />
+                  <span>Load Standard Invoices</span>
                 </button>
               </div>
             </div>

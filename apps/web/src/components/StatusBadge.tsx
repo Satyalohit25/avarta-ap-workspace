@@ -158,9 +158,19 @@ export function StatusBadge({
   variant,
   size = "md",
 }: StatusBadgeProps) {
-  const resolvedVariant = variant ?? STATUS_VARIANT[status] ?? "neutral";
-  const label = STATUS_LABEL[status] ?? status;
-  const IconComponent = STATUS_ICON[status];
+  const normalizedKey = (status || "").toUpperCase();
+  const resolvedVariant =
+    variant ?? STATUS_VARIANT[normalizedKey] ?? STATUS_VARIANT[status] ?? "neutral";
+  const label =
+    STATUS_LABEL[normalizedKey] ??
+    STATUS_LABEL[status] ??
+    (status
+      ? status
+          .split("_")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+          .join(" ")
+      : "");
+  const IconComponent = STATUS_ICON[normalizedKey] ?? STATUS_ICON[status];
   const styleConfig = VARIANT_CLASSES[resolvedVariant];
 
   return (

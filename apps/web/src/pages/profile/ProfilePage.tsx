@@ -268,7 +268,12 @@ export default function ProfilePage() {
                       Assigned System Role
                     </label>
                     <div className="h-9 flex items-center px-3 rounded-md border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-800/40 text-body-sm font-semibold text-indigo-700 dark:text-indigo-300">
-                      {user?.role?.replace(/_/g, " ") ?? "Finance Manager"}
+                      {user?.role
+                        ? user.role
+                            .split("_")
+                            .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+                            .join(" ")
+                        : "Finance Manager"}
                     </div>
                   </div>
 
@@ -336,11 +341,11 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-2.5">
                   <Laptop size={16} className="text-neutral-500" />
                   <span className="text-body-sm font-medium text-neutral-900 dark:text-zinc-100">
-                    Active Session IP
+                    Connection Profile
                   </span>
                 </div>
                 <span className="font-mono text-micro text-neutral-600 dark:text-zinc-400">
-                  192.168.1.42 (Pune, IN)
+                  TLS 1.3 (Enterprise VPN Gateway)
                 </span>
               </div>
 

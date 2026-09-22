@@ -18,6 +18,23 @@ import { useTheme } from "../../app/ThemeContext";
 import { DEMO_ACCOUNTS } from "../../lib/constants";
 import { Dialog } from "../ui/Dialog";
 
+const ROLE_DISPLAY_NAMES: Record<string, string> = {
+  ADMINISTRATOR: "Administrator",
+  FINANCE_MANAGER: "Finance Manager",
+  FINANCE_EXECUTIVE: "Finance Executive",
+  APPROVER: "Approver",
+  READ_ONLY: "Read Only",
+};
+
+function formatRoleName(role?: string): string {
+  if (!role) return "Finance";
+  if (ROLE_DISPLAY_NAMES[role]) return ROLE_DISPLAY_NAMES[role];
+  return role
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
 interface UserWorkspaceMenuProps {
   avatarUrl: string | null;
   onOpenTour: () => void;
@@ -38,6 +55,7 @@ export function UserWorkspaceMenu({
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isDemoMode = import.meta.env.VITE_DEMO_MODE === "true";
+  const displayRole = formatRoleName(user?.role);
 
   // Close on outside click
   useEffect(() => {
@@ -101,7 +119,7 @@ export function UserWorkspaceMenu({
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="true"
-        aria-label={`User menu for ${user?.name ?? "User"} (${user?.role ?? "Finance"})`}
+        aria-label={`User menu for ${user?.name ?? "User"} (${displayRole})`}
         className={`flex items-center gap-2 py-1 px-2 rounded-lg border transition-all cursor-pointer ${
           isOpen
             ? "bg-neutral-100 dark:bg-zinc-800 border-indigo-500/40 dark:border-indigo-400/40 shadow-xs"
@@ -131,7 +149,7 @@ export function UserWorkspaceMenu({
             {user?.name ?? "Account"}
           </span>
           <span className="text-[10px] text-neutral-500 dark:text-zinc-400 font-mono tracking-tight leading-none mt-0.5">
-            {user?.role ?? "FINANCE"}
+            {displayRole}
           </span>
         </div>
 
@@ -169,7 +187,7 @@ export function UserWorkspaceMenu({
                     {user?.name ?? "Account User"}
                   </span>
                   <span className="text-micro font-mono font-semibold px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                    {user?.role ?? "FINANCE"}
+                    {displayRole}
                   </span>
                 </div>
                 <span className="text-caption text-neutral-500 dark:text-zinc-400 font-mono truncate block mt-0.5">

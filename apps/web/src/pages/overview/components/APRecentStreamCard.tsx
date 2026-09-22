@@ -38,14 +38,9 @@ export function APRecentStreamCard({ items }: APRecentStreamCardProps) {
     <div className="rounded-xl border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 p-3 shadow-2xs">
       {/* Header */}
       <div className="flex items-center justify-between pb-2 mb-2 border-b border-neutral-100 dark:border-zinc-800/80">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-900 dark:text-zinc-100">
-            Real-Time Ingestion &amp; Activity Stream
-          </span>
-          <span className="text-[10px] text-neutral-400 font-mono">
-            (Compact Live Inflow)
-          </span>
-        </div>
+        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-900 dark:text-zinc-100">
+          Recent Ingestion &amp; Activity Stream
+        </span>
 
         <Link
           to="/invoices"

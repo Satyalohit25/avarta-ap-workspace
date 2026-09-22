@@ -187,7 +187,7 @@ export default function InboxPage() {
       {/* Page Header Row: Title on Left, "+ Quick manual entry" Ghost-style Button on Right */}
       <PageHeader
         title="Inbox"
-        subtitle="Multi-channel ingestion hub & document triage (Workflow Stage 1: Receive)."
+        subtitle="Multi-channel ingestion hub & document triage."
         action={
           <Button
             type="button"

@@ -79,6 +79,7 @@ export function Stepper({
                 type="button"
                 disabled={!onStepClick}
                 onClick={() => onStepClick?.(stepNumber)}
+                aria-label={`Step ${stepNumber}: ${step.label}`}
                 className={cn(
                   "flex items-center gap-1.5 group text-left select-none transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded p-0.5",
                   onStepClick ? "cursor-pointer" : "cursor-default"
@@ -87,6 +88,7 @@ export function Stepper({
               >
                 {/* Indicator Circle */}
                 <div
+                  aria-hidden="true"
                   className={cn(
                     "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono font-semibold transition-all shrink-0 border",
                     isCompleted && cn("border-1.5", statusColors.completedNode),
@@ -103,7 +105,7 @@ export function Stepper({
                   {isCompleted ? (
                     <Check size={11} strokeWidth={3} className="shrink-0" />
                   ) : (
-                    <span>{stepNumber}</span>
+                    <span>{stepNumber}&nbsp;</span>
                   )}
                 </div>
 
