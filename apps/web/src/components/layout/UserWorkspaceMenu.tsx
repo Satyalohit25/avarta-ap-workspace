@@ -239,10 +239,10 @@ export function UserWorkspaceMenu({
                       type="button"
                       onClick={() => handleSwitch(account)}
                       disabled={switching}
-                      className={`p-2 rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-between ${
                         isActive
-                          ? "bg-white dark:bg-zinc-800 border-indigo-500 shadow-2xs ring-1 ring-indigo-500/20"
-                          : "bg-white/60 dark:bg-zinc-850/60 border-neutral-200/80 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700 hover:bg-white dark:hover:bg-zinc-800"
+                          ? "bg-white dark:bg-zinc-800 border-indigo-500 dark:border-indigo-400 shadow-2xs ring-1 ring-indigo-500/25"
+                          : "bg-white/80 dark:bg-zinc-850 border-neutral-200/80 dark:border-zinc-750 hover:border-neutral-300 dark:hover:border-zinc-700 hover:bg-white dark:hover:bg-zinc-800"
                       }`}
                     >
                       <div className="flex items-center justify-between w-full">
