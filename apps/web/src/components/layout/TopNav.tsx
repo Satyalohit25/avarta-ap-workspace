@@ -92,11 +92,13 @@ export function TopNav({ onOpenMobileMenu }: TopNavProps) {
           <Link
             to="/notifications"
             className="relative p-2 text-neutral-500 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-100 hover:bg-neutral-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-            aria-label="Notifications"
-            title="Notifications"
+            aria-label="Notifications (unread alerts)"
+            title="Notifications (unread alerts)"
           >
             <Bell size={17} strokeWidth={1.75} />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-zinc-900" />
+            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-zinc-900">
+              <span className="sr-only">Unread notifications</span>
+            </span>
           </Link>
 
           <Separator orientation="vertical" className="h-4 mx-1" />

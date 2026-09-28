@@ -11,7 +11,7 @@ import {
   Check,
   Camera,
   Upload,
-  Trash2,
+  RotateCcw,
 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
@@ -238,8 +238,8 @@ export default function ProfilePage() {
                           onClick={handleRemoveAvatar}
                           className="px-2.5 py-1 text-caption font-medium rounded-md border border-neutral-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 transition-colors shadow-2xs inline-flex items-center gap-1.5"
                         >
-                          <Trash2 size={12} />
-                          <span>Remove</span>
+                          <RotateCcw size={12} />
+                          <span>Reset to Default</span>
                         </button>
                       )}
                     </div>

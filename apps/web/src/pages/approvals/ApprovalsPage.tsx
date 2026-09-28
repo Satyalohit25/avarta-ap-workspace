@@ -17,6 +17,7 @@ import { Card } from "../../components/ui/Card";
 import { Sheet } from "../../components/ui/Sheet";
 import { Button } from "../../components/ui/Button";
 import { Tabs } from "../../components/ui/Tabs";
+import { Input } from "../../components/ui/Input";
 import { Alert } from "../../components/ui/Alert";
 import { PropertyInspector } from "../../components/ui/PropertyInspector";
 import { formatCurrency, formatDate } from "../../lib/formatters";
@@ -30,6 +31,8 @@ import {
   AlertTriangle,
   PackageCheck,
   Layers,
+  Search,
+  X,
 } from "lucide-react";
 
 interface InvoiceLineItem {
@@ -169,13 +172,21 @@ export default function ApprovalsPage() {
   }
 
   const [filterTab, setFilterTab] = useState("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const atRiskCount = rows.filter((_, idx) => computeSlaBadge(idx).urgency !== "routine").length;
   const routineCount = rows.filter((_, idx) => computeSlaBadge(idx).urgency === "routine").length;
 
-  const displayedRows = rows.filter((_, idx) => {
-    if (filterTab === "AT_RISK") return computeSlaBadge(idx).urgency !== "routine";
-    if (filterTab === "ROUTINE") return computeSlaBadge(idx).urgency === "routine";
+  const displayedRows = rows.filter((r, idx) => {
+    if (filterTab === "AT_RISK" && computeSlaBadge(idx).urgency === "routine") return false;
+    if (filterTab === "ROUTINE" && computeSlaBadge(idx).urgency !== "routine") return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      return (
+        r.invoiceNumber.toLowerCase().includes(q) ||
+        r.vendor.toLowerCase().includes(q)
+      );
+    }
     return true;
   });
 
@@ -204,16 +215,43 @@ export default function ApprovalsPage() {
         </Alert>
       )}
 
-      <Tabs
-        tabs={[
-          { id: "ALL", label: `All Approvals (${rows.length})`, content: null },
-          { id: "AT_RISK", label: `At Risk / Breached SLA (${atRiskCount})`, content: null },
-          { id: "ROUTINE", label: `Routine SLA (${routineCount})`, content: null },
-        ]}
-        defaultTabId={filterTab}
-        variant="pill"
-        onChange={setFilterTab}
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <Tabs
+          tabs={[
+            { id: "ALL", label: `All Approvals (${rows.length})`, content: null },
+            { id: "AT_RISK", label: `At Risk / Breached SLA (${atRiskCount})`, content: null },
+            { id: "ROUTINE", label: `Routine SLA (${routineCount})`, content: null },
+          ]}
+          defaultTabId={filterTab}
+          variant="pill"
+          onChange={setFilterTab}
+        />
+
+        <div className="relative w-full sm:w-72">
+          <Input
+            id="approvals-search-filter"
+            name="searchQuery"
+            autoComplete="off"
+            aria-label="Filter approvals by invoice number or vendor"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Filter approvals by # or vendor..."
+            leftIcon={<Search size={14} className="text-neutral-400" />}
+            rightIcon={
+              searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="text-neutral-400 hover:text-neutral-600 dark:hover:text-zinc-200"
+                  aria-label="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              ) : undefined
+            }
+          />
+        </div>
+      </div>
 
       <Card level="surface" className="overflow-hidden">
         {loading ? (
@@ -222,8 +260,20 @@ export default function ApprovalsPage() {
           </div>
         ) : displayedRows.length === 0 ? (
           <EmptyState
-            title="No approvals matching this filter."
-            description="All invoices in this category have been processed."
+            title={searchQuery ? "No approvals match your search." : "No approvals matching this filter."}
+            description={
+              searchQuery
+                ? `No approval requests found matching "${searchQuery}".`
+                : "All invoices in this category have been processed."
+            }
+            action={
+              searchQuery
+                ? {
+                    label: "Clear Search",
+                    onClick: () => setSearchQuery(""),
+                  }
+                : undefined
+            }
           />
         ) : (
           <Table>

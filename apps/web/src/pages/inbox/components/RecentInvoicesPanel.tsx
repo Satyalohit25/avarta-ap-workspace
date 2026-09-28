@@ -1,6 +1,7 @@
 import { Clock, FileCheck, ArrowRight } from "lucide-react";
 import { InvoiceListItem } from "../../../api/invoices";
 import { Card, CardHeader, CardContent } from "../../../components/ui/Card";
+import { StatusBadge } from "../../../components/StatusBadge";
 import { formatCurrency, formatDate } from "../../../lib/formatters";
 
 export interface RecentInvoicesPanelProps {
@@ -72,10 +73,7 @@ export function RecentInvoicesPanel({ invoices, loading, onInspect }: RecentInvo
                 </div>
 
                 <div className="pt-2 border-t border-neutral-200/50 dark:border-zinc-800/60 flex items-center justify-between">
-                  <span className="text-micro font-mono text-neutral-400 flex items-center gap-1">
-                    <Clock size={11} />
-                    <span>Status: {inv.status}</span>
-                  </span>
+                  <StatusBadge status={inv.status} size="sm" />
 
                   <button
                     type="button"

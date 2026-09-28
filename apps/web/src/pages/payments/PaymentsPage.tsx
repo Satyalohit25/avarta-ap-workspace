@@ -17,9 +17,11 @@ import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Checkbox } from "../../components/ui/Checkbox";
 import { Pagination } from "../../components/ui/Pagination";
+import { Tabs } from "../../components/ui/Tabs";
+import { Input } from "../../components/ui/Input";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatCurrency, formatDate } from "../../lib/formatters";
-import { Wallet, CheckCircle2, ArrowRight } from "lucide-react";
+import { Wallet, CheckCircle2, ArrowRight, Search, X } from "lucide-react";
 import { DisbursementModal } from "./components/DisbursementModal";
 
 export default function PaymentsPage() {
@@ -30,6 +32,8 @@ export default function PaymentsPage() {
   const [batchExecuting, setBatchExecuting] = useState(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
   const [paymentBanner, setPaymentBanner] = useState<{
     type: "success" | "error";
     title: string;
@@ -61,14 +65,37 @@ export default function PaymentsPage() {
     );
   }
 
+  const scheduledCount = rows.filter((r) => r.status === "SCHEDULED" || r.status === "AWAITING_SCHEDULE").length;
+  const paidCount = rows.filter((r) => r.status === "PAID").length;
+
+  const filteredRows = useMemo(() => {
+    let list = rows;
+    if (statusFilter === "SCHEDULED") {
+      list = list.filter((r) => r.status === "SCHEDULED" || r.status === "AWAITING_SCHEDULE");
+    } else if (statusFilter === "PAID") {
+      list = list.filter((r) => r.status === "PAID");
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      return list.filter(
+        (r) =>
+          r.invoiceNumber.toLowerCase().includes(q) ||
+          r.vendor.toLowerCase().includes(q) ||
+          (r.utrNumber && r.utrNumber.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [rows, statusFilter, searchQuery]);
+
   // Pagination calculation
-  const totalItems = rows.length;
+  const totalItems = filteredRows.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(currentPage, totalPages);
   const paginatedRows = useMemo(() => {
     const start = (safePage - 1) * pageSize;
-    return rows.slice(start, start + pageSize);
-  }, [rows, safePage, pageSize]);
+    return filteredRows.slice(start, start + pageSize);
+  }, [filteredRows, safePage, pageSize]);
 
   const schedulableOnCurrentPage = paginatedRows.filter(
     (r) => r.status === "SCHEDULED" || r.status === "AWAITING_SCHEDULE"
@@ -154,15 +181,84 @@ export default function PaymentsPage() {
         </div>
       )}
 
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <Tabs
+          tabs={[
+            { id: "ALL", label: `All Payments (${rows.length})`, content: null },
+            { id: "SCHEDULED", label: `Scheduled (${scheduledCount})`, content: null },
+            { id: "PAID", label: `Paid / Cleared (${paidCount})`, content: null },
+          ]}
+          defaultTabId={statusFilter}
+          variant="pill"
+          onChange={(tabId) => {
+            setStatusFilter(tabId);
+            setCurrentPage(1);
+          }}
+        />
+
+        <div className="relative w-full sm:w-72">
+          <Input
+            id="payments-search-filter"
+            name="searchQuery"
+            autoComplete="off"
+            aria-label="Filter payments by invoice number, vendor, or UTR"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            placeholder="Filter payments by #, vendor, UTR..."
+            leftIcon={<Search size={14} className="text-neutral-400" />}
+            rightIcon={
+              searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setCurrentPage(1);
+                  }}
+                  className="text-neutral-400 hover:text-neutral-600 dark:hover:text-zinc-200"
+                  aria-label="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              ) : undefined
+            }
+          />
+        </div>
+      </div>
+
       <Card level="surface" className="overflow-hidden">
         {loading ? (
           <div className="p-4">
             <SkeletonRows count={5} />
           </div>
-        ) : rows.length === 0 ? (
+        ) : filteredRows.length === 0 ? (
           <EmptyState
-            title="No payments pending."
-            description="All approved invoices have been processed and disbursed."
+            title={
+              searchQuery || statusFilter !== "ALL"
+                ? "No payments match your criteria."
+                : "No payments pending."
+            }
+            description={
+              searchQuery
+                ? `No payments found matching "${searchQuery}".`
+                : statusFilter !== "ALL"
+                  ? "No payments found in this category."
+                  : "All approved invoices have been processed and disbursed."
+            }
+            action={
+              searchQuery || statusFilter !== "ALL"
+                ? {
+                    label: "Clear Filters",
+                    onClick: () => {
+                      setSearchQuery("");
+                      setStatusFilter("ALL");
+                      setCurrentPage(1);
+                    },
+                  }
+                : undefined
+            }
           />
         ) : (
           <div>

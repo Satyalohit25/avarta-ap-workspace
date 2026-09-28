@@ -8,6 +8,7 @@ import {
   Sparkles,
   Search,
   X,
+  ExternalLink,
 } from "lucide-react";
 import { apiRequest } from "../../api/client";
 import { SkeletonRows } from "../../components/Skeleton";
@@ -368,10 +369,11 @@ export default function ExceptionsPage() {
                 <Link
                   to={`/invoices/${selectedException.invoiceId}`}
                   target="_blank"
-                  className="text-micro text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                  rel="noopener noreferrer"
+                  className="text-micro text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1.5"
                 >
                   <span>Open Full Invoice Workspace</span>
-                  <span>↗</span>
+                  <ExternalLink size={12} className="shrink-0" />
                 </Link>
               </div>
             </div>
@@ -384,8 +386,16 @@ export default function ExceptionsPage() {
                 >
                   Resolution Justification (Audit Required)
                 </label>
-                <span className="text-micro text-neutral-500 dark:text-zinc-400">
-                  Minimum 10 characters
+                <span
+                  className={`text-micro font-mono ${
+                    resolutionNote.trim().length >= 10
+                      ? "text-emerald-600 dark:text-emerald-400 font-semibold"
+                      : "text-amber-600 dark:text-amber-400"
+                  }`}
+                >
+                  {resolutionNote.trim().length >= 10
+                    ? `✓ ${resolutionNote.trim().length} chars (valid)`
+                    : `${resolutionNote.trim().length}/10 min chars`}
                 </span>
               </div>
 

@@ -182,6 +182,50 @@ export default function InvoicesPage() {
     return filteredAndSortedInvoices.slice(start, start + pageSize);
   }, [filteredAndSortedInvoices, safePage, pageSize]);
 
+  // Keyboard navigation for power users (J/K or ArrowUp/ArrowDown to move, Enter to open)
+  const [focusedRowIndex, setFocusedRowIndex] = useState<number>(-1);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.key === "j" || e.key === "J" || e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocusedRowIndex((prev) => {
+          if (paginatedInvoices.length === 0) return -1;
+          return prev < paginatedInvoices.length - 1 ? prev + 1 : prev;
+        });
+      } else if (e.key === "k" || e.key === "K" || e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocusedRowIndex((prev) => {
+          if (paginatedInvoices.length === 0) return -1;
+          return prev > 0 ? prev - 1 : 0;
+        });
+      } else if (e.key === "Enter") {
+        if (focusedRowIndex >= 0 && focusedRowIndex < paginatedInvoices.length) {
+          e.preventDefault();
+          navigate(`/invoices/${paginatedInvoices[focusedRowIndex].id}`);
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [paginatedInvoices, focusedRowIndex, navigate]);
+
+  useEffect(() => {
+    setFocusedRowIndex(-1);
+  }, [currentPage, searchQuery, status]);
+
   // Selection helpers
   const currentPageIds = paginatedInvoices.map((inv) => inv.id);
   const isAllCurrentPageSelected =
@@ -366,11 +410,13 @@ export default function InvoicesPage() {
         action={
           <div className="flex items-center gap-2">
             <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-300 text-micro border border-neutral-200/80 dark:border-zinc-700/80 font-medium">
-              <span>Review hotkeys:</span>
+              <span>Navigate:</span>
               <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">J</kbd>
-              <span>Next</span>
+              <span>/</span>
               <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">K</kbd>
-              <span>Prev</span>
+              <span>•</span>
+              <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">Enter</kbd>
+              <span>to open</span>
             </span>
             <Button
               variant="outline"
@@ -570,17 +616,20 @@ export default function InvoicesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedInvoices.map((inv) => {
+                {paginatedInvoices.map((inv, idx) => {
                   const isSelected = selectedIds.has(inv.id);
+                  const isFocused = focusedRowIndex === idx;
 
                   return (
                     <TableRow
                       key={inv.id}
                       onClick={() => navigate(`/invoices/${inv.id}`)}
                       className={`cursor-pointer transition-colors group ${
-                        isSelected
-                          ? "bg-indigo-50/50 dark:bg-indigo-950/20 hover:bg-indigo-50/80 dark:hover:bg-indigo-950/40"
-                          : "hover:bg-neutral-50/80 dark:hover:bg-zinc-800/60"
+                        isFocused
+                          ? "ring-2 ring-indigo-500/70 ring-inset bg-indigo-50/80 dark:bg-indigo-950/40"
+                          : isSelected
+                            ? "bg-indigo-50/50 dark:bg-indigo-950/20 hover:bg-indigo-50/80 dark:hover:bg-indigo-950/40"
+                            : "hover:bg-neutral-50/80 dark:hover:bg-zinc-800/60"
                       }`}
                     >
                       <TableCell
