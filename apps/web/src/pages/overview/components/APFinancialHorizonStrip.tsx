@@ -133,7 +133,7 @@ export function APFinancialHorizonStrip({
               <span
                 className={`text-[10px] font-semibold px-1.5 py-0.2 rounded shrink-0 border ${
                   item.delta.type === "discount"
-                    ? "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200/80 dark:border-emerald-800/60"
+                    ? "text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 border-teal-200/80 dark:border-teal-800/60"
                     : item.delta.type === "positive"
                     ? "text-emerald-700 dark:text-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/40 border-emerald-200/60 dark:border-emerald-900/40"
                     : "text-indigo-700 dark:text-indigo-300 bg-indigo-50/60 dark:bg-indigo-950/40 border-indigo-200/60 dark:border-indigo-900/40"

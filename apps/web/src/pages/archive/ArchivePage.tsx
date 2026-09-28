@@ -183,19 +183,6 @@ Verified by Avarta Workflow & Compliance Engine (Doc 01 §1.4).
       <PageHeader
         title="Compliance Archive Vault"
         subtitle="Stage 8: Fully settled, ERP-synchronized, and cryptographically sealed historical AP records."
-        action={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownloadAuditPack}
-              className="h-8 text-[11px] font-semibold gap-1.5 shadow-2xs"
-            >
-              <Download size={13} />
-              <span>Export Audit Pack</span>
-            </Button>
-          </div>
-        }
       />
 
       {/* ── Statutory Compliance Vault Banner ── */}
@@ -552,22 +539,23 @@ Verified by Avarta Workflow & Compliance Engine (Doc 01 §1.4).
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-between pt-2 border-t border-neutral-200 dark:border-zinc-800">
-              <Button
-                variant="outline"
-                onClick={() => setSelectedCertificate(null)}
-              >
-                Close
-              </Button>
+            {/* Actions — Fitts's Law: primary action is full-width, close is secondary */}
+            <div className="flex flex-col gap-2 pt-2 border-t border-neutral-200 dark:border-zinc-800">
               <Button
                 variant="primary"
                 onClick={() => handleDownloadSingleCertificate(selectedCertificate)}
-                className="gap-1.5"
+                className="w-full gap-1.5 h-10 font-semibold"
               >
                 <Download size={14} />
                 <span>Export Certificate</span>
               </Button>
+              <button
+                type="button"
+                onClick={() => setSelectedCertificate(null)}
+                className="text-caption text-neutral-500 dark:text-zinc-400 hover:text-neutral-700 dark:hover:text-zinc-200 transition-colors py-1"
+              >
+                Close
+              </button>
             </div>
           </div>
         )}

@@ -89,7 +89,7 @@ export default function OverviewPage() {
       : FALLBACK_PIPELINE_FEED;
 
   return (
-    <div className="space-y-2 pb-0">
+    <div className="space-y-4 pb-0">
       {/* ── Compact Header Bar ── */}
       <div className="flex items-center justify-between pb-0.5">
         <div>
