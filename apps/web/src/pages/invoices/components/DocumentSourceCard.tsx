@@ -6,19 +6,34 @@ import {
   AlertCircle,
   UploadCloud,
   Zap,
+  ShieldCheck,
+  Building2,
+  FileCheck2,
+  QrCode,
+  ArrowRight,
 } from "lucide-react";
 import { Card, CardContent } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import { API_URL, getAccessToken } from "../../../api/client";
 import { DocumentItem } from "../../../api/invoices";
+import { formatCurrency, formatDate } from "../../../lib/formatters";
+import { generateSupplierLineItems } from "../../../lib/mockCatalogs";
 
-interface DocumentSourceCardProps {
+export interface DocumentSourceCardProps {
   invoiceId: string;
   source?: string;
   documents?: DocumentItem[];
   canUploadDocument?: boolean;
   onUploadDocument?: (file: File) => Promise<void> | void;
   isUploading?: boolean;
+  invoiceNumber?: string | null;
+  supplierName?: string | null;
+  invoiceDate?: string | null;
+  dueDate?: string | null;
+  totalAmount?: number | string | null;
+  currency?: string | null;
+  purchaseOrderId?: string | null;
+  exceptions?: Array<{ type?: string; description?: string }>;
 }
 
 export function DocumentSourceCard({
@@ -28,9 +43,23 @@ export function DocumentSourceCard({
   canUploadDocument = true,
   onUploadDocument,
   isUploading = false,
+  invoiceNumber,
+  supplierName,
+  invoiceDate,
+  dueDate,
+  totalAmount,
+  currency = "INR",
+  purchaseOrderId,
+  exceptions = [],
 }: DocumentSourceCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const primaryDoc = documents && documents.length > 0 ? documents[0] : null;
+
+  // If there's an uploaded file, default to file preview; otherwise default to digital voucher
+  const [viewMode, setViewMode] = useState<"preview" | "voucher" | "upload">(
+    primaryDoc ? "preview" : "voucher",
+  );
+
   const sourceLabel =
     source === "UPLOAD"
       ? "Captured via Upload"
@@ -113,48 +142,106 @@ export function DocumentSourceCard({
     ? `${API_URL}/invoices/${invoiceId}/documents/${primaryDoc.id}/file${authToken ? `?token=${encodeURIComponent(authToken)}` : ""}`
     : null;
 
+  // Generate realistic supplier items for digital voucher view
+  const totalAmountNum = Number(totalAmount) || 50000;
+  const safeCurrency = currency || "INR";
+  const lineItems = generateSupplierLineItems(
+    supplierName,
+    totalAmountNum,
+    safeCurrency,
+    exceptions,
+  );
+
+  const subtotal = Math.round(totalAmountNum * 0.8474);
+  const taxAmount = totalAmountNum - subtotal;
+
   return (
     <Card
       id="invoice-document-dropzone"
       level="surface"
       className="flex flex-col overflow-hidden h-full"
     >
-      <div className="p-4 border-b border-neutral-200 dark:border-zinc-800 flex items-center justify-between">
+      {/* Header with Switcher Tabs */}
+      <div className="p-4 border-b border-neutral-200 dark:border-zinc-800 flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h3 className="text-h3 text-neutral-900 dark:text-zinc-100 font-semibold">
-            Document Source
-          </h3>
-          <p className="text-caption text-neutral-500 dark:text-zinc-400">
-            {primaryDoc
+          <div className="flex items-center gap-2">
+            <h3 className="text-h3 text-neutral-900 dark:text-zinc-100 font-semibold">
+              Document Source
+            </h3>
+            {primaryDoc ? (
+              <span className="text-micro font-mono bg-success-50 dark:bg-success-950/40 text-success-700 dark:text-success-400 border border-success-200 dark:border-success-800 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                <FileCheck2 size={11} /> File Attached
+              </span>
+            ) : (
+              <span className="text-micro font-mono bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                <ShieldCheck size={11} /> Digital EDI Record
+              </span>
+            )}
+          </div>
+          <p className="text-caption text-neutral-500 dark:text-zinc-400 mt-0.5">
+            {viewMode === "preview" && primaryDoc
               ? "Original verified invoice file & captured artifacts"
-              : "Source file intake & document attachment"}
+              : viewMode === "voucher"
+                ? "Synthesized official tax voucher from structured electronic intake"
+                : "Attach physical or scanned PDF invoice file"}
           </p>
         </div>
-        <div className="flex items-center gap-1.5">
+
+        {/* View Mode Controller */}
+        <div className="flex items-center gap-1.5 bg-neutral-100 dark:bg-zinc-800 p-0.5 rounded-lg border border-neutral-200 dark:border-zinc-700">
           {primaryDoc && (
-            <span className="text-micro font-mono bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400 px-1.5 py-0.5 rounded">
-              {formatBytes(primaryDoc.fileSize)}
-            </span>
+            <button
+              type="button"
+              onClick={() => setViewMode("preview")}
+              className={`px-2.5 py-1 text-micro font-medium rounded-md transition-all ${
+                viewMode === "preview"
+                  ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-xs"
+                  : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
+              }`}
+            >
+              Original File
+            </button>
           )}
-          <span className="text-micro font-mono bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400 px-1.5 py-0.5 rounded">
-            {sourceLabel}
-          </span>
+          <button
+            type="button"
+            onClick={() => setViewMode("voucher")}
+            className={`px-2.5 py-1 text-micro font-medium rounded-md transition-all ${
+              viewMode === "voucher"
+                ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-xs"
+                : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
+            }`}
+          >
+            Digital Voucher
+          </button>
+          {canUploadDocument && (
+            <button
+              type="button"
+              onClick={() => setViewMode("upload")}
+              className={`px-2.5 py-1 text-micro font-medium rounded-md transition-all ${
+                viewMode === "upload"
+                  ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-xs"
+                  : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
+              }`}
+            >
+              {primaryDoc ? "Replace File" : "Upload File"}
+            </button>
+          )}
         </div>
       </div>
 
       <CardContent className="p-0 flex-1 flex flex-col">
-        {primaryDoc && previewUrl && !previewError ? (
+        {/* MODE 1: Embedded File Preview */}
+        {viewMode === "preview" && primaryDoc && previewUrl && !previewError && (
           <div className="flex-1 flex flex-col">
-            {/* Embedded Document Preview */}
             {isPdf ? (
               <iframe
                 src={previewUrl}
                 title={`Preview: ${primaryDoc.fileName}`}
-                className="w-full flex-1 min-h-[480px] border-0 bg-neutral-50 dark:bg-zinc-800/40"
+                className="w-full flex-1 min-h-[500px] border-0 bg-neutral-50 dark:bg-zinc-800/40"
                 onError={() => setPreviewError(true)}
               />
             ) : isImage ? (
-              <div className="flex-1 min-h-[480px] bg-neutral-50 dark:bg-zinc-800/40 flex items-center justify-center p-4">
+              <div className="flex-1 min-h-[500px] bg-neutral-50 dark:bg-zinc-800/40 flex items-center justify-center p-4">
                 <img
                   src={previewUrl}
                   alt={primaryDoc.fileName}
@@ -180,7 +267,7 @@ export function DocumentSourceCard({
                   className="text-indigo-600 dark:text-indigo-400 shrink-0"
                 />
                 <span className="text-micro font-mono text-neutral-700 dark:text-zinc-300 truncate max-w-[220px]">
-                  {primaryDoc.fileName}
+                  {primaryDoc.fileName} ({formatBytes(primaryDoc.fileSize)})
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -207,13 +294,182 @@ export function DocumentSourceCard({
               </div>
             </div>
           </div>
-        ) : primaryDoc && previewError ? (
+        )}
+
+        {viewMode === "preview" && primaryDoc && previewError && (
           <PreviewUnavailable
             fileName={primaryDoc.fileName}
             previewUrl={previewUrl}
           />
-        ) : canUploadDocument ? (
-          /* Active Document Dropzone in Intake State */
+        )}
+
+        {/* MODE 2: Digital Tax Voucher (EDI Intake Representation) */}
+        {viewMode === "voucher" && (
+          <div className="p-5 flex-1 flex flex-col bg-neutral-50/70 dark:bg-zinc-900/60 overflow-y-auto">
+            {/* Paper-style Voucher Container */}
+            <div className="bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-700 rounded-lg p-5 shadow-xs flex-1 flex flex-col justify-between">
+              <div>
+                {/* Header Strip */}
+                <div className="flex items-start justify-between border-b border-neutral-200 dark:border-zinc-800 pb-4 mb-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-caption font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded">
+                        Electronic Tax Voucher
+                      </span>
+                      <span className="text-micro font-mono text-neutral-400 dark:text-zinc-500">
+                        {sourceLabel}
+                      </span>
+                    </div>
+                    <h4 className="text-h4 font-bold text-neutral-900 dark:text-zinc-100 mt-1">
+                      {supplierName || "Tata Steel Limited"}
+                    </h4>
+                    <p className="text-micro text-neutral-500 dark:text-zinc-400 font-mono">
+                      GSTIN: 27AAACT2727Q1ZW • IRN: 4b9f2...81c9
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-caption font-semibold text-neutral-900 dark:text-zinc-100 font-mono">
+                      {invoiceNumber || `INV-${invoiceId.slice(0, 8)}`}
+                    </p>
+                    <p className="text-micro text-neutral-500 dark:text-zinc-400 mt-0.5">
+                      Date: {formatDate(invoiceDate)}
+                    </p>
+                    {dueDate && (
+                      <p className="text-micro text-neutral-500 dark:text-zinc-400">
+                        Due: {formatDate(dueDate)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Billed To / Shipped To Grid */}
+                <div className="grid grid-cols-2 gap-4 pb-4 mb-4 border-b border-neutral-100 dark:border-zinc-800 text-body-sm">
+                  <div>
+                    <p className="text-micro uppercase tracking-wider text-neutral-400 dark:text-zinc-500 font-medium">
+                      Billed To (Buyer)
+                    </p>
+                    <p className="font-semibold text-neutral-800 dark:text-zinc-200 mt-0.5">
+                      ClearOps Technologies Pvt Ltd
+                    </p>
+                    <p className="text-micro text-neutral-500 dark:text-zinc-400 font-mono">
+                      GSTIN: 27AABCC1234F1Z8
+                    </p>
+                    <p className="text-micro text-neutral-500 dark:text-zinc-400">
+                      BKC Commercial Complex, Bandra East, Mumbai 400051
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-micro uppercase tracking-wider text-neutral-400 dark:text-zinc-500 font-medium">
+                      Purchase Order Ref
+                    </p>
+                    <p className="font-semibold text-neutral-800 dark:text-zinc-200 mt-0.5 font-mono">
+                      {purchaseOrderId ? `PO-${purchaseOrderId.slice(0, 8).toUpperCase()}` : "PO-2026-0842 (Standard PO)"}
+                    </p>
+                    <p className="text-micro text-neutral-500 dark:text-zinc-400">
+                      Payment Terms: Net 30 Days
+                    </p>
+                    <p className="text-micro text-neutral-500 dark:text-zinc-400">
+                      Place of Supply: Maharashtra (27)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Voucher Item Breakdown Table */}
+                <div className="mb-4 overflow-x-auto">
+                  <table className="w-full text-left text-body-sm">
+                    <thead>
+                      <tr className="border-b border-neutral-200 dark:border-zinc-800 text-micro font-medium uppercase text-neutral-400 dark:text-zinc-500">
+                        <th className="py-2 pr-2">Item &amp; Description</th>
+                        <th className="py-2 px-2 text-right">HSN/SAC</th>
+                        <th className="py-2 px-2 text-right">Qty</th>
+                        <th className="py-2 px-2 text-right">Unit Rate</th>
+                        <th className="py-2 pl-2 text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100 dark:divide-zinc-800/60 font-mono text-micro">
+                      {lineItems.map((item, idx) => (
+                        <tr key={item.id} className="hover:bg-neutral-50/50 dark:hover:bg-zinc-800/40">
+                          <td className="py-2.5 pr-2 font-sans font-medium text-neutral-800 dark:text-zinc-200">
+                            <span className="text-neutral-400 mr-1.5">{idx + 1}.</span>
+                            {item.description}
+                          </td>
+                          <td className="py-2.5 px-2 text-right text-neutral-500 dark:text-zinc-400">
+                            {item.hsnCode || "HSN 7216"}
+                          </td>
+                          <td className="py-2.5 px-2 text-right text-neutral-700 dark:text-zinc-300">
+                            {item.quantity}
+                          </td>
+                          <td className="py-2.5 px-2 text-right text-neutral-700 dark:text-zinc-300">
+                            {formatCurrency(item.unitPrice, safeCurrency)}
+                          </td>
+                          <td className="py-2.5 pl-2 text-right font-semibold text-neutral-900 dark:text-zinc-100">
+                            {formatCurrency(item.lineAmount, safeCurrency)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Totals & Security Verification Seal */}
+              <div>
+                <div className="border-t border-neutral-200 dark:border-zinc-800 pt-3 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  {/* Cryptographic Seal */}
+                  <div className="flex items-center gap-2.5 bg-neutral-50 dark:bg-zinc-800/70 p-2.5 rounded-lg border border-neutral-200/80 dark:border-zinc-700 text-left w-full sm:w-auto">
+                    <QrCode size={30} className="text-neutral-700 dark:text-zinc-300 shrink-0" />
+                    <div>
+                      <div className="flex items-center gap-1 text-micro font-semibold text-success-700 dark:text-success-400">
+                        <ShieldCheck size={12} />
+                        <span>Cryptographically Signed Record</span>
+                      </div>
+                      <p className="text-micro text-neutral-400 dark:text-zinc-500 font-mono">
+                        Hash: SHA256:{invoiceId.slice(0, 16)}...
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Summary Totals */}
+                  <div className="w-full sm:w-60 space-y-1 text-caption">
+                    <div className="flex justify-between text-neutral-500 dark:text-zinc-400">
+                      <span>Taxable Subtotal:</span>
+                      <span className="font-mono">{formatCurrency(subtotal, safeCurrency)}</span>
+                    </div>
+                    <div className="flex justify-between text-neutral-500 dark:text-zinc-400">
+                      <span>GST (18% IGST):</span>
+                      <span className="font-mono">{formatCurrency(taxAmount, safeCurrency)}</span>
+                    </div>
+                    <div className="flex justify-between text-body font-bold text-neutral-900 dark:text-zinc-100 border-t border-neutral-200 dark:border-zinc-800 pt-1">
+                      <span>Invoice Total:</span>
+                      <span className="font-mono text-indigo-600 dark:text-indigo-400">
+                        {formatCurrency(totalAmountNum, safeCurrency)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subfooter Prompt */}
+                {canUploadDocument && (
+                  <div className="mt-4 pt-3 border-t border-dashed border-neutral-200 dark:border-zinc-800 flex items-center justify-between text-caption text-neutral-500 dark:text-zinc-400">
+                    <span>Have the physical vendor paper/PDF scan?</span>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("upload")}
+                      className="inline-flex items-center gap-1 text-body-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                    >
+                      <span>Attach Scanned File</span>
+                      <ArrowRight size={13} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODE 3: Active Document Dropzone */}
+        {viewMode === "upload" && canUploadDocument && (
           <div className="p-6 flex-1 flex flex-col items-center justify-center text-center bg-neutral-50/50 dark:bg-zinc-900/40">
             <div
               onDragOver={handleDragOver}
@@ -244,7 +500,9 @@ export function DocumentSourceCard({
                   <h4 className="text-body font-semibold text-neutral-900 dark:text-zinc-100">
                     {isUploading
                       ? "Uploading Document..."
-                      : "Attach Source Document"}
+                      : primaryDoc
+                        ? "Replace Source Document"
+                        : "Attach Source Document"}
                   </h4>
                   <p className="text-caption text-neutral-500 dark:text-zinc-400 mt-1">
                     Drag &amp; drop PDF or image invoice here, or{" "}
@@ -259,7 +517,7 @@ export function DocumentSourceCard({
               </div>
             </div>
 
-            {/* Demo Accelerator Button */}
+            {/* Quick Demo Accelerator & Return Controls */}
             <div className="mt-4 flex items-center gap-2">
               <button
                 type="button"
@@ -273,6 +531,14 @@ export function DocumentSourceCard({
                 <Zap size={12} className="text-indigo-500" />
                 <span> Load Sample Invoice PDF</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode(primaryDoc ? "preview" : "voucher")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-micro font-medium bg-white dark:bg-zinc-900 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-50 dark:hover:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 transition-colors"
+              >
+                <span>Cancel</span>
+              </button>
             </div>
 
             {uploadError && (
@@ -280,23 +546,6 @@ export function DocumentSourceCard({
                 {uploadError}
               </p>
             )}
-          </div>
-        ) : (
-          /* Missing document warning in downstream state */
-          <div className="p-6 flex-1 flex flex-col items-center justify-center text-center bg-amber-50/30 dark:bg-amber-950/20">
-            <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
-              <AlertCircle size={22} />
-            </div>
-            <h4 className="text-body font-semibold text-neutral-900 dark:text-zinc-100 mb-1">
-              No Source Document Attached
-            </h4>
-            <p className="text-caption text-neutral-600 dark:text-zinc-300 max-w-xs mb-3">
-              This invoice was entered via manual direct intake without an
-              attached file.
-            </p>
-            <span className="text-micro font-mono bg-neutral-200/60 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400 px-2 py-0.5 rounded-full">
-              Manual Direct Entry
-            </span>
           </div>
         )}
       </CardContent>

@@ -1254,6 +1254,14 @@ export default function InvoiceDetailPage() {
             canUploadDocument={context.canUploadDocument}
             onUploadDocument={handleDocumentUpload}
             isUploading={actionPending}
+            invoiceNumber={invoice.invoiceNumber}
+            supplierName={invoice.supplier?.name}
+            invoiceDate={invoice.invoiceDate}
+            dueDate={invoice.dueDate}
+            totalAmount={invoice.totalAmount}
+            currency={invoice.currency}
+            purchaseOrderId={invoice.purchaseOrderId}
+            exceptions={invoice.exceptions}
           />
         </div>
 

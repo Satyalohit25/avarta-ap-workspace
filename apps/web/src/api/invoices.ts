@@ -20,6 +20,7 @@ export interface InvoiceListItem {
   dueDate: string | null;
   currency: string;
   totalAmount: string;
+  purchaseOrderId?: string | null;
   status: string;
   workflowState: string;
   aiConfidence: number | null;

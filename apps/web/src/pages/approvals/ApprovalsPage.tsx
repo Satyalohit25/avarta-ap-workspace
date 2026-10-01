@@ -21,6 +21,7 @@ import { Input } from "../../components/ui/Input";
 import { Alert } from "../../components/ui/Alert";
 import { PropertyInspector } from "../../components/ui/PropertyInspector";
 import { formatCurrency, formatDate } from "../../lib/formatters";
+import { cn } from "../../lib/utils";
 import { generateSupplierLineItems } from "../../lib/mockCatalogs";
 import { UrgencyBadge, UrgencySeverity } from "../../components/StatusBadge";
 import {
@@ -190,11 +191,78 @@ export default function ApprovalsPage() {
     return true;
   });
 
+  // Power-user keyboard navigation (J/K to move, Enter to review, Escape to close)
+  const [focusedRowIndex, setFocusedRowIndex] = useState<number>(-1);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.key === "j" || e.key === "J" || e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocusedRowIndex((prev) => {
+          if (displayedRows.length === 0) return -1;
+          return prev < displayedRows.length - 1 ? prev + 1 : prev;
+        });
+      } else if (e.key === "k" || e.key === "K" || e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocusedRowIndex((prev) => {
+          if (displayedRows.length === 0) return -1;
+          return prev > 0 ? prev - 1 : 0;
+        });
+      } else if (e.key === "Enter") {
+        if (focusedRowIndex >= 0 && focusedRowIndex < displayedRows.length) {
+          e.preventDefault();
+          setSelectedApproval(displayedRows[focusedRowIndex]);
+          setShowRejectForm(false);
+        }
+      } else if (e.key === "Escape") {
+        setSelectedApproval(null);
+        setShowRejectForm(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [displayedRows, focusedRowIndex]);
+
+  useEffect(() => {
+    setFocusedRowIndex(-1);
+  }, [filterTab, searchQuery]);
+
   return (
     <div className="space-y-5">
       <PageHeader
         title="Approvals"
         subtitle="Invoices validated and matched, awaiting management approval decision."
+        action={
+          <div className="flex items-center gap-2">
+            <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-300 text-micro border border-neutral-200/80 dark:border-zinc-700/80 font-medium">
+              <span>Navigate:</span>
+              <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
+                J
+              </kbd>
+              <span>/</span>
+              <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
+                K
+              </kbd>
+              <span>•</span>
+              <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
+                Enter
+              </kbd>
+              <span>to review</span>
+            </span>
+          </div>
+        }
       />
 
       {feedbackBanner && (
@@ -291,15 +359,20 @@ export default function ApprovalsPage() {
               {displayedRows.map((r, idx) => {
                 const sla = computeSlaBadge(idx);
 
-                return (
-                  <TableRow
-                    key={r.id}
-                    onClick={() => {
-                      setSelectedApproval(r);
-                      setShowRejectForm(false);
-                    }}
-                    className="cursor-pointer hover:bg-neutral-50/80 dark:hover:bg-zinc-900/60"
-                  >
+                  const isRowFocused = focusedRowIndex === idx;
+
+                  return (
+                    <TableRow
+                      key={r.id}
+                      onClick={() => {
+                        setSelectedApproval(r);
+                        setShowRejectForm(false);
+                      }}
+                      className={cn(
+                        "cursor-pointer hover:bg-neutral-50/80 dark:hover:bg-zinc-900/60 transition-colors",
+                        isRowFocused && "bg-indigo-50/70 dark:bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/30"
+                      )}
+                    >
                     <TableCell className="font-mono font-medium text-neutral-900 dark:text-zinc-100">
                       <span className="text-indigo-600 dark:text-indigo-400 hover:underline">
                         {r.invoiceNumber}

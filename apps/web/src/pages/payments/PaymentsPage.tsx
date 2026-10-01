@@ -21,7 +21,7 @@ import { Tabs } from "../../components/ui/Tabs";
 import { Input } from "../../components/ui/Input";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatCurrency, formatDate } from "../../lib/formatters";
-import { Wallet, CheckCircle2, ArrowRight, Search, X } from "lucide-react";
+import { Wallet, CheckCircle2, ArrowRight, Search, X, Download } from "lucide-react";
 import { DisbursementModal } from "./components/DisbursementModal";
 
 export default function PaymentsPage() {
@@ -106,6 +106,61 @@ export default function PaymentsPage() {
   const isSomeCurrentPageSelected =
     schedulableOnCurrentPage.some((r) => selectedIds.includes(r.id));
 
+  // Keyboard navigation for power users (J/K to move, Space to toggle checkbox, Enter to execute)
+  const [focusedRowIndex, setFocusedRowIndex] = useState<number>(-1);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.key === "j" || e.key === "J" || e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocusedRowIndex((prev) => {
+          if (paginatedRows.length === 0) return -1;
+          return prev < paginatedRows.length - 1 ? prev + 1 : prev;
+        });
+      } else if (e.key === "k" || e.key === "K" || e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocusedRowIndex((prev) => {
+          if (paginatedRows.length === 0) return -1;
+          return prev > 0 ? prev - 1 : 0;
+        });
+      } else if (e.key === " ") {
+        if (focusedRowIndex >= 0 && focusedRowIndex < paginatedRows.length) {
+          const row = paginatedRows[focusedRowIndex];
+          if (row.status === "SCHEDULED" || row.status === "AWAITING_SCHEDULE") {
+            e.preventDefault();
+            toggleSelectRow(row.id);
+          }
+        }
+      } else if (e.key === "Enter") {
+        if (focusedRowIndex >= 0 && focusedRowIndex < paginatedRows.length) {
+          const row = paginatedRows[focusedRowIndex];
+          if (row.status === "SCHEDULED") {
+            e.preventDefault();
+            setDisbursementModalState({ isOpen: true, payments: [row] });
+          }
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [paginatedRows, focusedRowIndex]);
+
+  useEffect(() => {
+    setFocusedRowIndex(-1);
+  }, [currentPage, searchQuery, statusFilter]);
+
   function toggleSelectAllCurrentPage(checked: boolean) {
     const ids = schedulableOnCurrentPage.map((r) => r.id);
     setSelectedIds((prev) => {
@@ -115,6 +170,57 @@ export default function PaymentsPage() {
         return prev.filter((id) => !ids.includes(id));
       }
     });
+  }
+
+  function handleExportBankFile(format: "CSV" | "NACHA" = "CSV") {
+    const listToExport = selectedIds.length > 0
+      ? rows.filter((r) => selectedIds.includes(r.id))
+      : filteredRows;
+
+    if (listToExport.length === 0) {
+      toast.warning("No Payments to Export", "There are no payments matching the current view to export.");
+      return;
+    }
+
+    if (format === "CSV") {
+      const headers = [
+        "Payment ID",
+        "Invoice Number",
+        "Beneficiary Name",
+        "Payment Amount",
+        "Currency",
+        "Status",
+        "Due Date",
+        "Clearing Date",
+        "Settlement UTR",
+        "Corporate Account",
+      ];
+      const csvRows = listToExport.map((p) => [
+        `"${p.id}"`,
+        `"${p.invoiceNumber}"`,
+        `"${p.vendor.replace(/"/g, '""')}"`,
+        p.amount,
+        `"${p.currency ?? "INR"}"`,
+        `"${p.status}"`,
+        `"${p.dueDate ?? ""}"`,
+        `"${p.clearingDate ?? ""}"`,
+        `"${p.utrNumber ?? ""}"`,
+        `"HDFC-CORP-98124001"`,
+      ]);
+      const csvContent = [headers.join(","), ...csvRows.map((r) => r.join(","))].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `bank_disbursement_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(
+        "Bank File Exported",
+        `Disbursement file for ${listToExport.length} record(s) downloaded for host-to-host corporate banking.`
+      );
+    }
   }
 
   const selectedRows = rows.filter((r) => selectedIds.includes(r.id));
@@ -164,6 +270,34 @@ export default function PaymentsPage() {
       <PageHeader
         title="Payments & Disbursements"
         subtitle="Schedule batches, monitor payment horizons, and execute electronic bank disbursements."
+        action={
+          <div className="flex items-center gap-2">
+            <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-300 text-micro border border-neutral-200/80 dark:border-zinc-700/80 font-medium">
+              <span>Navigate:</span>
+              <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
+                J
+              </kbd>
+              <span>/</span>
+              <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
+                K
+              </kbd>
+              <span>•</span>
+              <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
+                Space
+              </kbd>
+              <span>select</span>
+            </span>
+            <Button
+              variant="outline"
+              onClick={() => handleExportBankFile("CSV")}
+              disabled={filteredRows.length === 0}
+              className="gap-2"
+            >
+              <Download size={14} />
+              <span>Export Bank File</span>
+            </Button>
+          </div>
+        }
       />
 
       {paymentBanner && (
@@ -285,14 +419,18 @@ export default function PaymentsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedRows.map((p) => {
+                {paginatedRows.map((p, idx) => {
                   const canSelect = p.status === "SCHEDULED" || p.status === "AWAITING_SCHEDULE";
                   const isSelected = selectedIds.includes(p.id);
+                  const isFocused = focusedRowIndex === idx;
 
                   return (
                     <TableRow
                       key={p.id}
-                      className={isSelected ? "bg-indigo-50/40 dark:bg-indigo-950/20" : undefined}
+                      onClick={() => setFocusedRowIndex(idx)}
+                      className={`${isSelected ? "bg-indigo-50/40 dark:bg-indigo-950/20" : ""} ${
+                        isFocused ? "ring-2 ring-indigo-500/50 ring-inset" : ""
+                      }`}
                     >
                       <TableCell className="w-10 px-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center">
@@ -402,14 +540,25 @@ export default function PaymentsPage() {
             </span>
           </div>
 
-          <Button
-            size="sm"
-            onClick={() => setDisbursementModalState({ isOpen: true, payments: selectedRows })}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold gap-1.5 ml-2"
-          >
-            <span>Release Batch Disbursement</span>
-            <ArrowRight size={14} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleExportBankFile("CSV")}
+              className="border-neutral-600 bg-neutral-800 hover:bg-neutral-700 text-white gap-1.5"
+            >
+              <Download size={13} />
+              <span>Export Batch</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setDisbursementModalState({ isOpen: true, payments: selectedRows })}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold gap-1.5 ml-1"
+            >
+              <span>Release Batch Disbursement</span>
+              <ArrowRight size={14} />
+            </Button>
+          </div>
         </div>
       )}
 

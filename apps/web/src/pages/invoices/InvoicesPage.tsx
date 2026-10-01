@@ -11,6 +11,11 @@ import {
   CalendarCheck,
   Archive,
   CheckSquare,
+  Sparkles,
+  Clock,
+  AlertCircle,
+  TrendingUp,
+  ShieldCheck,
 } from "lucide-react";
 import { InvoiceListItem, listInvoices, transitionInvoice } from "../../api/invoices";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -48,6 +53,9 @@ export default function InvoicesPage() {
   const [allInvoices, setAllInvoices] = useState<InvoiceListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [quickFilter, setQuickFilter] = useState<
+    "ALL" | "DUE_SOON" | "MISSING_PO" | "HIGH_VALUE" | "HIGH_CONFIDENCE"
+  >("ALL");
   const [sortField, setSortField] = useState<SortField>("dueDate");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
 
@@ -133,6 +141,17 @@ export default function InvoicesPage() {
     };
   }, [allInvoices]);
 
+  const quickFilterCounts = useMemo(() => {
+    const now = new Date();
+    const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    return {
+      DUE_SOON: invoices.filter((i) => i.dueDate && new Date(i.dueDate) <= in48h).length,
+      MISSING_PO: invoices.filter((i) => !i.purchaseOrderId).length,
+      HIGH_VALUE: invoices.filter((i) => (Number(i.totalAmount) || 0) >= 500000).length,
+      HIGH_CONFIDENCE: invoices.filter((i) => (i.aiConfidence ?? 0) >= 0.95).length,
+    };
+  }, [invoices]);
+
   const filteredAndSortedInvoices = useMemo(() => {
     let list = invoices;
     if (searchQuery.trim()) {
@@ -141,9 +160,20 @@ export default function InvoicesPage() {
         (i) =>
           i.invoiceNumber.toLowerCase().includes(q) ||
           (i.supplier?.name && i.supplier.name.toLowerCase().includes(q)) ||
-          ((i as unknown as { purchaseOrderId?: string }).purchaseOrderId &&
-            (i as unknown as { purchaseOrderId?: string }).purchaseOrderId?.toLowerCase().includes(q)),
+          (i.purchaseOrderId && i.purchaseOrderId.toLowerCase().includes(q)),
       );
+    }
+
+    if (quickFilter === "DUE_SOON") {
+      const now = new Date();
+      const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+      list = list.filter((i) => i.dueDate && new Date(i.dueDate) <= in48h);
+    } else if (quickFilter === "MISSING_PO") {
+      list = list.filter((i) => !i.purchaseOrderId);
+    } else if (quickFilter === "HIGH_VALUE") {
+      list = list.filter((i) => (Number(i.totalAmount) || 0) >= 500000);
+    } else if (quickFilter === "HIGH_CONFIDENCE") {
+      list = list.filter((i) => (i.aiConfidence ?? 0) >= 0.95);
     }
 
     return [...list].sort((a, b) => {
@@ -224,7 +254,7 @@ export default function InvoicesPage() {
 
   useEffect(() => {
     setFocusedRowIndex(-1);
-  }, [currentPage, searchQuery, status]);
+  }, [currentPage, searchQuery, status, quickFilter]);
 
   // Selection helpers
   const currentPageIds = paginatedInvoices.map((inv) => inv.id);
@@ -394,12 +424,27 @@ export default function InvoicesPage() {
         onRemove: () => handleSearchChange(""),
       });
     }
+    if (quickFilter !== "ALL") {
+      const labels: Record<string, string> = {
+        DUE_SOON: "Due in < 48 Hours",
+        MISSING_PO: "Missing PO",
+        HIGH_VALUE: "High Value (> ₹5L)",
+        HIGH_CONFIDENCE: "High Confidence (≥ 95%)",
+      };
+      tokens.push({
+        id: "filter-horizon",
+        category: "Horizon",
+        label: labels[quickFilter],
+        onRemove: () => setQuickFilter("ALL"),
+      });
+    }
     return tokens;
-  }, [status, searchQuery, tabs, handleTabChange, handleSearchChange]);
+  }, [status, searchQuery, quickFilter, tabs, handleTabChange, handleSearchChange]);
 
   const handleClearAllFilters = () => {
     handleTabChange("");
     handleSearchChange("");
+    setQuickFilter("ALL");
   };
 
   return (
@@ -463,6 +508,111 @@ export default function InvoicesPage() {
             }
           />
         </div>
+      </div>
+
+      {/* Quick-Filter Horizon Chips (Astryx/ClearOps AP Design System) */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 text-micro">
+        <span className="text-neutral-500 dark:text-zinc-400 font-medium shrink-0 flex items-center gap-1 mr-1">
+          <Sparkles size={12} className="text-indigo-500" />
+          <span>Horizons:</span>
+        </span>
+        <button
+          type="button"
+          onClick={() => setQuickFilter("ALL")}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-all ${
+            quickFilter === "ALL"
+              ? "bg-neutral-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs"
+              : "bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-300 hover:bg-neutral-200 dark:hover:bg-zinc-700"
+          }`}
+        >
+          <span>All</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setQuickFilter(quickFilter === "DUE_SOON" ? "ALL" : "DUE_SOON")}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-all ${
+            quickFilter === "DUE_SOON"
+              ? "bg-amber-600 text-white shadow-2xs"
+              : "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+          }`}
+        >
+          <Clock size={11} />
+          <span>Due &lt; 48 Hours</span>
+          <span
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-semibold ${
+              quickFilter === "DUE_SOON"
+                ? "bg-amber-700 text-white"
+                : "bg-amber-200/60 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200"
+            }`}
+          >
+            {quickFilterCounts.DUE_SOON}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setQuickFilter(quickFilter === "MISSING_PO" ? "ALL" : "MISSING_PO")}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-all ${
+            quickFilter === "MISSING_PO"
+              ? "bg-rose-600 text-white shadow-2xs"
+              : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/60 hover:bg-rose-100 dark:hover:bg-rose-900/50"
+          }`}
+        >
+          <AlertCircle size={11} />
+          <span>Missing PO</span>
+          <span
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-semibold ${
+              quickFilter === "MISSING_PO"
+                ? "bg-rose-700 text-white"
+                : "bg-rose-200/60 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200"
+            }`}
+          >
+            {quickFilterCounts.MISSING_PO}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setQuickFilter(quickFilter === "HIGH_VALUE" ? "ALL" : "HIGH_VALUE")}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-all ${
+            quickFilter === "HIGH_VALUE"
+              ? "bg-indigo-600 text-white shadow-2xs"
+              : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
+          }`}
+        >
+          <TrendingUp size={11} />
+          <span>High Value (&gt; ₹5L)</span>
+          <span
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-semibold ${
+              quickFilter === "HIGH_VALUE"
+                ? "bg-indigo-700 text-white"
+                : "bg-indigo-200/60 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200"
+            }`}
+          >
+            {quickFilterCounts.HIGH_VALUE}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            setQuickFilter(quickFilter === "HIGH_CONFIDENCE" ? "ALL" : "HIGH_CONFIDENCE")
+          }
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-all ${
+            quickFilter === "HIGH_CONFIDENCE"
+              ? "bg-emerald-600 text-white shadow-2xs"
+              : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
+          }`}
+        >
+          <ShieldCheck size={11} />
+          <span>High Confidence (≥ 95%)</span>
+          <span
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-semibold ${
+              quickFilter === "HIGH_CONFIDENCE"
+                ? "bg-emerald-700 text-white"
+                : "bg-emerald-200/60 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200"
+            }`}
+          >
+            {quickFilterCounts.HIGH_CONFIDENCE}
+          </span>
+        </button>
       </div>
 
       {/* Astryx-inspired Filter Token Bar */}

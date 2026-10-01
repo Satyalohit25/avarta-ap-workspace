@@ -55,7 +55,7 @@ export default function ArchivePage() {
   const [selectedCertificate, setSelectedCertificate] = useState<ArchivedAuditCertificate | null>(null);
 
   useEffect(() => {
-    listInvoices({ status: "ARCHIVED" })
+    listInvoices({ status: "ARCHIVED,SYNCED" })
       .then((res) => setInvoices(res.data))
       .finally(() => setLoading(false));
   }, []);

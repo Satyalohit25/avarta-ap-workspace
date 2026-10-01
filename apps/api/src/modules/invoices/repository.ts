@@ -45,7 +45,11 @@ interface ListFilters {
 export async function listInvoices(filters: ListFilters) {
   const where: Prisma.InvoiceWhereInput = {
     organizationId: filters.organizationId,
-    ...(filters.status ? { status: filters.status as unknown as never } : {}),
+    ...(filters.status
+      ? filters.status.includes(",")
+        ? { status: { in: filters.status.split(",").map((s) => s.trim()) as unknown as never } }
+        : { status: filters.status as unknown as never }
+      : {}),
     ...(filters.supplierId ? { supplierId: filters.supplierId } : {}),
     ...(filters.search
       ? {
