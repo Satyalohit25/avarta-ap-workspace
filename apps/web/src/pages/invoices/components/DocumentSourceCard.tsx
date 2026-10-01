@@ -1,4 +1,4 @@
-import { useState, useRef, DragEvent, ChangeEvent } from "react";
+import { useState, useRef, useMemo, DragEvent, ChangeEvent } from "react";
 import {
   FileText,
   Download,
@@ -11,6 +11,7 @@ import {
   FileCheck2,
   QrCode,
   ArrowRight,
+  Sparkles,
 } from "lucide-react";
 import { Card, CardContent } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
@@ -18,6 +19,8 @@ import { API_URL, getAccessToken } from "../../../api/client";
 import { DocumentItem } from "../../../api/invoices";
 import { formatCurrency, formatDate } from "../../../lib/formatters";
 import { generateSupplierLineItems } from "../../../lib/mockCatalogs";
+import { generateGroundTruthBoxes, GroundTruthBox } from "../../../lib/ocrGroundTruth";
+import { GroundTruthBoundingBoxOverlay } from "./GroundTruthBoundingBoxOverlay";
 
 export interface DocumentSourceCardProps {
   invoiceId: string;
@@ -34,6 +37,11 @@ export interface DocumentSourceCardProps {
   currency?: string | null;
   purchaseOrderId?: string | null;
   exceptions?: Array<{ type?: string; description?: string }>;
+  aiConfidence?: number | null;
+  activeFieldId?: string | null;
+  hoveredFieldId?: string | null;
+  onSelectField?: (fieldKey: string) => void;
+  onHoverField?: (fieldKey: string | null) => void;
 }
 
 export function DocumentSourceCard({
@@ -51,9 +59,17 @@ export function DocumentSourceCard({
   currency = "INR",
   purchaseOrderId,
   exceptions = [],
+  aiConfidence,
+  activeFieldId,
+  hoveredFieldId,
+  onSelectField = () => {},
+  onHoverField = () => {},
 }: DocumentSourceCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const primaryDoc = documents && documents.length > 0 ? documents[0] : null;
+
+  // Ground Truth Overlay active toggle state
+  const [isOverlayEnabled, setIsOverlayEnabled] = useState(true);
 
   // If there's an uploaded file, default to file preview; otherwise default to digital voucher
   const [viewMode, setViewMode] = useState<"preview" | "voucher" | "upload">(
@@ -155,6 +171,30 @@ export function DocumentSourceCard({
   const subtotal = Math.round(totalAmountNum * 0.8474);
   const taxAmount = totalAmountNum - subtotal;
 
+  const groundTruthBoxes: GroundTruthBox[] = useMemo(() => {
+    return generateGroundTruthBoxes({
+      invoiceNumber,
+      invoiceDate,
+      dueDate,
+      supplierName,
+      purchaseOrderId,
+      totalAmount: totalAmountNum,
+      currency: safeCurrency,
+      linesCount: lineItems.length,
+      overallConfidence: aiConfidence,
+    });
+  }, [
+    invoiceNumber,
+    invoiceDate,
+    dueDate,
+    supplierName,
+    purchaseOrderId,
+    totalAmountNum,
+    safeCurrency,
+    lineItems.length,
+    aiConfidence,
+  ]);
+
   return (
     <Card
       id="invoice-document-dropzone"
@@ -229,35 +269,46 @@ export function DocumentSourceCard({
         </div>
       </div>
 
-      <CardContent className="p-0 flex-1 flex flex-col">
+      <CardContent className="p-0 flex-1 flex flex-col min-h-0">
         {/* MODE 1: Embedded File Preview */}
         {viewMode === "preview" && primaryDoc && previewUrl && !previewError && (
-          <div className="flex-1 flex flex-col">
-            {isPdf ? (
-              <iframe
-                src={previewUrl}
-                title={`Preview: ${primaryDoc.fileName}`}
-                className="w-full flex-1 min-h-[500px] border-0 bg-neutral-50 dark:bg-zinc-800/40"
-                onError={() => setPreviewError(true)}
-              />
-            ) : isImage ? (
-              <div className="flex-1 min-h-[500px] bg-neutral-50 dark:bg-zinc-800/40 flex items-center justify-center p-4">
-                <img
+          <div className="flex-1 flex flex-col relative min-h-0">
+            <GroundTruthBoundingBoxOverlay
+              boxes={groundTruthBoxes}
+              activeFieldId={activeFieldId}
+              hoveredFieldId={hoveredFieldId}
+              onSelectField={onSelectField}
+              onHoverField={onHoverField}
+              isEnabled={isOverlayEnabled}
+              onToggleEnabled={setIsOverlayEnabled}
+            />
+            <div className="relative flex-1 min-h-[500px]">
+              {isPdf ? (
+                <iframe
                   src={previewUrl}
-                  alt={primaryDoc.fileName}
-                  width={800}
-                  height={600}
-                  loading="lazy"
-                  className="max-w-full max-h-full object-contain rounded-sm"
+                  title={`Preview: ${primaryDoc.fileName}`}
+                  className="w-full h-full min-h-[500px] border-0 bg-neutral-50 dark:bg-zinc-800/40"
                   onError={() => setPreviewError(true)}
                 />
-              </div>
-            ) : (
-              <PreviewUnavailable
-                fileName={primaryDoc.fileName}
-                previewUrl={previewUrl}
-              />
-            )}
+              ) : isImage ? (
+                <div className="w-full h-full min-h-[500px] bg-neutral-50 dark:bg-zinc-800/40 flex items-center justify-center p-4">
+                  <img
+                    src={previewUrl}
+                    alt={primaryDoc.fileName}
+                    width={800}
+                    height={600}
+                    loading="lazy"
+                    className="max-w-full max-h-full object-contain rounded-sm"
+                    onError={() => setPreviewError(true)}
+                  />
+                </div>
+              ) : (
+                <PreviewUnavailable
+                  fileName={primaryDoc.fileName}
+                  previewUrl={previewUrl}
+                />
+              )}
+            </div>
 
             {/* Document Action bar */}
             <div className="p-3 border-t border-neutral-200 dark:border-zinc-800 flex items-center justify-between bg-white dark:bg-zinc-900">
@@ -305,9 +356,19 @@ export function DocumentSourceCard({
 
         {/* MODE 2: Digital Tax Voucher (EDI Intake Representation) */}
         {viewMode === "voucher" && (
-          <div className="p-5 flex-1 flex flex-col bg-neutral-50/70 dark:bg-zinc-900/60 overflow-y-auto">
-            {/* Paper-style Voucher Container */}
-            <div className="bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-700 rounded-lg p-5 shadow-xs flex-1 flex flex-col justify-between">
+          <div className="flex-1 flex flex-col relative min-h-0">
+            <GroundTruthBoundingBoxOverlay
+              boxes={groundTruthBoxes}
+              activeFieldId={activeFieldId}
+              hoveredFieldId={hoveredFieldId}
+              onSelectField={onSelectField}
+              onHoverField={onHoverField}
+              isEnabled={isOverlayEnabled}
+              onToggleEnabled={setIsOverlayEnabled}
+            />
+            <div className="p-5 flex-1 flex flex-col bg-neutral-50/70 dark:bg-zinc-900/60 overflow-y-auto relative">
+              {/* Paper-style Voucher Container */}
+              <div className="relative bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-700 rounded-lg p-5 shadow-xs flex-1 flex flex-col justify-between">
               <div>
                 {/* Header Strip */}
                 <div className="flex items-start justify-between border-b border-neutral-200 dark:border-zinc-800 pb-4 mb-4">
@@ -466,6 +527,7 @@ export function DocumentSourceCard({
               </div>
             </div>
           </div>
+        </div>
         )}
 
         {/* MODE 3: Active Document Dropzone */}
@@ -546,6 +608,47 @@ export function DocumentSourceCard({
                 {uploadError}
               </p>
             )}
+          </div>
+        )}
+
+        {/* Quick Anchors Bar (Active in preview and voucher modes) */}
+        {(viewMode === "voucher" || viewMode === "preview") && (
+          <div className="px-4 py-2 border-t border-neutral-200 dark:border-zinc-800 bg-neutral-50/90 dark:bg-zinc-900/90 flex items-center justify-between gap-2 overflow-x-auto text-micro shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0 text-neutral-500 dark:text-zinc-400 font-mono">
+              <Sparkles size={11} className="text-indigo-500" />
+              <span className="font-semibold">Quick Anchors:</span>
+            </div>
+            <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
+              {groundTruthBoxes.map((b) => {
+                const isSelected = activeFieldId === b.fieldKey || hoveredFieldId === b.fieldKey;
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onMouseEnter={() => onHoverField(b.fieldKey)}
+                    onMouseLeave={() => onHoverField(null)}
+                    onClick={() => onSelectField(b.fieldKey)}
+                    className={`px-2 py-0.5 rounded text-micro font-mono border transition-all inline-flex items-center gap-1 shrink-0 ${
+                      isSelected
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-xs font-semibold"
+                        : "bg-white dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border-neutral-200 dark:border-zinc-700 hover:border-indigo-400 dark:hover:border-indigo-500"
+                    }`}
+                    title={`Click to focus ${b.label} (${b.confidence}% confidence)`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        b.confidenceBand === "HIGH"
+                          ? "bg-emerald-500"
+                          : b.confidenceBand === "MEDIUM"
+                            ? "bg-amber-500"
+                            : "bg-rose-500"
+                      }`}
+                    />
+                    <span>{b.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </CardContent>

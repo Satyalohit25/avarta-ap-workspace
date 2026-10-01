@@ -27,6 +27,7 @@
 @layer base {
   /* Light Mode shadcn/ui Theme Variables (design(2).md §4) */
   :root {
+    color-scheme: light;
     --background: 220 14% 97%;        /* #F7F8FA Quiet Canvas */
     --foreground: 222 47% 11%;        /* #111827 Text Primary */
     --card: 0 0% 100%;               /* #FFFFFF Card Surface */
@@ -51,6 +52,7 @@
 
   /* Restrained Neutral Dark Mode Theme Variables (Zinc Base) */
   .dark {
+    color-scheme: dark;
     --background: 240 10% 3.9%;       /* #09090B Neutral Dark Canvas */
     --foreground: 0 0% 98%;           /* #FAFAFA High-Contrast Text Primary */
     --card: 240 5.9% 10%;             /* #18181B Surface Dark Card */
@@ -104,6 +106,30 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.4);
+  }
+
+  /* Native select, option, and form controls contrast across light & dark themes */
+  select {
+    color-scheme: light;
+  }
+  .dark select,
+  .dark input,
+  .dark textarea,
+  .dark optgroup {
+    color-scheme: dark;
+  }
+
+  select option,
+  optgroup {
+    background-color: #ffffff;
+    color: #111827;
+  }
+
+  .dark select option,
+  .dark optgroup,
+  .dark select option:checked {
+    background-color: #18181b;
+    color: #f4f4f5;
   }
 
   .no-scrollbar::-webkit-scrollbar {

@@ -17,6 +17,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { Sheet } from "../../components/ui/Sheet";
 import { Button } from "../../components/ui/Button";
 import { Tabs } from "../../components/ui/Tabs";
+import { TriSplitThreeWayMatchWorkbench } from "../invoices/components/TriSplitThreeWayMatchWorkbench";
 import { Alert } from "../../components/ui/Alert";
 import { Input } from "../../components/ui/Input";
 import { Pagination } from "../../components/ui/Pagination";
@@ -457,6 +458,44 @@ export default function ExceptionsPage() {
                 </Link>
               </div>
             </div>
+
+            {/* Tri-Split 3-Way Match Strip for Price & Quantity Discrepancies */}
+            {(selectedException.type === "PRICE_DIFFERENCE" ||
+              selectedException.type === "QUANTITY_DIFFERENCE" ||
+              selectedException.type.includes("DIFF") ||
+              selectedException.title?.toLowerCase().includes("variance") ||
+              selectedException.title?.toLowerCase().includes("price") ||
+              selectedException.title?.toLowerCase().includes("quantity")) && (
+              <TriSplitThreeWayMatchWorkbench
+                item={{
+                  poLineRef: "PO-FY26-0881 Line 1",
+                  poQty: 8,
+                  poUnitPrice: 4850,
+                  poTotal: 38800,
+                  poUnit: "Servers",
+                  grnRef: "GRN-FY26-0083",
+                  grnAcceptedQty: 7,
+                  grnDamagedQty: 1,
+                  grnReturnDocRef: "RET-881",
+                  grnNetQty: 7,
+                  invoiceRef: selectedException.invoiceNumber || "INV-2026-1018",
+                  invoiceBilledQty: 8,
+                  invoiceUnitPrice: 5200,
+                  invoiceTotal: 41600,
+                  description: selectedException.title || "Enterprise Hardware Compute Nodes (High-Density)",
+                }}
+                currency="INR"
+                onGenerateDebitNote={(amount) => {
+                  setResolutionNote(`Generated statutory Debit Note for ₹${amount.toLocaleString("en-IN")} covering unauthorized rate variance (+7.2%). Signed off per company procurement tolerance.`);
+                }}
+                onWithholdShortfall={(qty, amt) => {
+                  setResolutionNote(`Withheld transit shortfall of ${qty} unit (₹${amt.toLocaleString("en-IN")}). Payment cleared for 7 net accepted units only.`);
+                }}
+                onRequestRevisedInvoice={(summary) => {
+                  setResolutionNote(`Formal automated supplier query dispatched requesting revised tax invoice: ${summary}`);
+                }}
+              />
+            )}
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">

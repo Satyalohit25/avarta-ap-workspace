@@ -30,6 +30,7 @@ import {
   transitionInvoice,
   syncInvoiceToErp,
   uploadInvoiceDocument,
+  resolveException,
 } from "../../api/invoices";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SkeletonRows } from "../../components/Skeleton";
@@ -64,6 +65,10 @@ import {
   ProcessingStage,
 } from "./components/ProcessingOverlay";
 import { AuditTimeline } from "./components/AuditTimeline";
+import {
+  ExecutiveDecisionHub,
+  WorkspaceViewMode,
+} from "./components/ExecutiveDecisionHub";
 
 type InvoiceDetailData = InvoiceListItem & {
   lines?: unknown[];
@@ -467,6 +472,22 @@ export default function InvoiceDetailPage() {
     message: string;
   } | null>(null);
 
+  // Bi-directional ground-truth bounding box overlay & extraction focus state
+  const [activeFieldId, setActiveFieldId] = useState<string | null>(null);
+  const [hoveredFieldId, setHoveredFieldId] = useState<string | null>(null);
+
+  // Cognitive Chunking: Workspace View Modes (Split Verification, 3-Way Reconciler, Audit Trail)
+  const [viewMode, setViewMode] = useState<WorkspaceViewMode>("split");
+
+  const handleSelectField = useCallback((fieldKey: string) => {
+    setActiveFieldId(fieldKey);
+    // Smooth scroll to the extraction card row on the right
+    const element = document.getElementById(`extracted-field-${fieldKey}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, []);
+
   const load = useCallback(async () => {
     if (!invoiceId) return;
     setLoading(true);
@@ -531,6 +552,15 @@ export default function InvoiceDetailPage() {
           e.preventDefault();
           navigate(`/invoices/${prevInvoice.id}`);
         }
+      } else if (e.key === "1") {
+        e.preventDefault();
+        setViewMode("split");
+      } else if (e.key === "2") {
+        e.preventDefault();
+        setViewMode("threeway");
+      } else if (e.key === "3") {
+        e.preventDefault();
+        setViewMode("audit");
       }
     }
 
@@ -676,6 +706,37 @@ export default function InvoiceDetailPage() {
       },
       ...prev,
     ]);
+  }
+
+  async function handleInlineResolveException(exceptionId: string, resolution: string) {
+    if (!invoiceId) return;
+    setActionPending(true);
+    try {
+      await resolveException(exceptionId, resolution);
+      toast.success(
+        "Exception Resolved per Policy",
+        "Discrepancy reconciled. Invoice rejoined linear approval workflow.",
+      );
+      setDynamicAuditEvents((prev) => [
+        {
+          id: `audit-resolve-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          actor: "Finance Manager",
+          action: "Exception Resolved & Reconciled",
+          details: resolution,
+          type: "success",
+        },
+        ...prev,
+      ]);
+      await load();
+    } catch (err: unknown) {
+      toast.error(
+        "Resolution Failed",
+        err instanceof Error ? err.message : "Failed to record resolution.",
+      );
+    } finally {
+      setActionPending(false);
+    }
   }
 
   async function handleErpSync(targetErp: string) {
@@ -1242,64 +1303,130 @@ export default function InvoiceDetailPage() {
       />
 
       {/* ─────────────────────────────────────────────────────────────
-       * 4. Main Workspace (Document Source + Extracted Details)
+       * 4. Executive AP Decision Hub: Diagnostic Synthesis, 1-Click Policy Remedies & View Modes
        * ───────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-        {/* Left Column: Document Source Card */}
-        <div className="lg:col-span-6">
-          <DocumentSourceCard
-            invoiceId={invoice.id}
-            source={invoice.source}
-            documents={invoice.documents}
-            canUploadDocument={context.canUploadDocument}
-            onUploadDocument={handleDocumentUpload}
-            isUploading={actionPending}
-            invoiceNumber={invoice.invoiceNumber}
-            supplierName={invoice.supplier?.name}
-            invoiceDate={invoice.invoiceDate}
-            dueDate={invoice.dueDate}
-            totalAmount={invoice.totalAmount}
-            currency={invoice.currency}
-            purchaseOrderId={invoice.purchaseOrderId}
-            exceptions={invoice.exceptions}
-          />
-        </div>
-
-        {/* Right Column: AI Extracted Details & Integrated Validation Checks */}
-        <div className="lg:col-span-6">
-          <AIExtractedDetailsCard
-            invoiceNumber={invoice.invoiceNumber}
-            invoiceDate={invoice.invoiceDate}
-            totalAmount={invoice.totalAmount}
-            currency={invoice.currency}
-            supplierName={invoice.supplier?.name}
-            purchaseOrderId={invoice.purchaseOrderId}
-            linesCount={invoice.lines?.length ?? 0}
-            extractedAtDate={
-              invoice.documents?.[0]?.createdAt ?? invoice.invoiceDate
-            }
-            status={context.status}
-            aiConfidence={invoice.aiConfidence}
-            validations={invoice.validations}
-          />
-        </div>
-      </div>
-
-      {/* ─────────────────────────────────────────────────────────────
-       * 5. 3-Way Line-Item Matching & Variance Inspection (State-Aware)
-       * ───────────────────────────────────────────────────────────── */}
-      <LineItemMatchingTable
+      <ExecutiveDecisionHub
         invoiceId={invoice.id}
         invoiceNumber={invoice.invoiceNumber}
-        supplierName={invoice.supplier?.name}
-        totalAmount={invoice.totalAmount}
-        status={context.status}
-        purchaseOrderId={invoice.purchaseOrderId}
         currency={invoice.currency}
-        exceptions={invoice.exceptions}
-        onAcceptOverride={handleAcceptVariance}
-        onFlagException={handleFlagException}
+        totalAmount={invoice.totalAmount}
+        supplierName={invoice.supplier?.name}
+        purchaseOrderId={invoice.purchaseOrderId}
+        status={context.status}
+        openException={invoice.exceptions?.find((e) => e.status === "OPEN") ?? null}
+        onResolveException={handleInlineResolveException}
+        viewMode={viewMode}
+        onChangeViewMode={setViewMode}
+        isActionPending={actionPending}
       />
+
+      {/* ─────────────────────────────────────────────────────────────
+       * 5. Main Workspace (View-Mode Dependent: Split vs 3-Way Reconciler vs Audit)
+       * ───────────────────────────────────────────────────────────── */}
+      {viewMode === "split" && (
+        <div className="space-y-5 animate-in fade-in duration-150">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+            {/* Left Column: Document Source Card */}
+            <div className="lg:col-span-6">
+              <DocumentSourceCard
+                invoiceId={invoice.id}
+                source={invoice.source}
+                documents={invoice.documents}
+                canUploadDocument={context.canUploadDocument}
+                onUploadDocument={handleDocumentUpload}
+                isUploading={actionPending}
+                invoiceNumber={invoice.invoiceNumber}
+                supplierName={invoice.supplier?.name}
+                invoiceDate={invoice.invoiceDate}
+                dueDate={invoice.dueDate}
+                totalAmount={invoice.totalAmount}
+                currency={invoice.currency}
+                purchaseOrderId={invoice.purchaseOrderId}
+                exceptions={invoice.exceptions}
+                aiConfidence={invoice.aiConfidence}
+                activeFieldId={activeFieldId}
+                hoveredFieldId={hoveredFieldId}
+                onSelectField={handleSelectField}
+                onHoverField={setHoveredFieldId}
+              />
+            </div>
+
+            {/* Right Column: AI Extracted Details & Integrated Validation Checks */}
+            <div className="lg:col-span-6">
+              <AIExtractedDetailsCard
+                invoiceNumber={invoice.invoiceNumber}
+                invoiceDate={invoice.invoiceDate}
+                dueDate={invoice.dueDate}
+                totalAmount={invoice.totalAmount}
+                currency={invoice.currency}
+                supplierName={invoice.supplier?.name}
+                purchaseOrderId={invoice.purchaseOrderId}
+                linesCount={invoice.lines?.length ?? 0}
+                extractedAtDate={
+                  invoice.documents?.[0]?.createdAt ?? invoice.invoiceDate
+                }
+                status={context.status}
+                aiConfidence={invoice.aiConfidence}
+                validations={invoice.validations}
+                activeFieldId={activeFieldId}
+                hoveredFieldId={hoveredFieldId}
+                onSelectField={handleSelectField}
+                onHoverField={setHoveredFieldId}
+              />
+            </div>
+          </div>
+
+          {/* 3-Way Line-Item Matching & Variance Inspection */}
+          <LineItemMatchingTable
+            invoiceId={invoice.id}
+            invoiceNumber={invoice.invoiceNumber}
+            supplierName={invoice.supplier?.name}
+            totalAmount={invoice.totalAmount}
+            status={context.status}
+            purchaseOrderId={invoice.purchaseOrderId}
+            currency={invoice.currency}
+            exceptions={invoice.exceptions}
+            onAcceptOverride={handleAcceptVariance}
+            onFlagException={handleFlagException}
+          />
+        </div>
+      )}
+
+      {viewMode === "threeway" && (
+        <div className="space-y-5 animate-in fade-in duration-150">
+          <LineItemMatchingTable
+            invoiceId={invoice.id}
+            invoiceNumber={invoice.invoiceNumber}
+            supplierName={invoice.supplier?.name}
+            totalAmount={invoice.totalAmount}
+            status={context.status}
+            purchaseOrderId={invoice.purchaseOrderId}
+            currency={invoice.currency}
+            exceptions={invoice.exceptions}
+            onAcceptOverride={handleAcceptVariance}
+            onFlagException={handleFlagException}
+          />
+        </div>
+      )}
+
+      {viewMode === "audit" && (
+        <div className="p-6 bg-white dark:bg-zinc-900 rounded-xl border border-neutral-200 dark:border-zinc-800 shadow-sm animate-in fade-in duration-150 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-neutral-100 dark:border-zinc-800">
+            <div>
+              <h3 className="text-body font-bold text-neutral-900 dark:text-zinc-100">
+                Complete Audit Trail &amp; Workflow Transition Logs
+              </h3>
+              <p className="text-caption text-neutral-500 dark:text-zinc-400">
+                Immutable, cryptographic chronological history of all OCR passes, validations, approver sign-offs, and ERP synchronizations.
+              </p>
+            </div>
+            <span className="text-micro font-mono bg-neutral-100 dark:bg-zinc-800 px-3 py-1 rounded-full text-neutral-600 dark:text-zinc-400 border border-neutral-200 dark:border-zinc-700">
+              {timelineEvents.length} Recorded Events
+            </span>
+          </div>
+          <AuditTimeline events={timelineEvents} onRefresh={load} />
+        </div>
+      )}
 
       {/* ─────────────────────────────────────────────────────────────
        * 6. Sticky Invoice Action Bar

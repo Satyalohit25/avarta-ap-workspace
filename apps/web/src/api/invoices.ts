@@ -246,4 +246,11 @@ export function uploadInvoiceDocument(id: string, file: File) {
   });
 }
 
+export function resolveException(exceptionId: string, resolution: string) {
+  return apiRequest<{ data: unknown }>(`/exceptions/${exceptionId}/resolve`, {
+    method: "POST",
+    body: { resolution },
+  });
+}
+
 

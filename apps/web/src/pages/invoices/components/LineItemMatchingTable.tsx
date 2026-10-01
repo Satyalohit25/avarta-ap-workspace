@@ -6,6 +6,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from ".
 import { formatCurrency } from "../../../lib/formatters";
 
 import { generateSupplierLineItems, GeneratedLineItem } from "../../../lib/mockCatalogs";
+import { TriSplitThreeWayMatchWorkbench } from "./TriSplitThreeWayMatchWorkbench";
 
 export type LineItemData = GeneratedLineItem;
 
@@ -192,72 +193,38 @@ export function LineItemMatchingTable({
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {varianceLines.map((vl) => {
-                const poTotal = vl.poQty * vl.poUnitPrice;
-                const invTotal = vl.invQty * vl.invUnitPrice;
-                const rateDiff = vl.invUnitPrice - vl.poUnitPrice;
-                const rateDiffPct = vl.poUnitPrice > 0 ? (rateDiff / vl.poUnitPrice) * 100 : 0;
-                const qtyDiff = vl.invQty - vl.poQty;
-                const exceedsTolerance = Math.abs(rateDiffPct) > 5 || qtyDiff > 0;
-
-                return (
-                  <div
-                    key={vl.id}
-                    className={`p-3.5 rounded-lg border text-body-sm space-y-2.5 transition-colors ${
-                      exceedsTolerance
-                        ? "bg-rose-50/70 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/80"
-                        : "bg-amber-50/70 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/80"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="font-semibold text-neutral-900 dark:text-zinc-100 text-body-sm line-clamp-1">
-                        Line {vl.lineNumber}: {vl.description}
-                      </span>
-                      <span
-                        className={`text-micro font-mono font-semibold px-2 py-0.5 rounded-full shrink-0 border ${
-                          exceedsTolerance
-                            ? "bg-rose-100 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200 border-rose-300 dark:border-rose-800"
-                            : "bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-800"
-                        }`}
-                      >
-                        {rateDiffPct > 0 ? `+${rateDiffPct.toFixed(1)}%` : `${rateDiffPct.toFixed(1)}%`} Variance
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-caption font-mono bg-white/70 dark:bg-zinc-900/70 p-2.5 rounded border border-neutral-200/60 dark:border-zinc-800">
-                      <div>
-                        <span className="text-micro text-neutral-500 dark:text-zinc-400 block">
-                          PO Ref ({purchaseOrderId})
-                        </span>
-                        <div className="mt-0.5 text-neutral-800 dark:text-zinc-200">
-                          <span>{vl.poQty} units</span> @ <span>{formatCurrency(vl.poUnitPrice, currency)}</span>
-                        </div>
-                        <span className="text-micro text-neutral-400 block mt-0.5">
-                          Total: {formatCurrency(poTotal, currency)}
-                        </span>
-                      </div>
-
-                      <div className="border-l border-neutral-200 dark:border-zinc-800 pl-2.5">
-                        <span className="text-micro text-neutral-500 dark:text-zinc-400 block">
-                          Invoiced Line
-                        </span>
-                        <div className={`mt-0.5 font-semibold ${exceedsTolerance ? "text-rose-600 dark:text-rose-400" : "text-amber-700 dark:text-amber-300"}`}>
-                          <span>{vl.invQty} units</span> @ <span>{formatCurrency(vl.invUnitPrice, currency)}</span>
-                        </div>
-                        <span className="text-micro text-neutral-400 block mt-0.5">
-                          Total: {formatCurrency(invTotal, currency)}
-                        </span>
-                      </div>
-                    </div>
-
-                    <p className={`text-micro font-mono ${exceedsTolerance ? "text-rose-700 dark:text-rose-300 font-semibold" : "text-amber-800 dark:text-amber-200"}`}>
-                      PO Rate: {formatCurrency(vl.poUnitPrice, currency)} vs Invoiced: {formatCurrency(vl.invUnitPrice, currency)} — {rateDiffPct > 0 ? `+${rateDiffPct.toFixed(1)}%` : `${rateDiffPct.toFixed(1)}%`} variance {exceedsTolerance ? "(Exceeds 5% tolerance)" : "(Within tolerance)"}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
+            {/* Dedicated Tri-Split 3-Way Match Strip */}
+            {varianceLines[0] && (
+              <TriSplitThreeWayMatchWorkbench
+                item={{
+                  poLineRef: `${purchaseOrderId ?? "PO-FY26-0881"} Line ${varianceLines[0].lineNumber}`,
+                  poQty: varianceLines[0].poQty,
+                  poUnitPrice: varianceLines[0].poUnitPrice,
+                  poTotal: varianceLines[0].poQty * varianceLines[0].poUnitPrice,
+                  poUnit: "Units",
+                  grnRef: "GRN-FY26-0083",
+                  grnAcceptedQty: Math.max(1, varianceLines[0].poQty - 1),
+                  grnDamagedQty: 1,
+                  grnReturnDocRef: "RET-881",
+                  grnNetQty: Math.max(1, varianceLines[0].poQty - 1),
+                  invoiceRef: "INV-BILLED",
+                  invoiceBilledQty: varianceLines[0].invQty,
+                  invoiceUnitPrice: varianceLines[0].invUnitPrice,
+                  invoiceTotal: varianceLines[0].invQty * varianceLines[0].invUnitPrice,
+                  description: varianceLines[0].description,
+                }}
+                currency={currency}
+                onGenerateDebitNote={(amount, reason) => {
+                  onAcceptOverride?.(varianceLines[0], `[DEBIT NOTE APPLIED: ₹${amount.toLocaleString("en-IN")}] ${reason}`);
+                }}
+                onWithholdShortfall={(qty, amt) => {
+                  onAcceptOverride?.(varianceLines[0], `[SHORTFALL WITHHELD: ${qty} units (₹${amt.toLocaleString("en-IN")})] Net certified goods payable approved.`);
+                }}
+                onRequestRevisedInvoice={(summary) => {
+                  onFlagException?.(varianceLines[0], `[REVISED TAX INVOICE REQUESTED] ${summary}`);
+                }}
+              />
+            )}
           </div>
         )}
 

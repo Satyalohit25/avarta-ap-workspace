@@ -7,6 +7,7 @@ interface AuthContextValue {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  setPersonaRole: (role: "Administrator" | "Finance Manager" | "Finance Executive" | "Approver" | "Read Only") => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -43,8 +44,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
+  function setPersonaRole(role: "Administrator" | "Finance Manager" | "Finance Executive" | "Approver" | "Read Only") {
+    setUser((prev) => (prev ? { ...prev, role } : null));
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, setPersonaRole }}>
       {children}
     </AuthContext.Provider>
   );

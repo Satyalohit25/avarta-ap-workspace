@@ -10,12 +10,14 @@ export interface SelectOption {
 
 export interface SelectProps extends Omit<
   SelectHTMLAttributes<HTMLSelectElement>,
-  "onChange"
+  "onChange" | "size"
 > {
   label?: string;
   options: SelectOption[];
   error?: string;
   placeholder?: string;
+  containerClassName?: string;
+  size?: "sm" | "md";
   onValueChange?: (value: string) => void;
   onChange?: (e: { target: { value: string; name?: string } }) => void;
 }
@@ -31,6 +33,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       onChange,
       disabled,
       className,
+      containerClassName,
+      size = "md",
       id,
       name,
       placeholder,
@@ -51,8 +55,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       }
     }
 
+    const isCompact = size === "sm";
+
     return (
-      <div className="space-y-1.5 w-full">
+      <div className={cn(label || error ? "space-y-1.5" : "", containerClassName ?? "w-full")}>
         {label && (
           <label
             htmlFor={selectId}
@@ -71,7 +77,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             id={selectId}
             aria-label={props["aria-label"] ?? label ?? name ?? placeholder ?? "Select option"}
             className={cn(
-              "flex h-9 w-full items-center justify-between rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-body-sm text-neutral-900 dark:text-zinc-100 shadow-2xs transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400 dark:focus-visible:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50",
+              "flex w-full items-center justify-between rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-2xs transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400 dark:focus-visible:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
+              isCompact ? "h-8 px-2.5 py-1 text-micro font-mono" : "h-9 px-3 py-2 text-body-sm",
               error
                 ? "border-error-500 dark:border-error-500 focus-visible:ring-error-500/50"
                 : "focus-visible:border-neutral-400 dark:focus-visible:border-zinc-500",
@@ -83,9 +90,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             />
             <SelectPrimitive.Icon>
               <ChevronDown
-                size={16}
+                size={isCompact ? 13 : 16}
                 strokeWidth={1.75}
-                className="text-neutral-400 dark:text-zinc-500 shrink-0"
+                className="text-neutral-400 dark:text-zinc-500 shrink-0 ml-1.5"
               />
             </SelectPrimitive.Icon>
           </SelectPrimitive.Trigger>
@@ -94,21 +101,24 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             <SelectPrimitive.Content
               position="popper"
               sideOffset={4}
-              className="z-50 min-w-[var(--radix-select-trigger-width)] max-h-60 overflow-y-auto rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-lg animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1"
+              className="z-50 min-w-[var(--radix-select-trigger-width)] max-h-60 overflow-y-auto rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-xl animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1"
             >
               <SelectPrimitive.Viewport className="p-1">
                 {options.map((opt) => (
                   <SelectPrimitive.Item
                     key={opt.value}
                     value={opt.value}
-                    className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-body-sm outline-none focus:bg-neutral-100 dark:focus:bg-zinc-800 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                    className={cn(
+                      "relative flex w-full cursor-pointer select-none items-center rounded-sm text-neutral-900 dark:text-zinc-100 outline-none hover:bg-neutral-100 dark:hover:bg-zinc-800 focus:bg-neutral-100 dark:focus:bg-zinc-800 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 transition-colors",
+                      isCompact ? "py-1 pl-6 pr-2 text-micro font-mono" : "py-1.5 pl-8 pr-2 text-body-sm",
+                    )}
                   >
-                    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                    <span className={cn("absolute flex items-center justify-center", isCompact ? "left-1.5 h-3 w-3" : "left-2 h-3.5 w-3.5")}>
                       <SelectPrimitive.ItemIndicator>
                         <Check
-                          size={14}
+                          size={isCompact ? 12 : 14}
                           strokeWidth={2}
-                          className="text-accent-500"
+                          className="text-indigo-600 dark:text-indigo-400"
                         />
                       </SelectPrimitive.ItemIndicator>
                     </span>

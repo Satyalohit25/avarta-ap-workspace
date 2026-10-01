@@ -597,7 +597,7 @@ export function InvoiceForm({
                           value={l.description}
                           onChange={(e) => handleUpdateLine(l.id ?? String(index), "description", e.target.value)}
                           placeholder="Item description or service..."
-                          className="w-full h-8 px-2.5 rounded text-body-sm border border-neutral-200 dark:border-zinc-700 bg-transparent text-neutral-900 dark:text-zinc-100 focus:border-indigo-500 focus:outline-none"
+                          className="w-full h-8 px-2.5 rounded text-body-sm border border-neutral-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 focus:border-indigo-500 focus:outline-none"
                         />
                       </td>
                       <td className="py-2 px-2 text-right">
@@ -610,7 +610,7 @@ export function InvoiceForm({
                           min="1"
                           value={l.quantity}
                           onChange={(e) => handleUpdateLine(l.id ?? String(index), "quantity", Number(e.target.value))}
-                          className="w-16 h-8 px-2 rounded text-body-sm font-mono text-right border border-neutral-200 dark:border-zinc-700 bg-transparent text-neutral-900 dark:text-zinc-100 focus:border-indigo-500 focus:outline-none"
+                          className="w-16 h-8 px-2 rounded text-body-sm font-mono text-right border border-neutral-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 focus:border-indigo-500 focus:outline-none"
                         />
                       </td>
                       <td className="py-2 px-2 text-right">
@@ -624,24 +624,20 @@ export function InvoiceForm({
                           step="0.01"
                           value={l.unitPrice}
                           onChange={(e) => handleUpdateLine(l.id ?? String(index), "unitPrice", Number(e.target.value))}
-                          className="w-24 h-8 px-2 rounded text-body-sm font-mono text-right border border-neutral-200 dark:border-zinc-700 bg-transparent text-neutral-900 dark:text-zinc-100 focus:border-indigo-500 focus:outline-none"
+                          className="w-24 h-8 px-2 rounded text-body-sm font-mono text-right border border-neutral-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 focus:border-indigo-500 focus:outline-none"
                         />
                       </td>
                       <td className="py-2 px-2 text-right">
-                        <select
+                        <Select
                           id={`invoice-line-${l.id ?? index}-tax`}
                           name={`line_${l.id ?? index}_tax`}
                           aria-label={`Line ${index + 1} tax slab`}
-                          value={l.taxRate ?? 18}
-                          onChange={(e) => handleUpdateLine(l.id ?? String(index), "taxRate", Number(e.target.value))}
-                          className="h-8 px-2 rounded text-micro font-mono border border-neutral-200 dark:border-zinc-700 bg-transparent text-neutral-800 dark:text-zinc-200 focus:border-indigo-500 focus:outline-none"
-                        >
-                          {TAX_SLAB_OPTIONS.map((t) => (
-                            <option key={t.value} value={t.value}>
-                              {t.label}
-                            </option>
-                          ))}
-                        </select>
+                          value={String(l.taxRate ?? 18)}
+                          onValueChange={(val) => handleUpdateLine(l.id ?? String(index), "taxRate", Number(val))}
+                          options={TAX_SLAB_OPTIONS}
+                          size="sm"
+                          containerClassName="w-36 min-w-[130px] ml-auto"
+                        />
                       </td>
                       <td className="py-2 px-3 text-right font-mono font-semibold text-neutral-900 dark:text-zinc-100 tabular-nums">
                         {formatCurrency(lineTotal, currency)}

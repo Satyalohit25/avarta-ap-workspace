@@ -1,6 +1,7 @@
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { Select } from "./Select";
 
 export interface PaginationProps {
   currentPage: number;
@@ -70,23 +71,22 @@ export function Pagination({
         {onPageSizeChange && (
           <div className="flex items-center gap-1.5 text-caption">
             <span className="hidden md:inline text-neutral-500 dark:text-zinc-500">Rows:</span>
-            <select
+            <Select
               id="pagination-page-size"
               name="pageSize"
-              value={pageSize}
-              onChange={(e) => {
-                onPageSizeChange(Number(e.target.value));
+              aria-label="Rows per page"
+              value={String(pageSize)}
+              onValueChange={(val) => {
+                onPageSizeChange(Number(val));
                 onPageChange(1);
               }}
-              className="px-2 py-1 rounded border border-neutral-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-neutral-800 dark:text-zinc-200 text-caption font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
-              aria-label="Rows per page"
-            >
-              {pageSizeOptions.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt} / page
-                </option>
-              ))}
-            </select>
+              options={pageSizeOptions.map((opt) => ({
+                value: String(opt),
+                label: `${opt} / page`,
+              }))}
+              size="sm"
+              containerClassName="w-28 shrink-0"
+            />
           </div>
         )}
       </div>

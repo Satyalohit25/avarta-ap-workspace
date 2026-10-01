@@ -17,6 +17,7 @@ import { PageHeader } from "../../components/layout/PageHeader";
 import { Card, CardHeader, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
+import { Select } from "../../components/ui/Select";
 import { Tabs } from "../../components/ui/Tabs";
 import { EmptyState } from "../../components/EmptyState";
 import { useToast } from "../../components/ui/ToastContext";
@@ -340,22 +341,19 @@ export default function NotificationsPage() {
                   <CardContent className="p-5 space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label htmlFor="sla-escalation-hours" className="text-label text-neutral-700 dark:text-zinc-300 block mb-1">
-                          Approval Turnaround SLA Limit
-                        </label>
-                        <select
+                        <Select
                           id="sla-escalation-hours"
                           name="slaEscalationHours"
-                          aria-label="Approval Turnaround SLA Limit"
+                          label="Approval Turnaround SLA Limit"
                           value={slaEscalationHours}
-                          onChange={(e) => setSlaEscalationHours(e.target.value)}
-                          className="w-full h-9 px-3 rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-body-sm text-neutral-900 dark:text-zinc-100"
-                        >
-                          <option value="24">24 Hours (Fast Track)</option>
-                          <option value="48">48 Hours (Standard Corporate Policy)</option>
-                          <option value="72">72 Hours (Extended)</option>
-                        </select>
-                        <p className="text-micro text-neutral-500 mt-1">
+                          onValueChange={setSlaEscalationHours}
+                          options={[
+                            { value: "24", label: "24 Hours (Fast Track)" },
+                            { value: "48", label: "48 Hours (Standard Corporate Policy)" },
+                            { value: "72", label: "72 Hours (Extended)" },
+                          ]}
+                        />
+                        <p className="text-micro text-neutral-500 mt-1.5">
                           If an approver does not act within {slaEscalationHours} hours, the invoice escalates to their backup director.
                         </p>
                       </div>

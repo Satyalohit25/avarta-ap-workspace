@@ -1118,18 +1118,15 @@ export default function PurchaseOrdersPage() {
                       value={line.quantity || ""}
                       onChange={(e) => updateLineItem(line.id, "quantity", Number(e.target.value))}
                     />
-                    <select
+                    <Select
                       id={`po-line-uom-${line.id}`}
                       name={`po_uom_${line.id}`}
                       aria-label="Unit of measure"
-                      className="h-9 w-full rounded-md border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2 text-body-sm text-neutral-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
                       value={line.unitOfMeasure}
-                      onChange={(e) => updateLineItem(line.id, "unitOfMeasure", e.target.value)}
-                    >
-                      {["Pcs", "Kg", "MT", "Hours", "Lots", "Box", "Ltr"].map((u) => (
-                        <option key={u} value={u}>{u}</option>
-                      ))}
-                    </select>
+                      onValueChange={(val) => updateLineItem(line.id, "unitOfMeasure", val)}
+                      options={["Pcs", "Kg", "MT", "Hours", "Lots", "Box", "Ltr"].map((u) => ({ value: u, label: u }))}
+                      className="h-9"
+                    />
                     <Input
                       id={`po-line-rate-${line.id}`}
                       name={`po_rate_${line.id}`}
