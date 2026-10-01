@@ -19,8 +19,12 @@ import { API_URL, getAccessToken } from "../../../api/client";
 import { DocumentItem } from "../../../api/invoices";
 import { formatCurrency, formatDate } from "../../../lib/formatters";
 import { generateSupplierLineItems } from "../../../lib/mockCatalogs";
-import { generateGroundTruthBoxes, GroundTruthBox } from "../../../lib/ocrGroundTruth";
-import { GroundTruthBoundingBoxOverlay } from "./GroundTruthBoundingBoxOverlay";
+import { generateGroundTruthBoxes, GroundTruthBox, ConfidenceBand } from "../../../lib/ocrGroundTruth";
+import {
+  GroundTruthToolbar,
+  VoucherAnchor,
+  GroundTruthSvgOverlay,
+} from "./GroundTruthBoundingBoxOverlay";
 
 export interface DocumentSourceCardProps {
   invoiceId: string;
@@ -68,8 +72,9 @@ export function DocumentSourceCard({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const primaryDoc = documents && documents.length > 0 ? documents[0] : null;
 
-  // Ground Truth Overlay active toggle state
+  // Ground Truth Overlay active toggle state and confidence filter
   const [isOverlayEnabled, setIsOverlayEnabled] = useState(true);
+  const [filterBand, setFilterBand] = useState<"ALL" | ConfidenceBand>("ALL");
 
   // If there's an uploaded file, default to file preview; otherwise default to digital voucher
   const [viewMode, setViewMode] = useState<"preview" | "voucher" | "upload">(
@@ -195,6 +200,21 @@ export function DocumentSourceCard({
     aiConfidence,
   ]);
 
+  const boxMap = useMemo(() => {
+    const map = new Map<string, GroundTruthBox>();
+    for (const b of groundTruthBoxes) {
+      map.set(b.fieldKey, b);
+    }
+    return map;
+  }, [groundTruthBoxes]);
+
+  const visibleBoxes = useMemo(() => {
+    return groundTruthBoxes.filter((b) => {
+      if (filterBand === "ALL") return true;
+      return b.confidenceBand === filterBand;
+    });
+  }, [groundTruthBoxes, filterBand]);
+
   return (
     <Card
       id="invoice-document-dropzone"
@@ -273,16 +293,24 @@ export function DocumentSourceCard({
         {/* MODE 1: Embedded File Preview */}
         {viewMode === "preview" && primaryDoc && previewUrl && !previewError && (
           <div className="flex-1 flex flex-col relative min-h-0">
-            <GroundTruthBoundingBoxOverlay
-              boxes={groundTruthBoxes}
-              activeFieldId={activeFieldId}
-              hoveredFieldId={hoveredFieldId}
-              onSelectField={onSelectField}
-              onHoverField={onHoverField}
+            <GroundTruthToolbar
               isEnabled={isOverlayEnabled}
               onToggleEnabled={setIsOverlayEnabled}
+              filterBand={filterBand}
+              onFilterBandChange={setFilterBand}
+              anchoredCount={visibleBoxes.length}
             />
-            <div className="relative flex-1 min-h-[500px]">
+            <div className="relative flex-1 min-h-[500px] overflow-hidden">
+              {isOverlayEnabled && (
+                <GroundTruthSvgOverlay
+                  boxes={groundTruthBoxes}
+                  activeFieldId={activeFieldId}
+                  hoveredFieldId={hoveredFieldId}
+                  onSelectField={onSelectField}
+                  onHoverField={onHoverField}
+                  filterBand={filterBand}
+                />
+              )}
               {isPdf ? (
                 <iframe
                   src={previewUrl}
@@ -357,158 +385,299 @@ export function DocumentSourceCard({
         {/* MODE 2: Digital Tax Voucher (EDI Intake Representation) */}
         {viewMode === "voucher" && (
           <div className="flex-1 flex flex-col relative min-h-0">
-            <GroundTruthBoundingBoxOverlay
-              boxes={groundTruthBoxes}
-              activeFieldId={activeFieldId}
-              hoveredFieldId={hoveredFieldId}
-              onSelectField={onSelectField}
-              onHoverField={onHoverField}
+            <GroundTruthToolbar
               isEnabled={isOverlayEnabled}
               onToggleEnabled={setIsOverlayEnabled}
+              filterBand={filterBand}
+              onFilterBandChange={setFilterBand}
+              anchoredCount={visibleBoxes.length}
             />
             <div className="p-5 flex-1 flex flex-col bg-neutral-50/70 dark:bg-zinc-900/60 overflow-y-auto relative">
               {/* Paper-style Voucher Container */}
               <div className="relative bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-700 rounded-lg p-5 shadow-xs flex-1 flex flex-col justify-between">
-              <div>
-                {/* Header Strip */}
-                <div className="flex items-start justify-between border-b border-neutral-200 dark:border-zinc-800 pb-4 mb-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-caption font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded">
-                        Electronic Tax Voucher
-                      </span>
-                      <span className="text-micro font-mono text-neutral-400 dark:text-zinc-500">
-                        {sourceLabel}
-                      </span>
-                    </div>
-                    <h4 className="text-h4 font-bold text-neutral-900 dark:text-zinc-100 mt-1">
-                      {supplierName || "Tata Steel Limited"}
-                    </h4>
-                    <p className="text-micro text-neutral-500 dark:text-zinc-400 font-mono">
-                      GSTIN: 27AAACT2727Q1ZW • IRN: 4b9f2...81c9
-                    </p>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-caption font-semibold text-neutral-900 dark:text-zinc-100 font-mono">
-                      {invoiceNumber || `INV-${invoiceId.slice(0, 8)}`}
-                    </p>
-                    <p className="text-micro text-neutral-500 dark:text-zinc-400 mt-0.5">
-                      Date: {formatDate(invoiceDate)}
-                    </p>
-                    {dueDate && (
-                      <p className="text-micro text-neutral-500 dark:text-zinc-400">
-                        Due: {formatDate(dueDate)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Billed To / Shipped To Grid */}
-                <div className="grid grid-cols-2 gap-4 pb-4 mb-4 border-b border-neutral-100 dark:border-zinc-800 text-body-sm">
-                  <div>
-                    <p className="text-micro uppercase tracking-wider text-neutral-400 dark:text-zinc-500 font-medium">
-                      Billed To (Buyer)
-                    </p>
-                    <p className="font-semibold text-neutral-800 dark:text-zinc-200 mt-0.5">
-                      ClearOps Technologies Pvt Ltd
-                    </p>
-                    <p className="text-micro text-neutral-500 dark:text-zinc-400 font-mono">
-                      GSTIN: 27AABCC1234F1Z8
-                    </p>
-                    <p className="text-micro text-neutral-500 dark:text-zinc-400">
-                      BKC Commercial Complex, Bandra East, Mumbai 400051
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-micro uppercase tracking-wider text-neutral-400 dark:text-zinc-500 font-medium">
-                      Purchase Order Ref
-                    </p>
-                    <p className="font-semibold text-neutral-800 dark:text-zinc-200 mt-0.5 font-mono">
-                      {purchaseOrderId ? `PO-${purchaseOrderId.slice(0, 8).toUpperCase()}` : "PO-2026-0842 (Standard PO)"}
-                    </p>
-                    <p className="text-micro text-neutral-500 dark:text-zinc-400">
-                      Payment Terms: Net 30 Days
-                    </p>
-                    <p className="text-micro text-neutral-500 dark:text-zinc-400">
-                      Place of Supply: Maharashtra (27)
-                    </p>
-                  </div>
-                </div>
-
-                {/* Voucher Item Breakdown Table */}
-                <div className="mb-4 overflow-x-auto">
-                  <table className="w-full text-left text-body-sm">
-                    <thead>
-                      <tr className="border-b border-neutral-200 dark:border-zinc-800 text-micro font-medium uppercase text-neutral-400 dark:text-zinc-500">
-                        <th className="py-2 pr-2">Item &amp; Description</th>
-                        <th className="py-2 px-2 text-right">HSN/SAC</th>
-                        <th className="py-2 px-2 text-right">Qty</th>
-                        <th className="py-2 px-2 text-right">Unit Rate</th>
-                        <th className="py-2 pl-2 text-right">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-neutral-100 dark:divide-zinc-800/60 font-mono text-micro">
-                      {lineItems.map((item, idx) => (
-                        <tr key={item.id} className="hover:bg-neutral-50/50 dark:hover:bg-zinc-800/40">
-                          <td className="py-2.5 pr-2 font-sans font-medium text-neutral-800 dark:text-zinc-200">
-                            <span className="text-neutral-400 mr-1.5">{idx + 1}.</span>
-                            {item.description}
-                          </td>
-                          <td className="py-2.5 px-2 text-right text-neutral-500 dark:text-zinc-400">
-                            {item.hsnCode || "HSN 7216"}
-                          </td>
-                          <td className="py-2.5 px-2 text-right text-neutral-700 dark:text-zinc-300">
-                            {item.quantity}
-                          </td>
-                          <td className="py-2.5 px-2 text-right text-neutral-700 dark:text-zinc-300">
-                            {formatCurrency(item.unitPrice, safeCurrency)}
-                          </td>
-                          <td className="py-2.5 pl-2 text-right font-semibold text-neutral-900 dark:text-zinc-100">
-                            {formatCurrency(item.lineAmount, safeCurrency)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Totals & Security Verification Seal */}
-              <div>
-                <div className="border-t border-neutral-200 dark:border-zinc-800 pt-3 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  {/* Cryptographic Seal */}
-                  <div className="flex items-center gap-2.5 bg-neutral-50 dark:bg-zinc-800/70 p-2.5 rounded-lg border border-neutral-200/80 dark:border-zinc-700 text-left w-full sm:w-auto">
-                    <QrCode size={30} className="text-neutral-700 dark:text-zinc-300 shrink-0" />
+                <div>
+                  {/* Header Strip */}
+                  <div className="flex items-start justify-between border-b border-neutral-200 dark:border-zinc-800 pb-4 mb-4">
                     <div>
-                      <div className="flex items-center gap-1 text-micro font-semibold text-success-700 dark:text-success-400">
-                        <ShieldCheck size={12} />
-                        <span>Cryptographically Signed Record</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-caption font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded">
+                          Electronic Tax Voucher
+                        </span>
+                        <span className="text-micro font-mono text-neutral-400 dark:text-zinc-500">
+                          {sourceLabel}
+                        </span>
                       </div>
-                      <p className="text-micro text-neutral-400 dark:text-zinc-500 font-mono">
-                        Hash: SHA256:{invoiceId.slice(0, 16)}...
-                      </p>
+
+                      {/* Supplier Name Anchor */}
+                      <div className="mt-2">
+                        <VoucherAnchor
+                          fieldKey="supplierName"
+                          box={boxMap.get("supplierName")}
+                          isEnabled={isOverlayEnabled}
+                          filterBand={filterBand}
+                          activeFieldId={activeFieldId}
+                          hoveredFieldId={hoveredFieldId}
+                          onSelectField={onSelectField}
+                          onHoverField={onHoverField}
+                          className="inline-block p-1 -m-1"
+                        >
+                          <h4 className="text-h4 font-bold text-neutral-900 dark:text-zinc-100">
+                            {supplierName || "Tata Steel Limited"}
+                          </h4>
+                        </VoucherAnchor>
+                      </div>
+
+                      {/* Supplier GSTIN Anchor */}
+                      <div className="mt-1">
+                        <VoucherAnchor
+                          fieldKey="supplierGstin"
+                          box={boxMap.get("supplierGstin")}
+                          isEnabled={isOverlayEnabled}
+                          filterBand={filterBand}
+                          activeFieldId={activeFieldId}
+                          hoveredFieldId={hoveredFieldId}
+                          onSelectField={onSelectField}
+                          onHoverField={onHoverField}
+                          className="inline-block p-0.5 -m-0.5"
+                        >
+                          <p className="text-micro text-neutral-500 dark:text-zinc-400 font-mono">
+                            GSTIN: 27AAACT2727Q1ZW • IRN: 4b9f2...81c9
+                          </p>
+                        </VoucherAnchor>
+                      </div>
+                    </div>
+
+                    {/* Top Right: Invoice Number, Date, Due Date */}
+                    <div className="text-right space-y-1">
+                      <div>
+                        <VoucherAnchor
+                          fieldKey="invoiceNumber"
+                          box={boxMap.get("invoiceNumber")}
+                          isEnabled={isOverlayEnabled}
+                          filterBand={filterBand}
+                          activeFieldId={activeFieldId}
+                          hoveredFieldId={hoveredFieldId}
+                          onSelectField={onSelectField}
+                          onHoverField={onHoverField}
+                          className="inline-block p-0.5 -m-0.5"
+                        >
+                          <p className="text-caption font-semibold text-neutral-900 dark:text-zinc-100 font-mono">
+                            {invoiceNumber || `INV-${invoiceId.slice(0, 8)}`}
+                          </p>
+                        </VoucherAnchor>
+                      </div>
+
+                      <div>
+                        <VoucherAnchor
+                          fieldKey="invoiceDate"
+                          box={boxMap.get("invoiceDate")}
+                          isEnabled={isOverlayEnabled}
+                          filterBand={filterBand}
+                          activeFieldId={activeFieldId}
+                          hoveredFieldId={hoveredFieldId}
+                          onSelectField={onSelectField}
+                          onHoverField={onHoverField}
+                          className="inline-block p-0.5 -m-0.5"
+                        >
+                          <p className="text-micro text-neutral-500 dark:text-zinc-400">
+                            Date: {formatDate(invoiceDate)}
+                          </p>
+                        </VoucherAnchor>
+                      </div>
+
+                      {dueDate && (
+                        <div>
+                          <VoucherAnchor
+                            fieldKey="dueDate"
+                            box={boxMap.get("dueDate")}
+                            isEnabled={isOverlayEnabled}
+                            filterBand={filterBand}
+                            activeFieldId={activeFieldId}
+                            hoveredFieldId={hoveredFieldId}
+                            onSelectField={onSelectField}
+                            onHoverField={onHoverField}
+                            className="inline-block p-0.5 -m-0.5"
+                          >
+                            <p className="text-micro text-neutral-500 dark:text-zinc-400">
+                              Due: {formatDate(dueDate)}
+                            </p>
+                          </VoucherAnchor>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Summary Totals */}
-                  <div className="w-full sm:w-60 space-y-1 text-caption">
-                    <div className="flex justify-between text-neutral-500 dark:text-zinc-400">
-                      <span>Taxable Subtotal:</span>
-                      <span className="font-mono">{formatCurrency(subtotal, safeCurrency)}</span>
+                  {/* Billed To / Shipped To Grid */}
+                  <div className="grid grid-cols-2 gap-4 pb-4 mb-4 border-b border-neutral-100 dark:border-zinc-800 text-body-sm">
+                    <div>
+                      <p className="text-micro uppercase tracking-wider text-neutral-400 dark:text-zinc-500 font-medium">
+                        Billed To (Buyer)
+                      </p>
+                      <p className="font-semibold text-neutral-800 dark:text-zinc-200 mt-0.5">
+                        ClearOps Technologies Pvt Ltd
+                      </p>
+                      <p className="text-micro text-neutral-500 dark:text-zinc-400 font-mono">
+                        GSTIN: 27AABCC1234F1Z8
+                      </p>
+                      <p className="text-micro text-neutral-500 dark:text-zinc-400">
+                        BKC Commercial Complex, Bandra East, Mumbai 400051
+                      </p>
                     </div>
-                    <div className="flex justify-between text-neutral-500 dark:text-zinc-400">
-                      <span>GST (18% IGST):</span>
-                      <span className="font-mono">{formatCurrency(taxAmount, safeCurrency)}</span>
-                    </div>
-                    <div className="flex justify-between text-body font-bold text-neutral-900 dark:text-zinc-100 border-t border-neutral-200 dark:border-zinc-800 pt-1">
-                      <span>Invoice Total:</span>
-                      <span className="font-mono text-indigo-600 dark:text-indigo-400">
-                        {formatCurrency(totalAmountNum, safeCurrency)}
-                      </span>
+                    <div>
+                      <p className="text-micro uppercase tracking-wider text-neutral-400 dark:text-zinc-500 font-medium">
+                        Purchase Order Ref
+                      </p>
+                      <VoucherAnchor
+                        fieldKey="purchaseOrderNumber"
+                        box={boxMap.get("purchaseOrderNumber")}
+                        isEnabled={isOverlayEnabled}
+                        filterBand={filterBand}
+                        activeFieldId={activeFieldId}
+                        hoveredFieldId={hoveredFieldId}
+                        onSelectField={onSelectField}
+                        onHoverField={onHoverField}
+                        className="p-1.5 -m-1.5 block mt-0.5"
+                      >
+                        <p className="font-semibold text-neutral-800 dark:text-zinc-200 font-mono">
+                          {purchaseOrderId ? `PO-${purchaseOrderId.slice(0, 8).toUpperCase()}` : "PO-2026-0842 (Standard PO)"}
+                        </p>
+                        <p className="text-micro text-neutral-500 dark:text-zinc-400">
+                          Payment Terms: Net 30 Days
+                        </p>
+                        <p className="text-micro text-neutral-500 dark:text-zinc-400">
+                          Place of Supply: Maharashtra (27)
+                        </p>
+                      </VoucherAnchor>
                     </div>
                   </div>
+
+                  {/* Voucher Item Breakdown Table */}
+                  <div className="mb-4">
+                    <VoucherAnchor
+                      fieldKey="lineItems"
+                      box={boxMap.get("lineItems")}
+                      isEnabled={isOverlayEnabled}
+                      filterBand={filterBand}
+                      activeFieldId={activeFieldId}
+                      hoveredFieldId={hoveredFieldId}
+                      onSelectField={onSelectField}
+                      onHoverField={onHoverField}
+                      className="p-2 -m-2 block overflow-x-auto"
+                      displayTag="Table 97%"
+                    >
+                      <table className="w-full text-left text-body-sm">
+                        <thead>
+                          <tr className="border-b border-neutral-200 dark:border-zinc-800 text-micro font-medium uppercase text-neutral-400 dark:text-zinc-500">
+                            <th className="py-2 pr-2">Item &amp; Description</th>
+                            <th className="py-2 px-2 text-right">HSN/SAC</th>
+                            <th className="py-2 px-2 text-right">Qty</th>
+                            <th className="py-2 px-2 text-right">Unit Rate</th>
+                            <th className="py-2 pl-2 text-right">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-100 dark:divide-zinc-800/60 font-mono text-micro">
+                          {lineItems.map((item, idx) => (
+                            <tr key={item.id} className="hover:bg-neutral-50/50 dark:hover:bg-zinc-800/40">
+                              <td className="py-2.5 pr-2 font-sans font-medium text-neutral-800 dark:text-zinc-200">
+                                <span className="text-neutral-400 mr-1.5">{idx + 1}.</span>
+                                {item.description}
+                              </td>
+                              <td className="py-2.5 px-2 text-right text-neutral-500 dark:text-zinc-400">
+                                {item.hsnCode || "HSN 7216"}
+                              </td>
+                              <td className="py-2.5 px-2 text-right text-neutral-700 dark:text-zinc-300">
+                                {item.quantity}
+                              </td>
+                              <td className="py-2.5 px-2 text-right text-neutral-700 dark:text-zinc-300">
+                                {formatCurrency(item.unitPrice, safeCurrency)}
+                              </td>
+                              <td className="py-2.5 pl-2 text-right font-semibold text-neutral-900 dark:text-zinc-100">
+                                {formatCurrency(item.lineAmount, safeCurrency)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </VoucherAnchor>
+                  </div>
                 </div>
+
+                {/* Totals & Security Verification Seal */}
+                <div>
+                  <div className="border-t border-neutral-200 dark:border-zinc-800 pt-3 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    {/* Cryptographic Seal */}
+                    <div className="flex items-center gap-2.5 bg-neutral-50 dark:bg-zinc-800/70 p-2.5 rounded-lg border border-neutral-200/80 dark:border-zinc-700 text-left w-full sm:w-auto">
+                      <QrCode size={30} className="text-neutral-700 dark:text-zinc-300 shrink-0" />
+                      <div>
+                        <div className="flex items-center gap-1 text-micro font-semibold text-success-700 dark:text-success-400">
+                          <ShieldCheck size={12} />
+                          <span>Cryptographically Signed Record</span>
+                        </div>
+                        <p className="text-micro text-neutral-400 dark:text-zinc-500 font-mono">
+                          Hash: SHA256:{invoiceId.slice(0, 16)}...
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Summary Totals */}
+                    <div className="w-full sm:w-60 space-y-1 text-caption">
+                      {/* Subtotal Anchor */}
+                      <VoucherAnchor
+                        fieldKey="subtotal"
+                        box={boxMap.get("subtotal")}
+                        isEnabled={isOverlayEnabled}
+                        filterBand={filterBand}
+                        activeFieldId={activeFieldId}
+                        hoveredFieldId={hoveredFieldId}
+                        onSelectField={onSelectField}
+                        onHoverField={onHoverField}
+                        className="p-1 -m-1 block"
+                      >
+                        <div className="flex justify-between text-neutral-500 dark:text-zinc-400">
+                          <span>Taxable Subtotal:</span>
+                          <span className="font-mono">{formatCurrency(subtotal, safeCurrency)}</span>
+                        </div>
+                      </VoucherAnchor>
+
+                      {/* Tax Amount Anchor */}
+                      <VoucherAnchor
+                        fieldKey="taxAmount"
+                        box={boxMap.get("taxAmount")}
+                        isEnabled={isOverlayEnabled}
+                        filterBand={filterBand}
+                        activeFieldId={activeFieldId}
+                        hoveredFieldId={hoveredFieldId}
+                        onSelectField={onSelectField}
+                        onHoverField={onHoverField}
+                        className="p-1 -m-1 block"
+                      >
+                        <div className="flex justify-between text-neutral-500 dark:text-zinc-400">
+                          <span>GST (18% IGST):</span>
+                          <span className="font-mono">{formatCurrency(taxAmount, safeCurrency)}</span>
+                        </div>
+                      </VoucherAnchor>
+
+                      {/* Total Amount Anchor */}
+                      <VoucherAnchor
+                        fieldKey="totalAmount"
+                        box={boxMap.get("totalAmount")}
+                        isEnabled={isOverlayEnabled}
+                        filterBand={filterBand}
+                        activeFieldId={activeFieldId}
+                        hoveredFieldId={hoveredFieldId}
+                        onSelectField={onSelectField}
+                        onHoverField={onHoverField}
+                        className="p-1 -m-1 block"
+                      >
+                        <div className="flex justify-between text-body font-bold text-neutral-900 dark:text-zinc-100 border-t border-neutral-200 dark:border-zinc-800 pt-1">
+                          <span>Invoice Total:</span>
+                          <span className="font-mono text-indigo-600 dark:text-indigo-400">
+                            {formatCurrency(totalAmountNum, safeCurrency)}
+                          </span>
+                        </div>
+                      </VoucherAnchor>
+                    </div>
+                  </div>
 
                 {/* Subfooter Prompt */}
                 {canUploadDocument && (
@@ -613,14 +782,15 @@ export function DocumentSourceCard({
 
         {/* Quick Anchors Bar (Active in preview and voucher modes) */}
         {(viewMode === "voucher" || viewMode === "preview") && (
-          <div className="px-4 py-2 border-t border-neutral-200 dark:border-zinc-800 bg-neutral-50/90 dark:bg-zinc-900/90 flex items-center justify-between gap-2 overflow-x-auto text-micro shrink-0">
+          <div className="px-4 py-2 border-t border-neutral-200 dark:border-zinc-800 bg-neutral-50/90 dark:bg-zinc-900/90 flex items-center gap-3 text-micro shrink-0 min-w-0">
             <div className="flex items-center gap-1.5 shrink-0 text-neutral-500 dark:text-zinc-400 font-mono">
               <Sparkles size={11} className="text-indigo-500" />
-              <span className="font-semibold">Quick Anchors:</span>
+              <span className="font-semibold whitespace-nowrap">Quick Anchors:</span>
             </div>
-            <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
+            <div className="flex items-center gap-1.5 overflow-x-auto py-1 pr-2 scrollbar-thin scrollbar-thumb-neutral-300 dark:scrollbar-thumb-zinc-700 min-w-0 flex-1">
               {groundTruthBoxes.map((b) => {
                 const isSelected = activeFieldId === b.fieldKey || hoveredFieldId === b.fieldKey;
+                const isMatchFilter = filterBand === "ALL" || b.confidenceBand === filterBand;
                 return (
                   <button
                     key={b.id}
@@ -628,7 +798,9 @@ export function DocumentSourceCard({
                     onMouseEnter={() => onHoverField(b.fieldKey)}
                     onMouseLeave={() => onHoverField(null)}
                     onClick={() => onSelectField(b.fieldKey)}
-                    className={`px-2 py-0.5 rounded text-micro font-mono border transition-all inline-flex items-center gap-1 shrink-0 ${
+                    className={`px-2 py-0.5 rounded text-micro font-mono border transition-all inline-flex items-center gap-1 shrink-0 whitespace-nowrap ${
+                      !isMatchFilter ? "opacity-40 hover:opacity-100" : ""
+                    } ${
                       isSelected
                         ? "bg-indigo-600 text-white border-indigo-600 shadow-xs font-semibold"
                         : "bg-white dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border-neutral-200 dark:border-zinc-700 hover:border-indigo-400 dark:hover:border-indigo-500"
@@ -636,7 +808,7 @@ export function DocumentSourceCard({
                     title={`Click to focus ${b.label} (${b.confidence}% confidence)`}
                   >
                     <span
-                      className={`w-1.5 h-1.5 rounded-full ${
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                         b.confidenceBand === "HIGH"
                           ? "bg-emerald-500"
                           : b.confidenceBand === "MEDIUM"
