@@ -107,7 +107,11 @@ export function AIExtractedDetailsCard({
   const flaggedValidationCount = validations.filter((v) => v.status !== "PASSED").length;
 
   return (
-    <Card level="surface" className="flex flex-col h-full overflow-hidden">
+    <Card
+      id="invoice-extracted-details-card"
+      level="surface"
+      className="flex flex-col h-full overflow-hidden"
+    >
       <CardHeader
         title="Extracted Invoice Details"
         description="Key financial fields & confidence scoring"

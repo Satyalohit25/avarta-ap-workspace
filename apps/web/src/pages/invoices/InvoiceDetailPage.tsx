@@ -946,13 +946,38 @@ export default function InvoiceDetailPage() {
       setLinkModalState({ isOpen: true, type: "vendor" });
     } else if (type === "po") {
       setLinkModalState({ isOpen: true, type: "purchaseOrder" });
+    } else if (type === "confidence") {
+      // Switch view mode to "split" where Extracted Invoice Details & Document Source live side-by-side
+      setViewMode("split");
+      setTimeout(() => {
+        const extractedCard = document.getElementById(
+          "invoice-extracted-details-card",
+        );
+        if (extractedCard) {
+          extractedCard.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        // Focus the primary extracted field
+        handleSelectField("invoiceNumber");
+      }, 50);
     } else if (type === "variance") {
       const matchingTable = document.getElementById(
         "invoice-line-item-matching-section",
       );
-      matchingTable?.scrollIntoView({ behavior: "smooth" });
+      if (matchingTable) {
+        matchingTable.scrollIntoView({ behavior: "smooth" });
+      } else {
+        const hub = document.getElementById("executive-decision-hub");
+        hub?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
     } else if (type === "duplicate") {
       setIsAuditDrawerOpen(true);
+    } else if (type === "generic") {
+      const hub = document.getElementById("executive-decision-hub");
+      if (hub) {
+        hub.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else {
+        navigate("/exceptions");
+      }
     } else {
       navigate("/exceptions");
     }

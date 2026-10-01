@@ -104,7 +104,7 @@ export function ExecutiveDecisionHub({
   }
 
   return (
-    <div className="space-y-3">
+    <div id="executive-decision-hub" className="space-y-3">
       {/* ── 1. The Executive Decision Hub: Verdict & 1-Click Remedies ── */}
       {hasException && isPostCapture ? (
         <div className="rounded-xl border border-amber-300 dark:border-amber-800/80 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent dark:from-amber-950/40 dark:via-amber-950/20 p-4 sm:p-5 shadow-xs transition-all">
