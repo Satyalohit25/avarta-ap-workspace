@@ -474,13 +474,21 @@ export default function SuppliersPage() {
                           GSTIN / VAT Number
                         </span>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="font-mono text-caption font-semibold text-neutral-900 dark:text-zinc-100">
-                            {selectedSupplier.gstNumber || "27AABCU9603R1ZM"}
-                          </span>
-                          <CheckCircle2
-                            size={12}
-                            className="text-emerald-500 shrink-0"
-                          />
+                          {selectedSupplier.gstNumber ? (
+                            <>
+                              <span className="font-mono text-caption font-semibold text-neutral-900 dark:text-zinc-100">
+                                {selectedSupplier.gstNumber}
+                              </span>
+                              <CheckCircle2
+                                size={12}
+                                className="text-emerald-500 shrink-0"
+                              />
+                            </>
+                          ) : (
+                            <span className="text-caption text-neutral-400 dark:text-zinc-500 italic">
+                              Unregistered / Not Provided
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div>

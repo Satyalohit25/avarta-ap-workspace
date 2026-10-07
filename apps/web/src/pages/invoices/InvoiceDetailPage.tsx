@@ -1062,23 +1062,36 @@ export default function InvoiceDetailPage() {
               <StatusBadge status={context.status} />
             </div>
 
-            {/* Invoice Identification & Remittance Chips */}
-            <div className="flex flex-wrap items-center gap-2 text-micro font-mono">
-              <span className="px-2 py-0.5 rounded bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-300 font-medium">
-                Supplier Bill Ref: {invoice.invoiceNumber}
-              </span>
-              {invoice.buyerInvoiceId && (
-                <span className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 font-medium">
-                  Buyer Voucher: {invoice.buyerInvoiceId} {invoice.fiscalYear ? `(${invoice.fiscalYear})` : ""}
-                </span>
-              )}
-              {invoice.payments && invoice.payments.length > 0 && invoice.payments[0].utrNumber && (
-                <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 font-medium flex items-center gap-1">
-                  <span>UTR:</span>
-                  <span className="font-semibold">{invoice.payments[0].utrNumber}</span>
-                </span>
-              )}
-            </div>
+            {/* Invoice Remittance & Statutory Clearing Chips (Displayed only when differentiated references exist) */}
+            {(invoice.buyerInvoiceId ||
+              (invoice.payments &&
+                invoice.payments.length > 0 &&
+                invoice.payments[0].utrNumber) ||
+              invoice.erpClearingNumber) && (
+              <div className="flex flex-wrap items-center gap-2 text-micro font-mono">
+                {invoice.buyerInvoiceId && (
+                  <span className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 font-medium">
+                    Buyer Voucher: {invoice.buyerInvoiceId}{" "}
+                    {invoice.fiscalYear ? `(${invoice.fiscalYear})` : ""}
+                  </span>
+                )}
+                {invoice.erpClearingNumber && (
+                  <span className="px-2 py-0.5 rounded bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-700 font-medium">
+                    ERP Clearing: {invoice.erpClearingNumber}
+                  </span>
+                )}
+                {invoice.payments &&
+                  invoice.payments.length > 0 &&
+                  invoice.payments[0].utrNumber && (
+                    <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 font-medium flex items-center gap-1">
+                      <span>UTR:</span>
+                      <span className="font-semibold">
+                        {invoice.payments[0].utrNumber}
+                      </span>
+                    </span>
+                  )}
+              </div>
+            )}
           </div>
 
           {/* Header Action Suite: Vendor Portal, Audit Drawer, and Workflow CTA */}

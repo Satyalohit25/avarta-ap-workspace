@@ -255,7 +255,8 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                               cx={pt.x}
                               cy={pt.y}
                               r="8"
-                              className="fill-indigo-500/30 animate-ping"
+                              className="fill-indigo-500/20 stroke-indigo-400/50"
+                              strokeWidth="1"
                             />
                           )}
                           <circle

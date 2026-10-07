@@ -90,7 +90,7 @@ export default function VendorInvoiceTrackPage() {
         </div>
 
         <span className="text-micro font-mono bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-semibold px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-900 flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           <span>Live Verification</span>
         </span>
       </header>
@@ -121,17 +121,13 @@ export default function VendorInvoiceTrackPage() {
                 <h1 className="text-h1 font-bold font-mono text-neutral-900 dark:text-zinc-100 mt-0.5">
                   {data.invoiceNumber}
                 </h1>
-                {/* Dual Invoice Identification per Tata Chemicals standard */}
-                <div className="flex flex-wrap items-center gap-2 mt-1.5 font-mono text-micro">
-                  <span className="px-2 py-0.5 rounded bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-300 font-medium">
-                    Supplier Ref: {data.invoiceNumber}
-                  </span>
-                  {data.buyerInvoiceId && (
+                {data.buyerInvoiceId && (
+                  <div className="flex flex-wrap items-center gap-2 mt-1.5 font-mono text-micro">
                     <span className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 font-medium">
                       Buyer ERP Voucher: {data.buyerInvoiceId} ({data.fiscalYear || "FY2025"})
                     </span>
-                  )}
-                </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-1.5 text-caption text-neutral-600 dark:text-zinc-400 mt-1.5">
                   <Building2 size={13} className="text-neutral-400 shrink-0" />
                   <span className="font-medium">{data.supplierName}</span>
@@ -178,7 +174,7 @@ export default function VendorInvoiceTrackPage() {
                         {isCompleted ? (
                           <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-400" />
                         ) : isCurrent ? (
-                          <span className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse" />
+                          <span className="h-2 w-2 rounded-full bg-indigo-600 ring-2 ring-indigo-200 dark:ring-indigo-900" />
                         ) : (
                           <span className="h-2 w-2 rounded-full bg-neutral-300 dark:bg-zinc-700" />
                         )}

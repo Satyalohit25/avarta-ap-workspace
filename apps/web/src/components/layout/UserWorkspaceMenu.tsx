@@ -234,7 +234,7 @@ export function UserWorkspaceMenu({
             <div className="p-3.5 bg-indigo-50/20 dark:bg-indigo-950/15">
               <div className="flex items-center justify-between mb-2.5 px-0.5">
                 <div className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-600 animate-pulse" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
                   <span className="text-[10.5px] font-mono font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
                     Demo Persona Switcher
                   </span>

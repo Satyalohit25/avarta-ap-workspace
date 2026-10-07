@@ -92,7 +92,7 @@ export function getSupplierEnrichment(supplier: SupplierListItem): EnrichedSuppl
 
   // Derive PAN from GSTIN if valid (chars 2-12)
   const gst = supplier.gstNumber?.trim() || "";
-  const derivedPan = gst.length >= 12 ? gst.substring(2, 12).toUpperCase() : "AAACU9603R";
+  const derivedPan = gst.length >= 12 ? gst.substring(2, 12).toUpperCase() : (supplier.panNumber || "Not Provided");
 
   const cleanDomain = (supplier.displayName || "vendor")
     .toLowerCase()

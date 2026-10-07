@@ -240,7 +240,7 @@ export function TriSplitThreeWayMatchWorkbench({
         </div>
 
         <div className="flex items-center gap-2 text-rose-800 dark:text-rose-300">
-          <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+          <span className="w-2 h-2 rounded-full bg-rose-500" />
           <span>
             <strong>Transit Shortfall:</strong> {quantityShortfall} unit ({formatCurrency(shortfallAmount, currency)})
           </span>

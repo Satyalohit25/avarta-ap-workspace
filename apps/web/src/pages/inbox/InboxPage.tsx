@@ -213,7 +213,7 @@ export default function InboxPage() {
                 Inbound Ingestion Mailbox
               </span>
               <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-900/60">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 Active
               </span>
             </div>

@@ -499,7 +499,7 @@ export default function ApprovalsPage() {
                 <div>
                   <span className="text-neutral-400 dark:text-zinc-500 block text-micro">Linked PO Reference</span>
                   <span className="font-semibold text-neutral-800 dark:text-zinc-200 block mt-0.5">
-                    {invoiceDetails?.purchaseOrderId || "PO-2026-0881"}
+                    {invoiceDetails?.purchaseOrderId || "Non-PO Invoice"}
                   </span>
                 </div>
 
