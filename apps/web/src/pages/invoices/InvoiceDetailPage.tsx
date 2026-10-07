@@ -31,6 +31,7 @@ import {
   syncInvoiceToErp,
   uploadInvoiceDocument,
   resolveException,
+  updateInvoice,
 } from "../../api/invoices";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SkeletonRows } from "../../components/Skeleton";
@@ -641,42 +642,66 @@ export default function InvoiceDetailPage() {
 
   async function handleLinkEntity(id: string, name: string) {
     if (!invoice) return;
-    if (linkModalState.type === "vendor") {
-      setInvoice((prev) => (prev ? { ...prev, supplier: { id, name } } : prev));
-      setDynamicAuditEvents((prev) => [
-        {
-          id: `audit-link-vendor-${Date.now()}`,
-          timestamp: new Date().toISOString(),
-          actor: "Finance Executive",
-          action: `Supplier Linked: ${name}`,
-          details: `Assigned Master Vendor ID: ${id}`,
-          type: "info",
-        },
-        ...prev,
-      ]);
-    } else {
-      setInvoice((prev) =>
-        prev
-          ? { ...prev, purchaseOrderId: id === "NON_PO" ? null : name }
-          : prev,
+    setActionPending(true);
+    try {
+      if (linkModalState.type === "vendor") {
+        await updateInvoice(invoice.id, { supplierId: id });
+        toast.success(
+          "Supplier Linked & Persisted",
+          `Master vendor "${name}" saved to invoice.`,
+        );
+        setInvoice((prev) => (prev ? { ...prev, supplier: { id, name } } : prev));
+        setDynamicAuditEvents((prev) => [
+          {
+            id: `audit-link-vendor-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            actor: "Finance Executive",
+            action: `Supplier Linked: ${name}`,
+            details: `Assigned Master Vendor ID: ${id}`,
+            type: "info",
+          },
+          ...prev,
+        ]);
+      } else {
+        const poVal = id === "NON_PO" ? "" : id;
+        await updateInvoice(invoice.id, { purchaseOrderId: poVal });
+        toast.success(
+          id === "NON_PO" ? "Designated as Non-PO" : "Purchase Order Linked",
+          id === "NON_PO"
+            ? "Classified as Direct GL / Non-PO operational expense."
+            : `Assigned PO reference "${name}".`,
+        );
+        setInvoice((prev) =>
+          prev
+            ? { ...prev, purchaseOrderId: id === "NON_PO" ? null : name }
+            : prev,
+        );
+        setDynamicAuditEvents((prev) => [
+          {
+            id: `audit-link-po-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            actor: "Finance Executive",
+            action:
+              id === "NON_PO"
+                ? "Classified as Direct GL / Non-PO"
+                : `Purchase Order Linked: ${name}`,
+            details:
+              id === "NON_PO"
+                ? "Designated as non-PO operational expense"
+                : `Assigned PO Reference: ${name}`,
+            type: "info",
+          },
+          ...prev,
+        ]);
+      }
+      await load();
+    } catch (err: unknown) {
+      toast.error(
+        "Linking Failed",
+        err instanceof Error ? err.message : "Failed to persist entity link to database.",
       );
-      setDynamicAuditEvents((prev) => [
-        {
-          id: `audit-link-po-${Date.now()}`,
-          timestamp: new Date().toISOString(),
-          actor: "Finance Executive",
-          action:
-            id === "NON_PO"
-              ? "Classified as Direct GL / Non-PO"
-              : `Purchase Order Linked: ${name}`,
-          details:
-            id === "NON_PO"
-              ? "Designated as non-PO operational expense"
-              : `Assigned PO Reference: ${name}`,
-          type: "info",
-        },
-        ...prev,
-      ]);
+    } finally {
+      setActionPending(false);
     }
   }
 
@@ -1426,6 +1451,7 @@ export default function InvoiceDetailPage() {
             purchaseOrderId={invoice.purchaseOrderId}
             currency={invoice.currency}
             exceptions={invoice.exceptions}
+            lines={invoice.lines}
             onAcceptOverride={handleAcceptVariance}
             onFlagException={handleFlagException}
           />
@@ -1443,6 +1469,7 @@ export default function InvoiceDetailPage() {
             purchaseOrderId={invoice.purchaseOrderId}
             currency={invoice.currency}
             exceptions={invoice.exceptions}
+            lines={invoice.lines}
             onAcceptOverride={handleAcceptVariance}
             onFlagException={handleFlagException}
           />

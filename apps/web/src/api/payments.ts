@@ -19,9 +19,14 @@ export function listPayments() {
   return apiRequest<{ data: PaymentRow[] }>("/payments");
 }
 
-export function executePayment(paymentId: string, details?: { utrNumber?: string; clearingDocumentNumber?: string }) {
+export function executePayment(
+  paymentId: string,
+  details?: { utrNumber?: string; clearingDocumentNumber?: string },
+  idempotencyKey?: string
+) {
   return apiRequest<{ data: PaymentRow }>(`/payments/${paymentId}/execute`, {
     method: "POST",
     body: details,
+    headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
   });
 }

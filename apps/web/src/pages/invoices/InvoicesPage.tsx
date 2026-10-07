@@ -147,7 +147,7 @@ export default function InvoicesPage() {
       DUE_SOON: invoices.filter((i) => i.dueDate && new Date(i.dueDate) <= in48h).length,
       MISSING_PO: invoices.filter((i) => !i.purchaseOrderId).length,
       HIGH_VALUE: invoices.filter((i) => (Number(i.totalAmount) || 0) >= 500000).length,
-      HIGH_CONFIDENCE: invoices.filter((i) => (i.aiConfidence ?? 0) >= 0.95).length,
+      HIGH_CONFIDENCE: invoices.filter((i) => (i.aiConfidence ?? 0) >= 95).length,
     };
   }, [invoices]);
 
@@ -172,7 +172,7 @@ export default function InvoicesPage() {
     } else if (quickFilter === "HIGH_VALUE") {
       list = list.filter((i) => (Number(i.totalAmount) || 0) >= 500000);
     } else if (quickFilter === "HIGH_CONFIDENCE") {
-      list = list.filter((i) => (i.aiConfidence ?? 0) >= 0.95);
+      list = list.filter((i) => (i.aiConfidence ?? 0) >= 95);
     }
 
     return [...list].sort((a, b) => {

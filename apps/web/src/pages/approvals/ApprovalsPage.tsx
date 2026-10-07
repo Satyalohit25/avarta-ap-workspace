@@ -56,9 +56,16 @@ interface InvoiceApprovalDetails extends Omit<InvoiceListItem, "supplier"> {
   lines?: InvoiceLineItem[];
 }
 
-function computeSlaBadge(seedIndex: number): { label: string; urgency: UrgencySeverity } {
-  // Compute deterministic demo SLA elapsed hours based on index
-  const elapsedHours = [18, 41, 56, 22, 38, 52][seedIndex % 6] ?? 24;
+function computeSlaBadge(row: ApprovalRow): { label: string; urgency: UrgencySeverity } {
+  const reqTime = row.requestedAt
+    ? new Date(row.requestedAt).getTime()
+    : row.dueDate
+    ? new Date(row.dueDate).getTime() - 48 * 3600 * 1000
+    : Date.now() - 20 * 3600 * 1000;
+  const elapsedHours = Math.max(
+    1,
+    Math.round((Date.now() - reqTime) / (1000 * 60 * 60))
+  );
   const slaThresholdHours = 48;
 
   if (elapsedHours > slaThresholdHours) {
@@ -175,12 +182,12 @@ export default function ApprovalsPage() {
   const [filterTab, setFilterTab] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const atRiskCount = rows.filter((_, idx) => computeSlaBadge(idx).urgency !== "routine").length;
-  const routineCount = rows.filter((_, idx) => computeSlaBadge(idx).urgency === "routine").length;
+  const atRiskCount = rows.filter((r) => computeSlaBadge(r).urgency !== "routine").length;
+  const routineCount = rows.filter((r) => computeSlaBadge(r).urgency === "routine").length;
 
-  const displayedRows = rows.filter((r, idx) => {
-    if (filterTab === "AT_RISK" && computeSlaBadge(idx).urgency === "routine") return false;
-    if (filterTab === "ROUTINE" && computeSlaBadge(idx).urgency !== "routine") return false;
+  const displayedRows = rows.filter((r) => {
+    if (filterTab === "AT_RISK" && computeSlaBadge(r).urgency === "routine") return false;
+    if (filterTab === "ROUTINE" && computeSlaBadge(r).urgency !== "routine") return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       return (
@@ -357,7 +364,7 @@ export default function ApprovalsPage() {
             </TableHeader>
             <TableBody>
               {displayedRows.map((r, idx) => {
-                const sla = computeSlaBadge(idx);
+                const sla = computeSlaBadge(r);
 
                   const isRowFocused = focusedRowIndex === idx;
 

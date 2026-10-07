@@ -157,23 +157,30 @@ export default function SettingsPage() {
     }
   }
 
-  const [formData, setFormData] = useState({
+  const SETTINGS_STORAGE_KEY = "avarta_workspace_settings";
+  const RULES_STORAGE_KEY = "avarta_approval_rules";
+
+  const DEFAULT_SETTINGS = {
     orgName: "Acme Manufacturing Pvt Ltd",
     gstin: "27AAACA1234F1Z5",
     currency: "INR",
     idempotencyExpiry: "24 Hours",
     matchTolerance: "0.5% (Up to ₹100)",
     autoArchiveDays: "90 Days",
-  });
+  };
 
-  const [newRule, setNewRule] = useState({
-    name: "",
-    threshold: "≤ ₹50,000",
-    signers: "Finance Manager",
-    description: "",
-  });
+  interface ApprovalRuleItem {
+    id: string;
+    tier: string;
+    name: string;
+    threshold: string;
+    description: string;
+    signers: string[];
+    active: boolean;
+    badgeColor: string;
+  }
 
-  const [approvalRules, setApprovalRules] = useState([
+  const DEFAULT_APPROVAL_RULES: ApprovalRuleItem[] = [
     {
       id: "tier-1",
       tier: "Tier 1: Standard Invoices",
@@ -222,18 +229,48 @@ export default function SettingsPage() {
       badgeColor:
         "bg-violet-100 dark:bg-violet-900/40 text-violet-800 dark:text-violet-300",
     },
-  ]);
+  ];
+
+  const [formData, setFormData] = useState(() => {
+    try {
+      const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+      return stored ? { ...DEFAULT_SETTINGS, ...JSON.parse(stored) } : DEFAULT_SETTINGS;
+    } catch {
+      return DEFAULT_SETTINGS;
+    }
+  });
+
+  const [newRule, setNewRule] = useState({
+    name: "",
+    threshold: "≤ ₹50,000",
+    signers: "Finance Manager",
+    description: "",
+  });
+
+  const [approvalRules, setApprovalRules] = useState<ApprovalRuleItem[]>(() => {
+    try {
+      const stored = localStorage.getItem(RULES_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : DEFAULT_APPROVAL_RULES;
+    } catch {
+      return DEFAULT_APPROVAL_RULES;
+    }
+  });
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setSaved(true);
-    toast.success("Settings Saved", "Financial controls and parameters updated.");
-    setTimeout(() => setSaved(false), 3000);
+    try {
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(formData));
+      setSaved(true);
+      toast.success("Settings Saved", "Financial controls and parameters updated.");
+      setTimeout(() => setSaved(false), 3000);
+    } catch {
+      toast.error("Save Failed", "Could not persist workspace settings.");
+    }
   }
 
   function handleToggleRule(id: string) {
-    setApprovalRules((prev) =>
-      prev.map((r) => {
+    setApprovalRules((prev) => {
+      const updated = prev.map((r) => {
         if (r.id === id) {
           const nextActive = !r.active;
           toast.info(
@@ -243,30 +280,40 @@ export default function SettingsPage() {
           return { ...r, active: nextActive };
         }
         return r;
-      }),
-    );
+      });
+      try {
+        localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
   }
 
   function handleAddRule(e: FormEvent) {
     e.preventDefault();
     if (!newRule.name) return;
     const ruleName = newRule.name;
-    setApprovalRules((prev) => [
-      ...prev,
-      {
-        id: `custom-${Date.now()}`,
-        tier: `Custom: ${newRule.name}`,
-        name: newRule.name,
-        threshold: newRule.threshold,
-        description:
-          newRule.description ||
-          "Custom threshold policy configured in workspace settings.",
-        signers: newRule.signers.split(",").map((s) => s.trim()),
-        active: true,
-        badgeColor:
-          "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300",
-      },
-    ]);
+    const created = {
+      id: `custom-${Date.now()}`,
+      tier: `Custom: ${newRule.name}`,
+      name: newRule.name,
+      threshold: newRule.threshold,
+      description:
+        newRule.description ||
+        "Custom threshold policy configured in workspace settings.",
+      signers: newRule.signers.split(",").map((s) => s.trim()),
+      active: true,
+      badgeColor:
+        "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300",
+    };
+
+    setApprovalRules((prev) => {
+      const updated = [...prev, created];
+      try {
+        localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
     setShowAddRuleModal(false);
     setNewRule({
       name: "",

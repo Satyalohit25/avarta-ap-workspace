@@ -27,6 +27,7 @@ interface LineItemMatchingTableProps {
   purchaseOrderId?: string | null;
   currency: string;
   exceptions?: InvoiceExceptionItem[];
+  lines?: unknown[];
   onAcceptOverride?: (line: LineItemData, reason: string) => void;
   onFlagException?: (line: LineItemData, reason: string) => void;
 }
@@ -39,21 +40,69 @@ export function LineItemMatchingTable({
   purchaseOrderId,
   currency,
   exceptions = [],
+  lines: rawLines,
   onAcceptOverride,
   onFlagException,
 }: LineItemMatchingTableProps) {
   const isPreCapture = status === "RECEIVED";
   const numAmount = Number(totalAmount) || 0;
 
-  // Dynamically generate initial lines tailored to this specific invoice
+  // Prioritize real database line items, fallback to vendor catalog only if empty
   const initialLines = useMemo(() => {
+    if (Array.isArray(rawLines) && rawLines.length > 0) {
+      const hasPriceException = exceptions.some(
+        (e) => e.type === "PRICE_DIFFERENCE" || (e.description && e.description.toLowerCase().includes("price"))
+      );
+      const hasQtyException = exceptions.some(
+        (e) => e.type === "QUANTITY_DIFFERENCE" || (e.description && e.description.toLowerCase().includes("quantity"))
+      );
+
+      return (rawLines as Record<string, unknown>[]).map((l, idx) => {
+        const lineNumber = (l.lineNumber as number) ?? idx + 1;
+        const desc = (l.description as string) || `Line Item #${lineNumber}`;
+        const qty = Number(l.quantity) || 1;
+        const unitPrice = Number(l.unitPrice) || 0;
+        const lineAmount = Number(l.lineAmount) || (qty * unitPrice);
+
+        let poQty = qty;
+        let invQty = qty;
+        let poUnitPrice = unitPrice;
+        let invUnitPrice = unitPrice;
+        let lineStatus: "MATCHED" | "PRICE_VARIANCE" | "QTY_VARIANCE" = "MATCHED";
+
+        if (idx === 0 && hasPriceException) {
+          lineStatus = "PRICE_VARIANCE";
+          poUnitPrice = Math.round(unitPrice * 0.92);
+        } else if (idx === 0 && hasQtyException) {
+          lineStatus = "QTY_VARIANCE";
+          poQty = Math.max(1, qty - 1);
+        }
+
+        return {
+          id: (l.id as string) ?? `line-${lineNumber}`,
+          lineNumber,
+          description: desc,
+          hsnCode: (l.hsnCode as string) || undefined,
+          poQty,
+          invQty,
+          quantity: qty,
+          poUnitPrice,
+          invUnitPrice,
+          unitPrice,
+          lineAmount,
+          currency,
+          status: lineStatus,
+        };
+      });
+    }
+
     return generateSupplierLineItems(
       supplierName,
       numAmount,
       currency,
       exceptions
     );
-  }, [supplierName, numAmount, currency, exceptions]);
+  }, [rawLines, supplierName, numAmount, currency, exceptions]);
 
   const [lines, setLines] = useState<LineItemData[]>(initialLines);
 

@@ -464,37 +464,58 @@ export default function ExceptionsPage() {
               selectedException.type.includes("DIFF") ||
               selectedException.title?.toLowerCase().includes("variance") ||
               selectedException.title?.toLowerCase().includes("price") ||
-              selectedException.title?.toLowerCase().includes("quantity")) && (
-              <TriSplitThreeWayMatchWorkbench
-                item={{
-                  poLineRef: "PO-FY26-0881 Line 1",
-                  poQty: 8,
-                  poUnitPrice: 4850,
-                  poTotal: 38800,
-                  poUnit: "Servers",
-                  grnRef: "GRN-FY26-0083",
-                  grnAcceptedQty: 7,
-                  grnDamagedQty: 1,
-                  grnReturnDocRef: "RET-881",
-                  grnNetQty: 7,
-                  invoiceRef: selectedException.invoiceNumber || "INV-2026-1018",
-                  invoiceBilledQty: 8,
-                  invoiceUnitPrice: 5200,
-                  invoiceTotal: 41600,
-                  description: selectedException.title || "Enterprise Hardware Compute Nodes (High-Density)",
-                }}
-                currency="INR"
-                onGenerateDebitNote={(amount) => {
-                  setResolutionNote(`Generated statutory Debit Note for ₹${amount.toLocaleString("en-IN")} covering unauthorized rate variance (+7.2%). Signed off per company procurement tolerance.`);
-                }}
-                onWithholdShortfall={(qty, amt) => {
-                  setResolutionNote(`Withheld transit shortfall of ${qty} unit (₹${amt.toLocaleString("en-IN")}). Payment cleared for 7 net accepted units only.`);
-                }}
-                onRequestRevisedInvoice={(summary) => {
-                  setResolutionNote(`Formal automated supplier query dispatched requesting revised tax invoice: ${summary}`);
-                }}
-              />
-            )}
+              selectedException.title?.toLowerCase().includes("quantity")) && (() => {
+              const vendorLower = (selectedException.vendor || "").toLowerCase();
+              const isPrice = selectedException.type === "PRICE_DIFFERENCE" || selectedException.title.toLowerCase().includes("price");
+              const isTech = vendorLower.includes("dell") || vendorLower.includes("tech") || vendorLower.includes("soft") || vendorLower.includes("compute");
+              const isSteel = vendorLower.includes("steel") || vendorLower.includes("metal") || vendorLower.includes("tata");
+              const isLogistics = vendorLower.includes("logistics") || vendorLower.includes("freight") || vendorLower.includes("dart");
+
+              const desc = selectedException.title || (
+                isSteel ? "Structural Steel Beams & Alloy Coils" :
+                isTech ? "Enterprise Hardware & Compute Workstations" :
+                isLogistics ? "Commercial Freight & Transit Service" :
+                "Authorized Operational Goods / Services"
+              );
+              const unit = isSteel ? "MT" : isLogistics ? "Shipments" : isTech ? "Units" : "Nos";
+              const poUnitPrice = isPrice ? 4850 : 5000;
+              const invUnitPrice = isPrice ? 5200 : 5000;
+              const poQty = selectedException.type === "QUANTITY_DIFFERENCE" ? 10 : 8;
+              const billedQty = 8;
+              const acceptedQty = selectedException.type === "QUANTITY_DIFFERENCE" ? 7 : 8;
+
+              return (
+                <TriSplitThreeWayMatchWorkbench
+                  item={{
+                    poLineRef: `PO-FY26-0881 (${selectedException.vendor})`,
+                    poQty,
+                    poUnitPrice,
+                    poTotal: poQty * poUnitPrice,
+                    poUnit: unit,
+                    grnRef: "GRN-FY26-0083",
+                    grnAcceptedQty: acceptedQty,
+                    grnDamagedQty: selectedException.type === "QUANTITY_DIFFERENCE" ? 1 : 0,
+                    grnReturnDocRef: "RET-881",
+                    grnNetQty: acceptedQty,
+                    invoiceRef: selectedException.invoiceNumber || "INV-2026-1018",
+                    invoiceBilledQty: billedQty,
+                    invoiceUnitPrice: invUnitPrice,
+                    invoiceTotal: billedQty * invUnitPrice,
+                    description: desc,
+                  }}
+                  currency="INR"
+                  onGenerateDebitNote={(amount) => {
+                    setResolutionNote(`Generated statutory Debit Note for ₹${amount.toLocaleString("en-IN")} covering variance against ${selectedException.vendor}. Signed off per company procurement tolerance.`);
+                  }}
+                  onWithholdShortfall={(qty, amt) => {
+                    setResolutionNote(`Withheld transit shortfall of ${qty} ${unit} (₹${amt.toLocaleString("en-IN")}) from ${selectedException.vendor}. Payment cleared for net accepted units only.`);
+                  }}
+                  onRequestRevisedInvoice={(summary) => {
+                    setResolutionNote(`Formal automated supplier query dispatched to ${selectedException.vendor} requesting revised tax invoice: ${summary}`);
+                  }}
+                />
+              );
+            })()}
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">

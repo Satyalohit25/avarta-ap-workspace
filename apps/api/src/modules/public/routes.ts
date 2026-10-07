@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../../config/database";
+import { runWithEngineBypass } from "../../config/tenant-guard";
 
 export const publicRoutes = Router();
 
@@ -13,30 +14,32 @@ publicRoutes.get("/invoices/track/:token", async (req: Request, res: Response): 
       return;
     }
 
-    // Lookup invoice by tracking token or fallback ID prefix
-    const invoice = await prisma.invoice.findFirst({
-      where: {
-        OR: [
-          { id: token },
-          { invoiceNumber: token },
-        ],
-      },
-      include: {
-        supplier: {
-          select: { displayName: true, legalName: true },
+    // Lookup invoice by tracking token or fallback ID prefix within engine bypass context
+    const invoice = await runWithEngineBypass(() =>
+      prisma.invoice.findFirst({
+        where: {
+          OR: [
+            { id: token },
+            { invoiceNumber: token },
+          ],
         },
-        payments: {
-          select: {
-            status: true,
-            scheduledDate: true,
-            processedAt: true,
-            utrNumber: true,
-            clearingDate: true,
-            clearingDocumentNumber: true,
+        include: {
+          supplier: {
+            select: { displayName: true, legalName: true },
+          },
+          payments: {
+            select: {
+              status: true,
+              scheduledDate: true,
+              processedAt: true,
+              utrNumber: true,
+              clearingDate: true,
+              clearingDocumentNumber: true,
+            },
           },
         },
-      },
-    });
+      })
+    );
 
     if (!invoice) {
       // Mocked demo fallback if token is a demo token

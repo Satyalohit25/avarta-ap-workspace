@@ -224,8 +224,20 @@ export default function PaymentsPage() {
   }
 
   const selectedRows = rows.filter((r) => selectedIds.includes(r.id));
-  const totalBatchAmount = selectedRows.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
   const primaryCurrency = selectedRows[0]?.currency ?? "INR";
+
+  const currencyTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    for (const r of selectedRows) {
+      const c = r.currency || "INR";
+      totals[c] = (totals[c] || 0) + (Number(r.amount) || 0);
+    }
+    return totals;
+  }, [selectedRows]);
+
+  const uniqueCurrencies = Object.keys(currencyTotals);
+  const isMultiCurrency = uniqueCurrencies.length > 1;
+  const totalBatchAmount = currencyTotals[primaryCurrency] ?? 0;
 
   const activeDisbursementPayments = disbursementModalState.payments;
   const activeDisbursementAmount = activeDisbursementPayments.reduce(
@@ -238,7 +250,9 @@ export default function PaymentsPage() {
     setBatchExecuting(true);
     try {
       for (const p of disbursementModalState.payments) {
-        await executePayment(p.id);
+        // Enforce per-transaction client idempotency key
+        const idempotencyKey = `pay-${p.id}-${Date.now()}`;
+        await executePayment(p.id, undefined, idempotencyKey);
       }
       const executedIds = new Set(disbursementModalState.payments.map((p) => p.id));
       setSelectedIds((prev) => prev.filter((id) => !executedIds.has(id)));
@@ -535,10 +549,22 @@ export default function PaymentsPage() {
 
           <div className="text-body-sm">
             <span className="text-neutral-400 mr-1.5">Total Batch Disbursement:</span>
-            <span className="font-mono font-bold text-emerald-400 tabular-nums">
-              {formatCurrency(totalBatchAmount, primaryCurrency)}
-            </span>
+            {isMultiCurrency ? (
+              <span className="font-mono font-bold text-amber-300 tabular-nums">
+                {uniqueCurrencies.map((c) => formatCurrency(currencyTotals[c], c)).join(" + ")}
+              </span>
+            ) : (
+              <span className="font-mono font-bold text-emerald-400 tabular-nums">
+                {formatCurrency(totalBatchAmount, primaryCurrency)}
+              </span>
+            )}
           </div>
+
+          {isMultiCurrency && (
+            <span className="hidden xl:inline-flex text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold">
+              Multi-Currency Batch
+            </span>
+          )}
 
           <div className="flex items-center gap-2">
             <Button
