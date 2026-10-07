@@ -4,13 +4,13 @@ import {
   UploadCloud,
   X,
   Calendar,
-  Sparkles,
-  Building2,
-  Plus,
   CheckCircle2,
+  FileCheck,
   AlertTriangle,
   ArrowRight,
   Inbox,
+  Building2,
+  Plus,
 } from "lucide-react";
 import { SupplierListItem } from "../../../api/suppliers";
 import { Input } from "../../../components/ui/Input";
@@ -345,18 +345,15 @@ export function InvoiceForm({
 
   return (
     <form onSubmit={handleFormSubmit} onKeyDown={handleKeyDown} className="space-y-5" noValidate>
-      {/* AI Extraction Confidence Banner (Review Mode) */}
+      {/* Verification Notice (Review Mode) */}
       {mode === "review" && (
-        <div className="p-3 rounded-lg border border-indigo-200/70 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/30 flex items-center justify-between gap-3 text-caption">
+        <div className="p-3 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-neutral-50/80 dark:bg-zinc-900/60 flex items-center justify-between gap-3 text-caption">
           <div className="flex items-center gap-2 min-w-0">
-            <Sparkles size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <FileCheck size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
             <span className="text-neutral-700 dark:text-zinc-300">
-              Fields extracted by AI. Verify item rates, tax calculations, and confirm to advance workflow.
+              Please verify extracted invoice fields, line items, and tax rates before advancing the workflow.
             </span>
           </div>
-          <span className="inline-flex items-center gap-1 text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 shrink-0">
-            96% AI Confidence
-          </span>
         </div>
       )}
 
@@ -721,11 +718,10 @@ export function InvoiceForm({
       {/* Submit / Cancel Actions Row */}
       <div className="pt-3 border-t border-neutral-200/60 dark:border-zinc-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-body-sm text-neutral-500 dark:text-zinc-400">
-          <Sparkles size={16} className="text-indigo-500 shrink-0" />
           <span>
             {mode === "create"
-              ? "AI will execute OCR & 3-way validation upon receipt."
-              : "Submitting runs automated capture, validation & 3-way matching."}
+              ? "Automated capture and validation pipeline executes upon submission."
+              : "Submitting records verified invoice data and initiates 3-way matching."}
           </span>
         </div>
 

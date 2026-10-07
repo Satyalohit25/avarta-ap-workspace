@@ -21,7 +21,7 @@ import {
   Sun,
   Layers,
   FileDown,
-  Sparkles,
+  CheckCircle2,
   Shield,
   Filter,
 } from "lucide-react";
@@ -177,12 +177,12 @@ export function Command({ isOpen, onClose }: CommandProps) {
                 className="text-micro uppercase font-semibold tracking-wider text-neutral-400 dark:text-zinc-500 px-2 space-y-1"
               >
                 <CommandPrimitive.Item
-                  value="action-approve-tata"
+                  value="action-invoices-pending"
                   onSelect={() => {
                     navigate("/invoices?status=PENDING_APPROVAL");
                     toast({
                       title: "Navigating to Approvals",
-                      description: "Filtered invoices awaiting approval for Tata Steel Limited.",
+                      description: "Showing invoices awaiting approval.",
                       type: "info",
                     });
                     onClose();
@@ -190,9 +190,9 @@ export function Command({ isOpen, onClose }: CommandProps) {
                   className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-zinc-800 focus:bg-neutral-100 dark:focus:bg-zinc-800 focus:outline-none cursor-pointer text-body-sm transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
-                    <Sparkles size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    <CheckCircle2 size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
                     <span className="font-medium text-neutral-900 dark:text-zinc-100">
-                      Approve Pending for Tata Steel
+                      View Invoices Pending Approval
                     </span>
                   </div>
                   <span className="text-micro font-mono text-neutral-400">Jump →</span>
@@ -225,7 +225,7 @@ export function Command({ isOpen, onClose }: CommandProps) {
                   onSelect={() => {
                     toast({
                       title: "Payment Batch Exported",
-                      description: "Batch manifest CLEAROPS-BATCH-FY26-089.csv generated successfully.",
+                      description: "Batch manifest AVARTA-BATCH-FY26-089.csv generated successfully.",
                       type: "success",
                     });
                     onClose();

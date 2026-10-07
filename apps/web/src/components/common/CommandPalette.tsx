@@ -12,7 +12,6 @@ import {
   Sun,
   Layers,
   ArrowRight,
-  Sparkles,
   Command,
   CornerDownLeft,
   X,
@@ -299,7 +298,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         action: () => {
           toast({
             title: "Payment Batch Exported",
-            description: "Batch manifest CLEAROPS-BATCH-FY26-089.csv generated successfully.",
+            description: "Batch manifest AVARTA-BATCH-FY26-089.csv generated successfully.",
             type: "success",
           });
           onClose();
@@ -624,8 +623,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           </div>
 
           <div className="flex items-center gap-1.5">
-            <Sparkles size={11} className="text-indigo-500" />
-            <span>Power-User Command Bar</span>
+            <span>Command Bar</span>
           </div>
         </div>
       </div>

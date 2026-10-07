@@ -5,7 +5,6 @@ import {
   Mail,
   UploadCloud,
   Globe,
-  Sparkles,
   ArrowUpRight,
 } from "lucide-react";
 import { formatCurrency } from "../../../lib/formatters";
@@ -91,9 +90,8 @@ export function APRecentStreamCard({ items }: APRecentStreamCardProps) {
                 >
                   {item.stage}
                 </span>
-                <span className="text-[10px] font-mono text-neutral-500 dark:text-zinc-400 flex items-center gap-0.5">
-                  <Sparkles size={10} className="text-indigo-500" />
-                  <span>{item.confidence}%</span>
+                <span className="text-[10px] font-mono text-neutral-500 dark:text-zinc-400">
+                  {item.confidence}% conf
                 </span>
               </div>
             </div>

@@ -262,12 +262,7 @@ export function GroundTruthSvgOverlay({
         viewBox="0 0 1000 1000"
         preserveAspectRatio="none"
       >
-        <defs>
-          <filter id="box-glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="8" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
-        </defs>
+
 
         {visibleBoxes.map((box) => {
           const isActive = activeFieldId === box.fieldKey;
@@ -308,8 +303,6 @@ export function GroundTruthSvgOverlay({
                 stroke={isHighlighted ? "#4F46E5" : colors.border}
                 strokeWidth={isHighlighted ? 4 : 2}
                 strokeDasharray={isHighlighted ? "none" : box.confidenceBand === "LOW" ? "6,4" : "none"}
-                className={isHighlighted ? "animate-pulse" : ""}
-                filter={isHighlighted ? "url(#box-glow)" : undefined}
               />
 
               {/* Indicator Anchor Badge */}

@@ -146,7 +146,7 @@ All top-level routes are lazy-loaded in `apps/web/src/app/App.tsx` wrapped in `<
 - shared layouts: `src/components/layout/AppLayout.tsx`, `Sidebar.tsx`, `TopNav.tsx`, `DemoRoleSwitcher.tsx`
 
 ## 5. Shared / Cross-Cutting
-- auth flow: JWT saved in `localStorage` under `clearops_token`. Attached via `Authorization: Bearer` by `apps/web/src/api/client.ts`. Validated by `apps/api/src/middleware/auth.ts`, establishing `req.auth = { userId, organizationId, role }`.
+- auth flow: JWT saved in `localStorage` under `avarta_token` (fallback: `clearops_token`). Attached via `Authorization: Bearer` by `apps/web/src/api/client.ts`. Validated by `apps/api/src/middleware/auth.ts`, establishing `req.auth = { userId, organizationId, role }`.
 - centralized constants: `apps/web/src/lib/constants.ts` defines single-source `DEMO_ACCOUNTS` and `DEMO_USERS` across auth and role switcher.
 - deterministic catalogs: `apps/web/src/lib/mockCatalogs.ts` exports `VENDOR_CATALOGS` and `generateSupplierLineItems` ensuring line-item parity across Approvals drawer and LineItemMatchingTable.
 - unified badges: `apps/web/src/components/StatusBadge.tsx` exports `<StatusBadge>`, `<UrgencyBadge>`, and `getVendorFacingStatus`.

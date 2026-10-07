@@ -7,8 +7,6 @@ import {
   ShieldCheck,
   Shield,
   Check,
-  Crosshair,
-  Sparkles,
 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "../../../components/ui/Card";
 import { formatCurrency, formatDate } from "../../../lib/formatters";
@@ -60,51 +58,75 @@ export function AIExtractedDetailsCard({
   const [showTechnical, setShowTechnical] = useState(false);
   const [showValidations, setShowValidations] = useState(false);
 
-  const confidenceScore = aiConfidence != null ? Number(aiConfidence) : isPreCapture ? null : 96;
+  // Only use actual AI confidence — no fabricated defaults
+  const confidenceScore = aiConfidence != null ? Number(aiConfidence) : null;
 
-  function renderConfidenceBadge(fieldConfidence: number | null) {
-    if (fieldConfidence == null) {
+  function renderConfidenceBadge(score: number | null) {
+    if (score == null) {
       return (
         <span className="text-micro font-mono text-neutral-400 dark:text-zinc-500">
           Pending
         </span>
       );
     }
-    if (fieldConfidence >= 95) {
-      return (
-        <span
-          title={`Extracted with ${fieldConfidence}% confidence`}
-          aria-label={`${fieldConfidence}% confidence`}
-          className="inline-flex items-center justify-center p-0.5"
-        >
-          <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" />
-        </span>
-      );
-    }
-    if (fieldConfidence >= 80) {
-      return (
-        <span
-          title={`Extracted with ${fieldConfidence}% confidence`}
-          aria-label={`${fieldConfidence}% confidence`}
-          className="inline-flex items-center justify-center p-0.5"
-        >
-          <span className="w-2 h-2 rounded-full bg-amber-500 ring-2 ring-amber-500/20" />
-        </span>
-      );
-    }
+    const color =
+      score >= 95
+        ? "bg-emerald-500 ring-emerald-500/20"
+        : score >= 80
+        ? "bg-amber-500 ring-amber-500/20"
+        : "bg-rose-500 ring-rose-500/20";
     return (
       <span
-        title={`Extracted with ${fieldConfidence}% confidence`}
-        aria-label={`${fieldConfidence}% confidence`}
+        title={`Extracted with ${score}% confidence`}
+        aria-label={`${score}% confidence`}
         className="inline-flex items-center justify-center p-0.5"
       >
-        <span className="w-2 h-2 rounded-full bg-rose-500 ring-2 ring-rose-500/20" />
+        <span className={`w-2 h-2 rounded-full ${color} ring-2`} />
       </span>
     );
   }
 
   const passedValidationCount = validations.filter((v) => v.status === "PASSED").length;
   const flaggedValidationCount = validations.filter((v) => v.status !== "PASSED").length;
+
+  // Helper for interactive field rows
+  function FieldRow({
+    fieldKey,
+    label,
+    children,
+    highlighted,
+  }: {
+    fieldKey: string;
+    label: string;
+    children: React.ReactNode;
+    highlighted?: boolean;
+  }) {
+    const isActive = activeFieldId === fieldKey || hoveredFieldId === fieldKey;
+    return (
+      <div
+        id={`extracted-field-${fieldKey}`}
+        onMouseEnter={() => onHoverField?.(fieldKey)}
+        onMouseLeave={() => onHoverField?.(null)}
+        onClick={() => onSelectField?.(fieldKey)}
+        className={`flex items-center justify-between px-5 cursor-pointer transition-all duration-150 ${
+          highlighted ? "py-3" : "py-2.5"
+        } ${
+          isActive
+            ? "bg-indigo-50/80 dark:bg-indigo-950/50 border-l-4 border-indigo-600 dark:border-indigo-400 shadow-2xs"
+            : highlighted
+            ? "bg-neutral-50/40 dark:bg-zinc-900/40 hover:bg-neutral-100/70 dark:hover:bg-zinc-800/50"
+            : "hover:bg-neutral-50/60 dark:hover:bg-zinc-800/40"
+        }`}
+      >
+        <span className={`text-caption ${highlighted ? "font-semibold text-neutral-900 dark:text-zinc-100" : "font-medium text-neutral-600 dark:text-zinc-300"}`}>
+          {label}
+        </span>
+        <div className="flex items-center gap-3">
+          {children}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Card
@@ -141,268 +163,66 @@ export function AIExtractedDetailsCard({
       />
 
       <CardContent className="p-0 flex-1 flex flex-col justify-between">
-        {/* Core Extracted Document AI Fields */}
+        {/* Core Extracted Fields */}
         <div className="divide-y divide-neutral-100 dark:divide-zinc-800/80">
-          {/* 1. Invoice Number */}
-          <div
-            id="extracted-field-invoiceNumber"
-            onMouseEnter={() => onHoverField?.("invoiceNumber")}
-            onMouseLeave={() => onHoverField?.(null)}
-            onClick={() => onSelectField?.("invoiceNumber")}
-            className={`flex items-center justify-between px-5 py-2.5 cursor-pointer transition-all duration-150 ${
-              activeFieldId === "invoiceNumber" || hoveredFieldId === "invoiceNumber"
-                ? "bg-indigo-50/80 dark:bg-indigo-950/50 border-l-4 border-indigo-600 dark:border-indigo-400 shadow-2xs"
-                : "hover:bg-neutral-50/60 dark:hover:bg-zinc-800/40"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-caption font-medium text-neutral-600 dark:text-zinc-300">
-                Extracted Invoice Number
-              </span>
-              {(activeFieldId === "invoiceNumber" || hoveredFieldId === "invoiceNumber") && (
-                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono font-medium flex items-center gap-0.5 animate-in fade-in">
-                  <Crosshair size={10} /> Anchor #1
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-body-sm font-mono font-semibold text-neutral-900 dark:text-zinc-100">
-                {invoiceNumber || "—"}
-              </span>
-              {renderConfidenceBadge(confidenceScore != null ? Math.min(confidenceScore + 1, 99) : null)}
-            </div>
-          </div>
+          {/* Invoice Number */}
+          <FieldRow fieldKey="invoiceNumber" label="Invoice Number">
+            <span className="text-body-sm font-mono font-semibold text-neutral-900 dark:text-zinc-100">
+              {invoiceNumber || "—"}
+            </span>
+            {renderConfidenceBadge(confidenceScore)}
+          </FieldRow>
 
-          {/* 2. Supplier / Vendor Name */}
-          <div
-            id="extracted-field-supplierName"
-            onMouseEnter={() => onHoverField?.("supplierName")}
-            onMouseLeave={() => onHoverField?.(null)}
-            onClick={() => onSelectField?.("supplierName")}
-            className={`flex items-center justify-between px-5 py-2.5 cursor-pointer transition-all duration-150 ${
-              activeFieldId === "supplierName" || hoveredFieldId === "supplierName"
-                ? "bg-indigo-50/80 dark:bg-indigo-950/50 border-l-4 border-indigo-600 dark:border-indigo-400 shadow-2xs"
-                : "hover:bg-neutral-50/60 dark:hover:bg-zinc-800/40"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-caption font-medium text-neutral-600 dark:text-zinc-300">
-                Extracted Supplier
-              </span>
-              {(activeFieldId === "supplierName" || hoveredFieldId === "supplierName") && (
-                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono font-medium flex items-center gap-0.5 animate-in fade-in">
-                  <Crosshair size={10} /> Anchor #2
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-body-sm font-sans font-medium text-neutral-900 dark:text-zinc-100 truncate max-w-[180px]">
-                {supplierName || "Tata Steel Limited"}
-              </span>
-              {renderConfidenceBadge(confidenceScore != null ? Math.min(confidenceScore + 1, 99) : null)}
-            </div>
-          </div>
+          {/* Supplier */}
+          <FieldRow fieldKey="supplierName" label="Supplier">
+            <span className="text-body-sm font-sans font-medium text-neutral-900 dark:text-zinc-100 truncate max-w-[180px]">
+              {supplierName || "—"}
+            </span>
+            {renderConfidenceBadge(confidenceScore)}
+          </FieldRow>
 
-          {/* 3. Document Issue Date */}
-          <div
-            id="extracted-field-invoiceDate"
-            onMouseEnter={() => onHoverField?.("invoiceDate")}
-            onMouseLeave={() => onHoverField?.(null)}
-            onClick={() => onSelectField?.("invoiceDate")}
-            className={`flex items-center justify-between px-5 py-2.5 cursor-pointer transition-all duration-150 ${
-              activeFieldId === "invoiceDate" || hoveredFieldId === "invoiceDate"
-                ? "bg-indigo-50/80 dark:bg-indigo-950/50 border-l-4 border-indigo-600 dark:border-indigo-400 shadow-2xs"
-                : "hover:bg-neutral-50/60 dark:hover:bg-zinc-800/40"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-caption font-medium text-neutral-600 dark:text-zinc-300">
-                Document Issue Date
-              </span>
-              {(activeFieldId === "invoiceDate" || hoveredFieldId === "invoiceDate") && (
-                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono font-medium flex items-center gap-0.5 animate-in fade-in">
-                  <Crosshair size={10} /> Anchor #3
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-body-sm font-mono text-neutral-900 dark:text-zinc-100">
-                {invoiceDate ? formatDate(invoiceDate) : "—"}
-              </span>
-              {renderConfidenceBadge(confidenceScore)}
-            </div>
-          </div>
+          {/* Invoice Date */}
+          <FieldRow fieldKey="invoiceDate" label="Invoice Date">
+            <span className="text-body-sm font-mono text-neutral-900 dark:text-zinc-100">
+              {invoiceDate ? formatDate(invoiceDate) : "—"}
+            </span>
+            {renderConfidenceBadge(confidenceScore)}
+          </FieldRow>
 
-          {/* 4. Payment Due Date */}
-          <div
-            id="extracted-field-dueDate"
-            onMouseEnter={() => onHoverField?.("dueDate")}
-            onMouseLeave={() => onHoverField?.(null)}
-            onClick={() => onSelectField?.("dueDate")}
-            className={`flex items-center justify-between px-5 py-2.5 cursor-pointer transition-all duration-150 ${
-              activeFieldId === "dueDate" || hoveredFieldId === "dueDate"
-                ? "bg-indigo-50/80 dark:bg-indigo-950/50 border-l-4 border-indigo-600 dark:border-indigo-400 shadow-2xs"
-                : "hover:bg-neutral-50/60 dark:hover:bg-zinc-800/40"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-caption font-medium text-neutral-600 dark:text-zinc-300">
-                Payment Due Date
-              </span>
-              {(activeFieldId === "dueDate" || hoveredFieldId === "dueDate") && (
-                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono font-medium flex items-center gap-0.5 animate-in fade-in">
-                  <Crosshair size={10} /> Anchor #4
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-body-sm font-mono text-neutral-900 dark:text-zinc-100">
-                {dueDate ? formatDate(dueDate) : "Net 30 Days"}
-              </span>
-              {renderConfidenceBadge(confidenceScore != null ? Math.max(75, confidenceScore - 2) : null)}
-            </div>
-          </div>
+          {/* Due Date */}
+          <FieldRow fieldKey="dueDate" label="Payment Due Date">
+            <span className="text-body-sm font-mono text-neutral-900 dark:text-zinc-100">
+              {dueDate ? formatDate(dueDate) : "—"}
+            </span>
+            {renderConfidenceBadge(confidenceScore)}
+          </FieldRow>
 
-          {/* 5. Purchase Order Match Ref */}
-          <div
-            id="extracted-field-purchaseOrderNumber"
-            onMouseEnter={() => onHoverField?.("purchaseOrderNumber")}
-            onMouseLeave={() => onHoverField?.(null)}
-            onClick={() => onSelectField?.("purchaseOrderNumber")}
-            className={`flex items-center justify-between px-5 py-2.5 cursor-pointer transition-all duration-150 ${
-              activeFieldId === "purchaseOrderNumber" || hoveredFieldId === "purchaseOrderNumber"
-                ? "bg-indigo-50/80 dark:bg-indigo-950/50 border-l-4 border-indigo-600 dark:border-indigo-400 shadow-2xs"
-                : "hover:bg-neutral-50/60 dark:hover:bg-zinc-800/40"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-caption font-medium text-neutral-600 dark:text-zinc-300">
-                PO Reference Match
-              </span>
-              {(activeFieldId === "purchaseOrderNumber" || hoveredFieldId === "purchaseOrderNumber") && (
-                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono font-medium flex items-center gap-0.5 animate-in fade-in">
-                  <Crosshair size={10} /> Anchor #5
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-body-sm font-mono font-semibold text-neutral-900 dark:text-zinc-100">
-                {purchaseOrderId ? `PO-${purchaseOrderId.slice(0, 8).toUpperCase()}` : "PO-2026-0842"}
-              </span>
-              {renderConfidenceBadge(confidenceScore != null ? 94 : null)}
-            </div>
-          </div>
+          {/* PO Reference */}
+          <FieldRow fieldKey="purchaseOrderNumber" label="PO Reference">
+            <span className="text-body-sm font-mono font-semibold text-neutral-900 dark:text-zinc-100">
+              {purchaseOrderId || "Not linked"}
+            </span>
+            {renderConfidenceBadge(purchaseOrderId ? confidenceScore : null)}
+          </FieldRow>
 
-          {/* 6. Line Items Table */}
-          <div
-            id="extracted-field-lineItems"
-            onMouseEnter={() => onHoverField?.("lineItems")}
-            onMouseLeave={() => onHoverField?.(null)}
-            onClick={() => onSelectField?.("lineItems")}
-            className={`flex items-center justify-between px-5 py-2.5 cursor-pointer transition-all duration-150 ${
-              activeFieldId === "lineItems" || hoveredFieldId === "lineItems"
-                ? "bg-indigo-50/80 dark:bg-indigo-950/50 border-l-4 border-indigo-600 dark:border-indigo-400 shadow-2xs"
-                : "hover:bg-neutral-50/60 dark:hover:bg-zinc-800/40"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-caption font-medium text-neutral-600 dark:text-zinc-300">
-                Extracted Line Items
-              </span>
-              {(activeFieldId === "lineItems" || hoveredFieldId === "lineItems") && (
-                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono font-medium flex items-center gap-0.5 animate-in fade-in">
-                  <Crosshair size={10} /> Anchor #6
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-body-sm font-mono text-neutral-900 dark:text-zinc-100">
-                {linesCount > 0 ? `${linesCount} line item${linesCount > 1 ? "s" : ""}` : "Pending table parse"}
-              </span>
-              {renderConfidenceBadge(confidenceScore != null ? 97 : null)}
-            </div>
-          </div>
+          {/* Line Items */}
+          <FieldRow fieldKey="lineItems" label="Line Items">
+            <span className="text-body-sm font-mono text-neutral-900 dark:text-zinc-100">
+              {linesCount > 0 ? `${linesCount} line item${linesCount > 1 ? "s" : ""}` : "—"}
+            </span>
+            {renderConfidenceBadge(linesCount > 0 ? confidenceScore : null)}
+          </FieldRow>
 
-          {/* 7. Tax & Arithmetic Engine */}
-          <div
-            id="extracted-field-taxAmount"
-            onMouseEnter={() => onHoverField?.("taxAmount")}
-            onMouseLeave={() => onHoverField?.(null)}
-            onClick={() => onSelectField?.("taxAmount")}
-            className={`flex items-center justify-between px-5 py-2.5 cursor-pointer transition-all duration-150 ${
-              activeFieldId === "taxAmount" || hoveredFieldId === "taxAmount"
-                ? "bg-indigo-50/80 dark:bg-indigo-950/50 border-l-4 border-indigo-600 dark:border-indigo-400 shadow-2xs"
-                : "hover:bg-neutral-50/60 dark:hover:bg-zinc-800/40"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-caption font-medium text-neutral-600 dark:text-zinc-300">
-                Tax &amp; Arithmetic Engine
-              </span>
-              {(activeFieldId === "taxAmount" || hoveredFieldId === "taxAmount") && (
-                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono font-medium flex items-center gap-0.5 animate-in fade-in">
-                  <Crosshair size={10} /> Anchor #7
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-body-sm font-mono text-emerald-700 dark:text-emerald-400 font-medium">
-                Calculations Verified (18% IGST)
-              </span>
-              {renderConfidenceBadge(confidenceScore != null ? 99 : null)}
-            </div>
-          </div>
-
-          {/* 8. Total Amount Due */}
-          <div
-            id="extracted-field-totalAmount"
-            onMouseEnter={() => onHoverField?.("totalAmount")}
-            onMouseLeave={() => onHoverField?.(null)}
-            onClick={() => onSelectField?.("totalAmount")}
-            className={`flex items-center justify-between px-5 py-3 cursor-pointer transition-all duration-150 ${
-              activeFieldId === "totalAmount" || hoveredFieldId === "totalAmount"
-                ? "bg-indigo-100/90 dark:bg-indigo-950/70 border-l-4 border-indigo-600 dark:border-indigo-400 shadow-sm"
-                : "bg-neutral-50/40 dark:bg-zinc-900/40 hover:bg-neutral-100/70 dark:hover:bg-zinc-800/50"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-caption font-semibold text-neutral-900 dark:text-zinc-100">
-                Invoice Total Amount
-              </span>
-              {(activeFieldId === "totalAmount" || hoveredFieldId === "totalAmount") && (
-                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono font-medium flex items-center gap-0.5 animate-in fade-in">
-                  <Crosshair size={10} /> Final Anchor
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-body font-mono font-bold text-indigo-700 dark:text-indigo-300">
-                {formatCurrency(totalAmount, currency)}
-              </span>
-              {renderConfidenceBadge(confidenceScore != null ? 99 : null)}
-            </div>
-          </div>
-
-          {/* Spend Anomaly Indicator (Real trailing average rule: >3x baseline) */}
-          {Number(totalAmount) >= 300000 && (
-            <div className="mx-5 my-2 p-2.5 rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50/70 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-micro flex items-center justify-between font-mono">
-              <div className="flex items-center gap-1.5">
-                <AlertCircle size={13} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                <span>
-                  <strong>Unusual Amount:</strong> {formatCurrency(totalAmount, currency)} vs ~₹45,200 trailing avg (last 12 months)
-                </span>
-              </div>
-              <span
-                className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 underline cursor-help shrink-0 pl-2"
-                title="Simple mathematical rule: Invoice exceeds 3x supplier historical average over 12 invoices."
-              >
-                7.8x Baseline
-              </span>
-            </div>
-          )}
+          {/* Total Amount */}
+          <FieldRow fieldKey="totalAmount" label="Invoice Total Amount" highlighted>
+            <span className="text-body font-mono font-bold text-indigo-700 dark:text-indigo-300">
+              {formatCurrency(totalAmount, currency)}
+            </span>
+            {renderConfidenceBadge(confidenceScore)}
+          </FieldRow>
         </div>
 
-        {/* Integrated Validation Checks & Technical Disclosure Bar */}
+        {/* Validation Checks & Technical Details */}
         <div className="p-4 bg-neutral-50/70 dark:bg-zinc-900/60 border-t border-neutral-200/80 dark:border-zinc-800 space-y-2 mt-auto">
           {/* Validation Status Strip */}
           {validations.length > 0 && (
@@ -433,7 +253,7 @@ export function AIExtractedDetailsCard({
             </div>
           )}
 
-          {/* Collapsible Validation Rules Details */}
+          {/* Collapsible Validation Rules */}
           {showValidations && validations.length > 0 && (
             <div className="pt-2 pb-1 space-y-1.5">
               {validations.map((v) => (
@@ -465,7 +285,7 @@ export function AIExtractedDetailsCard({
             </div>
           )}
 
-          {/* Technical Extraction Details Collapsible */}
+          {/* Technical Extraction Details */}
           <div className="pt-1 flex items-center justify-between">
             <button
               type="button"
@@ -485,10 +305,6 @@ export function AIExtractedDetailsCard({
           {showTechnical && (
             <div className="pt-2 pb-1 grid grid-cols-2 gap-2 text-micro font-mono text-neutral-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 p-2.5 rounded-lg border border-neutral-200 dark:border-zinc-800">
               <div>
-                <span className="text-neutral-400 block">OCR Engine</span>
-                <span className="text-neutral-800 dark:text-zinc-200">DocAI Multi-Modal v3.2</span>
-              </div>
-              <div>
                 <span className="text-neutral-400 block">Extracted At</span>
                 <span className="text-neutral-800 dark:text-zinc-200">
                   {extractedAtDate ? formatDate(extractedAtDate) : "Pending"}
@@ -497,12 +313,18 @@ export function AIExtractedDetailsCard({
               <div>
                 <span className="text-neutral-400 block">Confidence Band</span>
                 <span className="text-neutral-800 dark:text-zinc-200">
-                  {confidenceScore != null && confidenceScore >= 95 ? "High (≥95%)" : "Review Required (<95%)"}
+                  {confidenceScore != null && confidenceScore >= 95 ? "High (≥95%)" : confidenceScore != null && confidenceScore >= 80 ? "Medium (80–94%)" : confidenceScore != null ? "Low (<80%)" : "Pending"}
                 </span>
               </div>
               <div>
                 <span className="text-neutral-400 block">Source Channel</span>
                 <span className="text-neutral-800 dark:text-zinc-200">Digital Ingest</span>
+              </div>
+              <div>
+                <span className="text-neutral-400 block">Line Items</span>
+                <span className="text-neutral-800 dark:text-zinc-200">
+                  {linesCount > 0 ? `${linesCount} extracted` : "Pending"}
+                </span>
               </div>
             </div>
           )}

@@ -26,10 +26,8 @@ import {
   Database,
   Users,
   RotateCcw,
-  Sparkles,
   AlertTriangle,
 } from "lucide-react";
-import { AvartaCrest } from "../../components/brand/AvartaCrest";
 import { DEMO_ACCOUNTS } from "../../lib/constants";
 import { resetDemoEnvironment } from "../../api/demo";
 
@@ -304,18 +302,17 @@ export default function SettingsPage() {
             icon: <Building2 size={15} />,
             content: (
               <form onSubmit={handleSubmit} className="pt-2 space-y-4">
-                {/* Institutional Authority Seal Card */}
-                <Card level="surface" className="relative border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 overflow-hidden shadow-2xs">
-                  <AvartaCrest variant="watermark" className="opacity-[0.035] dark:opacity-[0.05]" />
-                  <CardContent className="relative z-10 p-5 flex flex-col md:flex-row items-center md:items-start gap-5">
-                    <div className="shrink-0 flex items-center justify-center p-2 rounded-xl bg-neutral-50 dark:bg-zinc-850 border border-neutral-200/80 dark:border-zinc-750 shadow-2xs">
-                      <AvartaCrest variant="full" glow className="w-48 sm:w-56 h-auto" />
+                {/* Organization Profile Card */}
+                <Card level="surface" className="border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs">
+                  <CardContent className="p-5 flex flex-col md:flex-row items-center md:items-start gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400">
+                      <Building2 size={24} />
                     </div>
-                    <div className="space-y-2 text-center md:text-left flex-1">
+                    <div className="space-y-1.5 text-center md:text-left flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div>
-                          <span className="text-micro font-mono font-semibold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 block">
-                            Institutional Authority Seal
+                          <span className="text-micro font-mono font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400 block">
+                            Tenant Organization
                           </span>
                           <h3 className="text-h3 font-bold text-neutral-900 dark:text-zinc-100 font-sans">
                             {formData.orgName || "Acme Manufacturing Pvt Ltd"}
@@ -323,18 +320,16 @@ export default function SettingsPage() {
                         </div>
                         <span className="inline-flex items-center gap-1.5 text-micro font-mono px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-semibold self-center sm:self-auto">
                           <CheckCircle2 size={12} />
-                          <span>Statutory Verified Tenant</span>
+                          <span>Active Tenant</span>
                         </span>
                       </div>
                       <p className="text-caption text-neutral-600 dark:text-zinc-400 leading-relaxed">
-                        Authorized under the Avarta Institutional AP Governance Charter. Every payment disbursement, 3-way match reconciliation, and statutory audit export from this workspace carries this tamper-evident digital seal.
+                        Workspace configuration for Accounts Payable operations, approval hierarchies, and reconciliation policies.
                       </p>
                       <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-4 text-micro font-mono text-neutral-500 dark:text-zinc-400 border-t border-neutral-100 dark:border-zinc-800">
                         <span>GSTIN: <strong className="text-neutral-800 dark:text-zinc-200">{formData.gstin || "27AAACA1234F1Z5"}</strong></span>
                         <span>•</span>
-                        <span>Motto: <strong className="text-neutral-800 dark:text-zinc-200 font-serif">"आत्मानं विद्धि"</strong> (Know Thyself)</span>
-                        <span>•</span>
-                        <span>Cryptographic Hash: <strong className="text-neutral-800 dark:text-zinc-200 font-mono">SHA-256 / AES-256 GCM</strong></span>
+                        <span>Base Currency: <strong className="text-neutral-800 dark:text-zinc-200 font-mono">{formData.currency}</strong></span>
                       </div>
                     </div>
                   </CardContent>
@@ -827,7 +822,7 @@ export default function SettingsPage() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="space-y-1.5 max-w-xl">
                         <div className="flex items-center gap-2">
-                          <Sparkles size={16} className="text-amber-600 dark:text-amber-400" />
+                          <RotateCcw size={16} className="text-amber-600 dark:text-amber-400" />
                           <h4 className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100">
                             Dynamic Scenario State Reset
                           </h4>

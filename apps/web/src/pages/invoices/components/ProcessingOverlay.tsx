@@ -6,7 +6,7 @@ import {
   Check,
   Loader2,
   AlertTriangle,
-  Sparkles,
+  Cpu,
 } from "lucide-react";
 
 export type ProcessingStage =
@@ -27,7 +27,7 @@ interface ProcessingOverlayProps {
 const PIPELINE_STEPS = [
   {
     id: "capturing" as const,
-    label: "AI Text Extraction & OCR",
+    label: "Text Extraction & OCR",
     description: "Extracting invoice fields, line items, and tax data from the source document",
     icon: FileText,
     timing: "~2s",
@@ -75,14 +75,14 @@ export function ProcessingOverlay({
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center">
-              <Sparkles size={20} className="text-indigo-600 dark:text-indigo-400" />
+              <Cpu size={20} className="text-indigo-600 dark:text-indigo-400" />
             </div>
             <div>
               <DialogPrimitive.Title className="text-h3 text-neutral-900 dark:text-zinc-100 font-semibold">
                 Processing Invoice
               </DialogPrimitive.Title>
               <DialogPrimitive.Description className="text-caption text-neutral-500 dark:text-zinc-400">
-                Running AI-powered capture, validation & matching pipeline
+                Running capture, validation & matching pipeline
               </DialogPrimitive.Description>
             </div>
           </div>

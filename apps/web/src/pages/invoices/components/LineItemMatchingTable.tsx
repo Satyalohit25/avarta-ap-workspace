@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { CheckCircle2, AlertTriangle, Check, Flag, Sparkles, Clock } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Check, Flag, Cpu, Clock } from "lucide-react";
 import { Card, CardHeader, CardContent } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "../../../components/ui/table";
@@ -129,7 +129,7 @@ export function LineItemMatchingTable({
               </p>
             </div>
             <span className="inline-flex items-center gap-1.5 text-micro font-mono text-neutral-400 dark:text-zinc-500 bg-white dark:bg-zinc-800 px-3 py-1 rounded-full border border-neutral-200 dark:border-zinc-700">
-              <Sparkles size={12} className="text-indigo-500" />
+              <Cpu size={12} className="text-neutral-500" />
               <span>Awaiting Capture Trigger</span>
             </span>
           </div>

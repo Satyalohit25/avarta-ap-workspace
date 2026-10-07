@@ -3,9 +3,8 @@ import { PageHeader } from "../../components/layout/PageHeader";
 import { Select } from "../../components/ui/Select";
 import { Tabs } from "../../components/ui/Tabs";
 import { OperationalReportView } from "./components/OperationalReportView";
-import { CfoRoiSimulator } from "./components/CfoRoiSimulator";
 import { ApAgingCashForecastView } from "./components/ApAgingCashForecastView";
-import { BarChart3, Calculator, Clock } from "lucide-react";
+import { BarChart3, Clock } from "lucide-react";
 
 export default function ReportsPage() {
   const [timeRange, setTimeRange] = useState("30d");
@@ -14,7 +13,7 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Reports & Analytics"
-        subtitle="Operational throughput, executive ROI modeling, AP aging, and cash forecasting."
+        subtitle="Operational throughput, AP aging, and cash forecasting."
         action={
           <div className="w-44">
             <Select
@@ -57,19 +56,8 @@ export default function ReportsPage() {
               </div>
             ),
           },
-          {
-            id: "cfo-roi",
-            label: "CFO Value & ROI Simulator",
-            icon: <Calculator size={15} />,
-            content: (
-              <div className="pt-2">
-                <CfoRoiSimulator />
-              </div>
-            ),
-          },
         ]}
       />
     </div>
   );
 }
-

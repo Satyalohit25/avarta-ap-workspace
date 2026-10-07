@@ -898,10 +898,10 @@ export default function InvoiceDetailPage() {
     const headers = ["Invoice Number", "Vendor", "Line No", "Description", "HSN/SAC", "Quantity", "Unit Price", "Currency", "Line Amount"];
     const rows = rawLines.map((l, idx) => [
       `"${invoice.invoiceNumber}"`,
-      `"${invoice.supplier?.name || 'Verified Vendor'}"`,
+      `"${invoice.supplier?.name || ''}"`,
       l.lineNo || (idx + 1),
       `"${(l.description || '').replace(/"/g, '""')}"`,
-      `"${l.hsnCode || '8471'}"`,
+      `"${l.hsnCode || ''}"`,
       l.quantity || 1,
       l.unitPrice || invoice.totalAmount,
       `"${invoice.currency || 'INR'}"`,
@@ -1062,14 +1062,16 @@ export default function InvoiceDetailPage() {
               <StatusBadge status={context.status} />
             </div>
 
-            {/* Dual Invoice Identification & Remittance Chip per Tata Chemicals standard */}
+            {/* Invoice Identification & Remittance Chips */}
             <div className="flex flex-wrap items-center gap-2 text-micro font-mono">
               <span className="px-2 py-0.5 rounded bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-300 font-medium">
                 Supplier Bill Ref: {invoice.invoiceNumber}
               </span>
-              <span className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 font-medium">
-                Buyer ERP Voucher: {invoice.buyerInvoiceId || "2522000123"} ({invoice.fiscalYear || "FY2025"})
-              </span>
+              {invoice.buyerInvoiceId && (
+                <span className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 font-medium">
+                  Buyer Voucher: {invoice.buyerInvoiceId} {invoice.fiscalYear ? `(${invoice.fiscalYear})` : ""}
+                </span>
+              )}
               {invoice.payments && invoice.payments.length > 0 && invoice.payments[0].utrNumber && (
                 <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 font-medium flex items-center gap-1">
                   <span>UTR:</span>
@@ -1442,7 +1444,7 @@ export default function InvoiceDetailPage() {
                 Complete Audit Trail &amp; Workflow Transition Logs
               </h3>
               <p className="text-caption text-neutral-500 dark:text-zinc-400">
-                Immutable, cryptographic chronological history of all OCR passes, validations, approver sign-offs, and ERP synchronizations.
+                Chronological audit history of all document captures, validations, approver sign-offs, and workflow transitions.
               </p>
             </div>
             <span className="text-micro font-mono bg-neutral-100 dark:bg-zinc-800 px-3 py-1 rounded-full text-neutral-600 dark:text-zinc-400 border border-neutral-200 dark:border-zinc-700">

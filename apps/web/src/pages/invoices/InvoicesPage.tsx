@@ -11,7 +11,6 @@ import {
   CalendarCheck,
   Archive,
   CheckSquare,
-  Sparkles,
   Clock,
   AlertCircle,
   TrendingUp,
@@ -510,11 +509,10 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      {/* Quick-Filter Horizon Chips (Astryx/ClearOps AP Design System) */}
+      {/* Quick-Filter Horizon Chips (Avarta AP Design System) */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 text-micro">
         <span className="text-neutral-500 dark:text-zinc-400 font-medium shrink-0 flex items-center gap-1 mr-1">
-          <Sparkles size={12} className="text-indigo-500" />
-          <span>Horizons:</span>
+          <span>Views:</span>
         </span>
         <button
           type="button"

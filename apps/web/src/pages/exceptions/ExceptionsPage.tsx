@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   AlertCircle,
   FileCheck2,
-  Sparkles,
   Search,
   X,
   ExternalLink,
@@ -520,9 +519,8 @@ export default function ExceptionsPage() {
 
               {/* Resolution Presets */}
               <div className="space-y-1">
-                <span className="text-micro text-neutral-500 dark:text-zinc-400 flex items-center gap-1">
-                  <Sparkles size={11} className="text-indigo-500" />
-                  <span>Standard AP Policy Presets:</span>
+                <span className="text-micro text-neutral-500 dark:text-zinc-400">
+                  Standard AP Policy Presets:
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {RESOLUTION_PRESETS.map((preset, idx) => (

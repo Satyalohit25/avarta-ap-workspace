@@ -10,7 +10,6 @@ import {
   Wallet,
   RefreshCw,
   Archive,
-  Sparkles,
   Layers,
   Users,
   ChevronRight,
@@ -45,7 +44,7 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
       title: "AI Confidence Verification",
       route: "/invoices",
       tag: "Invoices (/invoices)",
-      icon: Sparkles,
+      icon: ShieldCheck,
       desc: "Every field is tagged with a confidence score. High confidence (≥95%) enables 1-click accept; low confidence (<80%) flags for quick human verification.",
       highlight: "AI suggests, humans decide • Zero autonomous posting • 100% human-verified",
     },
@@ -181,7 +180,7 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
                 : "border-transparent text-neutral-500 hover:text-neutral-800 dark:text-zinc-400 dark:hover:text-zinc-200"
             }`}
           >
-            <Sparkles size={15} />
+            <ShieldCheck size={15} />
             <span>AI Governance & Trust</span>
           </button>
 

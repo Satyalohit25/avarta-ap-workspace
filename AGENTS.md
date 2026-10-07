@@ -1,4 +1,4 @@
-# AGENTS.md — ClearOps AP Workspace
+# AGENTS.md — Avarta AP Workspace
 
 Read this file before making any change. It condenses an 18-document locked
 product blueprint. If a request conflicts with something here, flag the
@@ -6,7 +6,7 @@ conflict instead of silently choosing one side.
 
 ## What this is
 
-ClearOps AP Workspace — an Accounts Payable workspace for SMEs (10–500
+Avarta AP Workspace — an Accounts Payable workspace for SMEs (10–500
 employees). **Not** an ERP, **not** accounting software. It complements
 existing accounting systems (QuickBooks, Xero, Tally, SAP, Oracle) rather
 than replacing them.

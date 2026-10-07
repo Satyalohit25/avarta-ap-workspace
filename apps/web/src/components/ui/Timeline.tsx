@@ -1,4 +1,4 @@
-import { LucideIcon, Sparkles, User, CheckCircle2, AlertTriangle } from "lucide-react";
+import { LucideIcon, Cpu, User, CheckCircle2, AlertTriangle } from "lucide-react";
 
 export interface TimelineEvent {
   id: string;
@@ -23,7 +23,7 @@ function getEventMeta(evt: TimelineEvent): {
   
   if (isAI) {
     return {
-      icon: Sparkles,
+      icon: Cpu,
       bgColor: "bg-indigo-50 dark:bg-indigo-950/60",
       textColor: "text-indigo-600 dark:text-indigo-400",
       borderColor: "border-indigo-200 dark:border-indigo-800",

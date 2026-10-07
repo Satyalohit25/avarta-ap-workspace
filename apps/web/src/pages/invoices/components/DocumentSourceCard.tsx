@@ -11,7 +11,6 @@ import {
   FileCheck2,
   QrCode,
   ArrowRight,
-  Sparkles,
 } from "lucide-react";
 import { Card, CardContent } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
@@ -422,12 +421,12 @@ export function DocumentSourceCard({
                           className="inline-block p-1 -m-1"
                         >
                           <h4 className="text-h4 font-bold text-neutral-900 dark:text-zinc-100">
-                            {supplierName || "Tata Steel Limited"}
+                            {supplierName || "—"}
                           </h4>
                         </VoucherAnchor>
                       </div>
 
-                      {/* Supplier GSTIN Anchor */}
+                      {/* Supplier Subtitle */}
                       <div className="mt-1">
                         <VoucherAnchor
                           fieldKey="supplierGstin"
@@ -441,7 +440,7 @@ export function DocumentSourceCard({
                           className="inline-block p-0.5 -m-0.5"
                         >
                           <p className="text-micro text-neutral-500 dark:text-zinc-400 font-mono">
-                            GSTIN: 27AAACT2727Q1ZW • IRN: 4b9f2...81c9
+                            {supplierName ? "Tax Invoice Voucher" : "Intake Record"}
                           </p>
                         </VoucherAnchor>
                       </div>
@@ -514,7 +513,7 @@ export function DocumentSourceCard({
                         Billed To (Buyer)
                       </p>
                       <p className="font-semibold text-neutral-800 dark:text-zinc-200 mt-0.5">
-                        ClearOps Technologies Pvt Ltd
+                        Avarta Technologies Pvt Ltd
                       </p>
                       <p className="text-micro text-neutral-500 dark:text-zinc-400 font-mono">
                         GSTIN: 27AABCC1234F1Z8
@@ -539,7 +538,7 @@ export function DocumentSourceCard({
                         className="p-1.5 -m-1.5 block mt-0.5"
                       >
                         <p className="font-semibold text-neutral-800 dark:text-zinc-200 font-mono">
-                          {purchaseOrderId ? `PO-${purchaseOrderId.slice(0, 8).toUpperCase()}` : "PO-2026-0842 (Standard PO)"}
+                          {purchaseOrderId ? purchaseOrderId : "Not Linked"}
                         </p>
                         <p className="text-micro text-neutral-500 dark:text-zinc-400">
                           Payment Terms: Net 30 Days
@@ -583,7 +582,7 @@ export function DocumentSourceCard({
                                 {item.description}
                               </td>
                               <td className="py-2.5 px-2 text-right text-neutral-500 dark:text-zinc-400">
-                                {item.hsnCode || "HSN 7216"}
+                                {item.hsnCode || "—"}
                               </td>
                               <td className="py-2.5 px-2 text-right text-neutral-700 dark:text-zinc-300">
                                 {item.quantity}
@@ -784,8 +783,7 @@ export function DocumentSourceCard({
         {(viewMode === "voucher" || viewMode === "preview") && (
           <div className="px-4 py-2 border-t border-neutral-200 dark:border-zinc-800 bg-neutral-50/90 dark:bg-zinc-900/90 flex items-center gap-3 text-micro shrink-0 min-w-0">
             <div className="flex items-center gap-1.5 shrink-0 text-neutral-500 dark:text-zinc-400 font-mono">
-              <Sparkles size={11} className="text-indigo-500" />
-              <span className="font-semibold whitespace-nowrap">Quick Anchors:</span>
+              <span className="font-semibold whitespace-nowrap">Anchors:</span>
             </div>
             <div className="flex items-center gap-1.5 overflow-x-auto py-1 pr-2 scrollbar-thin scrollbar-thumb-neutral-300 dark:scrollbar-thumb-zinc-700 min-w-0 flex-1">
               {groundTruthBoxes.map((b) => {

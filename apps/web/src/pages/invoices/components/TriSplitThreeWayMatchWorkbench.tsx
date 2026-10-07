@@ -9,7 +9,7 @@ import {
   Ban,
   Send,
   CheckCircle2,
-  Sparkles,
+  Layers,
   Info,
 } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
@@ -102,7 +102,7 @@ export function TriSplitThreeWayMatchWorkbench({
       <div className="bg-neutral-900 dark:bg-zinc-950 text-white px-5 py-3.5 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2.5">
           <span className="p-1 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-            <Sparkles size={14} />
+            <Layers size={14} />
           </span>
           <div>
             <h4 className="text-body-sm font-semibold tracking-wide flex items-center gap-2">
