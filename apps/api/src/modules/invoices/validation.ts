@@ -5,29 +5,38 @@ const amountSchema = z.coerce.number().refine(
   { message: "Amount must be a valid non-negative number" }
 );
 
+const lineItemSchema = z.object({
+  lineNumber: z.number().optional(),
+  description: z.string(),
+  quantity: z.number(),
+  unitPrice: z.number(),
+  taxAmount: z.number().optional(),
+  lineAmount: z.number(),
+});
+
+const linesArraySchema = z.preprocess((val) => {
+  if (typeof val === "string") {
+    try {
+      return JSON.parse(val);
+    } catch {
+      return val;
+    }
+  }
+  return val;
+}, z.array(lineItemSchema).optional());
+
 export const createInvoiceSchema = z.object({
   supplierId: z.string().uuid().optional().nullable().or(z.literal("")),
-  invoiceNumber: z.string().min(1),
+  invoiceNumber: z.string().optional().default(""),
   invoiceDate: z.string().optional().nullable().or(z.literal("")),
   dueDate: z.string().optional().nullable().or(z.literal("")),
-  currency: z.string().length(3).default("INR"),
+  currency: z.string().length(3).optional().default("INR"),
   subtotalAmount: amountSchema.optional(),
   taxAmount: amountSchema.optional(),
-  totalAmount: amountSchema,
+  totalAmount: amountSchema.optional().default(0),
   purchaseOrderId: z.string().uuid().optional().nullable().or(z.literal("")),
   source: z.enum(["UPLOAD", "EMAIL", "PORTAL", "SCANNER", "MOBILE", "API", "EDI", "ERP"]).optional(),
-  lines: z
-    .array(
-      z.object({
-        lineNumber: z.number().optional(),
-        description: z.string(),
-        quantity: z.number(),
-        unitPrice: z.number(),
-        taxAmount: z.number().optional(),
-        lineAmount: z.number(),
-      })
-    )
-    .optional(),
+  lines: linesArraySchema,
 });
 
 export const updateInvoiceSchema = z.object({
@@ -40,18 +49,7 @@ export const updateInvoiceSchema = z.object({
   taxAmount: amountSchema.optional(),
   totalAmount: amountSchema.optional(),
   purchaseOrderId: z.string().uuid().optional().nullable().or(z.literal("")),
-  lines: z
-    .array(
-      z.object({
-        lineNumber: z.number().optional(),
-        description: z.string(),
-        quantity: z.number(),
-        unitPrice: z.number(),
-        taxAmount: z.number().optional(),
-        lineAmount: z.number(),
-      })
-    )
-    .optional(),
+  lines: linesArraySchema,
 });
 
 export const listInvoicesQuerySchema = z.object({

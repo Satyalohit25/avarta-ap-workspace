@@ -51,11 +51,19 @@ export const VENDOR_CATALOGS: Record<string, CatalogItem[]> = {
     { desc: "Precision CNC Machined Flange (Alloy Steel Grade 316)", hsnCode: "HSN 7307", unitWeight: 0.35, typicalQty: 25 },
     { desc: "High-Pressure Nitrile Seal Kit & Replacement O-Ring Packs", hsnCode: "HSN 4016", unitWeight: 0.1, typicalQty: 50 },
   ],
+  apparel_export: [
+    { desc: "Men's cotton T-shirts (new)", hsnCode: "6109.10", unitWeight: 1.0, typicalQty: 12 },
+  ],
+  dhl_express: [
+    { desc: "Men's cotton T-shirts (new)", hsnCode: "6109.10", unitWeight: 1.0, typicalQty: 12 },
+  ],
 };
 
 export function selectCatalog(supplierName?: string | null): CatalogItem[] {
   if (!supplierName) return VENDOR_CATALOGS.generic_industrial;
   const lower = supplierName.toLowerCase();
+  if (lower.includes("lion") || lower.includes("apparel") || lower.includes("garment") || lower.includes("textile") || lower.includes("t-shirt") || lower.includes("cotton")) return VENDOR_CATALOGS.apparel_export;
+  if (lower.includes("dhl") || lower.includes("airwaybill") || lower.includes("harbourline") || lower.includes("bondi")) return VENDOR_CATALOGS.dhl_express;
   if (lower.includes("tata") || lower.includes("steel") || lower.includes("metal")) return VENDOR_CATALOGS.steel;
   if (lower.includes("blue") || lower.includes("dart") || lower.includes("logistics")) return VENDOR_CATALOGS.logistics;
   if (lower.includes("dell") || lower.includes("tech") || lower.includes("computer")) return VENDOR_CATALOGS.it_hardware;

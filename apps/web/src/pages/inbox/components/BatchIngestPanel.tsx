@@ -94,8 +94,6 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
       try {
         await createInvoice({
           invoiceNumber: item.invoiceNumber,
-          currency: "INR",
-          totalAmount: (Math.floor(Math.random() * 45000) + 5000).toFixed(2),
           file: item.file,
         });
         completed++;

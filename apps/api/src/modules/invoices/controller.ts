@@ -125,9 +125,42 @@ export async function getDocumentFileHandler(req: Request, res: Response, next: 
       fs.writeFileSync(filePath, pdfBuffer);
     }
 
-    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Type", document.mimeType || "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename="${document.fileName || `${document.invoice.invoiceNumber}.pdf`}"`);
     res.sendFile(filePath);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function uploadDocumentHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.file) throw ApiError.badRequest("No file uploaded");
+    const result = await invoiceService.addDocumentToInvoice(
+      orgId(req),
+      req.params.invoiceId,
+      {
+        fileName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        storageKey: req.file.filename,
+        fileSize: req.file.size,
+      },
+      req.auth?.userId
+    );
+    res.status(201).json({ data: result.document, invoice: result.invoice });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function extractDocumentHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.file) throw ApiError.badRequest("No file uploaded");
+    const uploadsDir = path.resolve(process.cwd(), "uploads");
+    const filePath = path.resolve(uploadsDir, req.file.filename);
+    const { extractInvoiceFromFile } = await import("../../ai/extractor");
+    const extracted = await extractInvoiceFromFile(filePath, req.file.mimetype, req.file.originalname);
+    res.json({ data: extracted });
   } catch (err) {
     next(err);
   }

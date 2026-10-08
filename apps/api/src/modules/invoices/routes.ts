@@ -14,11 +14,19 @@ import {
   processHandler,
   transitionHandler,
   erpSyncHandler,
+  uploadDocumentHandler,
+  extractDocumentHandler,
 } from "./controller";
 
 export const invoiceRoutes = Router();
 
 invoiceRoutes.use(requireAuth);
+
+invoiceRoutes.post(
+  "/extract",
+  upload.single("file"),
+  extractDocumentHandler
+);
 
 invoiceRoutes.get("/needs-attention", needsAttentionHandler);
 invoiceRoutes.get("/", listHandler);
@@ -34,6 +42,12 @@ invoiceRoutes.put(
   "/:invoiceId",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
   updateHandler
+);
+invoiceRoutes.post(
+  "/:invoiceId/documents",
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
+  upload.single("file"),
+  uploadDocumentHandler
 );
 invoiceRoutes.get("/:invoiceId/documents/:documentId/file", getDocumentFileHandler);
 invoiceRoutes.post(

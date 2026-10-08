@@ -50,6 +50,8 @@ export interface DocumentSourceCardProps {
   onSelectField?: (fieldKey: string) => void;
   onHoverField?: (fieldKey: string | null) => void;
   lines?: unknown[];
+  auditLogs?: Array<{ action: string; afterData?: unknown }>;
+  rawBoxesMap?: Record<string, { pageNumber?: number; x: number; y: number; width: number; height: number }>;
 }
 
 export function DocumentSourceCard({
@@ -73,6 +75,8 @@ export function DocumentSourceCard({
   onSelectField = () => {},
   onHoverField = () => {},
   lines,
+  auditLogs,
+  rawBoxesMap,
 }: DocumentSourceCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const primaryDoc = documents && documents.length > 0 ? documents[0] : null;
@@ -287,6 +291,18 @@ export function DocumentSourceCard({
   const cgstAmount = Math.round((taxAmount / 2) * 100) / 100;
   const sgstAmount = Math.round((taxAmount - cgstAmount) * 100) / 100;
 
+  const computedRawBoxes = useMemo(() => {
+    if (rawBoxesMap && Object.keys(rawBoxesMap).length > 0) return rawBoxesMap;
+    const ocrLog = auditLogs?.find((l) => l.action === "DOCUMENT_OCR_COMPLETED");
+    if (ocrLog && ocrLog.afterData) {
+      const data = ocrLog.afterData as Record<string, unknown>;
+      if (data.boundingBoxes && typeof data.boundingBoxes === "object") {
+        return data.boundingBoxes as Record<string, { pageNumber?: number; x: number; y: number; width: number; height: number }>;
+      }
+    }
+    return undefined;
+  }, [rawBoxesMap, auditLogs]);
+
   const groundTruthBoxes: GroundTruthBox[] = useMemo(() => {
     return generateGroundTruthBoxes({
       invoiceNumber,
@@ -298,6 +314,7 @@ export function DocumentSourceCard({
       currency: safeCurrency,
       linesCount: lineItems.length,
       overallConfidence: aiConfidence,
+      rawBoxesMap: computedRawBoxes,
     });
   }, [
     invoiceNumber,
@@ -309,6 +326,7 @@ export function DocumentSourceCard({
     safeCurrency,
     lineItems.length,
     aiConfidence,
+    computedRawBoxes,
   ]);
 
   const boxMap = useMemo(() => {
@@ -443,35 +461,53 @@ export function DocumentSourceCard({
               onFilterBandChange={setFilterBand}
               anchoredCount={visibleBoxes.length}
             />
-            <div className="relative flex-1 min-h-[500px] overflow-hidden">
-              {isOverlayEnabled && (
-                <GroundTruthSvgOverlay
-                  boxes={groundTruthBoxes}
-                  activeFieldId={activeFieldId}
-                  hoveredFieldId={hoveredFieldId}
-                  onSelectField={onSelectField}
-                  onHoverField={onHoverField}
-                  filterBand={filterBand}
-                />
-              )}
+            <div className="relative flex-1 min-h-[500px] overflow-auto bg-neutral-100/80 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
               {isPdf ? (
-                <iframe
-                  src={previewUrl}
-                  title={`Preview: ${primaryDoc.fileName}`}
-                  className="w-full h-full min-h-[500px] border-0 bg-neutral-50 dark:bg-zinc-800/40"
-                  onError={() => setPreviewError(true)}
-                />
+                <div className="w-full h-full min-h-[500px] flex flex-col">
+                  <div className="mb-2 p-2 rounded bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-caption flex items-center justify-between gap-2">
+                    <span className="text-indigo-800 dark:text-indigo-300 font-medium">
+                      PDF Document Preview Active. Switch to <strong>Digital Voucher</strong> tab to view interactive OCR bounding boxes and field anchors.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("voucher")}
+                      className="text-micro font-semibold px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700"
+                    >
+                      View Digital Voucher
+                    </button>
+                  </div>
+                  <iframe
+                    src={previewUrl}
+                    title={`Preview: ${primaryDoc.fileName}`}
+                    className="w-full flex-1 min-h-[500px] border-0 rounded bg-white shadow-xs"
+                    onError={() => setPreviewError(true)}
+                  />
+                </div>
               ) : isImage ? (
-                <div className="w-full h-full min-h-[500px] bg-neutral-50 dark:bg-zinc-800/40 flex items-center justify-center p-4">
+                <div
+                  className="relative inline-block shadow-md max-w-full rounded-sm overflow-hidden"
+                  style={{
+                    transform: zoomLevel !== 100 ? `scale(${zoomLevel / 100})` : undefined,
+                    transformOrigin: "center center",
+                    transition: "transform 0.15s ease-out",
+                  }}
+                >
                   <img
                     src={previewUrl}
                     alt={primaryDoc.fileName}
-                    width={800}
-                    height={600}
-                    loading="lazy"
-                    className="max-w-full max-h-full object-contain rounded-sm"
+                    className="max-h-[75vh] w-auto h-auto block select-none"
                     onError={() => setPreviewError(true)}
                   />
+                  {isOverlayEnabled && (
+                    <GroundTruthSvgOverlay
+                      boxes={groundTruthBoxes}
+                      activeFieldId={activeFieldId}
+                      hoveredFieldId={hoveredFieldId}
+                      onSelectField={onSelectField}
+                      onHoverField={onHoverField}
+                      filterBand={filterBand}
+                    />
+                  )}
                 </div>
               ) : (
                 <PreviewUnavailable

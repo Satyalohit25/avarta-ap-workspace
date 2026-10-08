@@ -1454,6 +1454,7 @@ export default function InvoiceDetailPage() {
                 exceptions={invoice.exceptions}
                 aiConfidence={invoice.aiConfidence}
                 lines={invoice.lines}
+                auditLogs={invoice.auditLogs}
                 activeFieldId={activeFieldId}
                 hoveredFieldId={hoveredFieldId}
                 onSelectField={handleSelectField}

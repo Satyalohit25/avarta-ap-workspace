@@ -123,13 +123,13 @@ export function getInvoice(id: string) {
 
 export function createInvoice(input: {
   supplierId?: string;
-  invoiceNumber: string;
+  invoiceNumber?: string;
   invoiceDate?: string;
   dueDate?: string;
-  currency: string;
+  currency?: string;
   subtotalAmount?: string | number;
   taxAmount?: string | number;
-  totalAmount: string | number;
+  totalAmount?: string | number;
   purchaseOrderId?: string;
   lines?: Array<{
     lineNumber?: number;
@@ -144,13 +144,13 @@ export function createInvoice(input: {
   if (input.file) {
     const formData = new FormData();
     if (input.supplierId) formData.append("supplierId", input.supplierId);
-    formData.append("invoiceNumber", input.invoiceNumber);
+    if (input.invoiceNumber) formData.append("invoiceNumber", input.invoiceNumber);
     if (input.invoiceDate) formData.append("invoiceDate", input.invoiceDate);
     if (input.dueDate) formData.append("dueDate", input.dueDate);
-    formData.append("currency", input.currency);
+    if (input.currency) formData.append("currency", input.currency);
     if (input.subtotalAmount) formData.append("subtotalAmount", String(input.subtotalAmount));
     if (input.taxAmount) formData.append("taxAmount", String(input.taxAmount));
-    formData.append("totalAmount", String(input.totalAmount));
+    if (input.totalAmount != null) formData.append("totalAmount", String(input.totalAmount));
     if (input.purchaseOrderId) formData.append("purchaseOrderId", input.purchaseOrderId);
     if (input.lines && input.lines.length > 0) {
       formData.append("lines", JSON.stringify(input.lines));
@@ -229,23 +229,44 @@ export function syncInvoiceToErp(id: string, targetErp: string) {
   });
 }
 
+export interface ExtractedDocumentData {
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  dueDate?: string;
+  currency?: string;
+  totalAmount?: number;
+  subtotal?: number;
+  taxAmount?: number;
+  supplier?: { name: string; address?: string; gstin?: string; country?: string; phone?: string; email?: string };
+  purchaseOrderNumber?: string;
+  lines?: Array<{
+    lineNumber?: number;
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    lineAmount: number;
+    hsnSacCode?: string;
+    taxRate?: number;
+  }>;
+  overallConfidence?: number;
+  fieldBoundingBoxes?: Record<string, { pageNumber?: number; x: number; y: number; width: number; height: number }>;
+}
+
+export function extractInvoiceDocument(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiRequest<{ data: ExtractedDocumentData }>("/invoices/extract", {
+    method: "POST",
+    body: formData,
+  });
+}
+
 export function uploadInvoiceDocument(id: string, file: File) {
   const formData = new FormData();
   formData.append("file", file);
-  return apiRequest<{ data: DocumentItem }>(`/invoices/${id}/documents`, {
+  return apiRequest<{ data: DocumentItem; invoice?: InvoiceListItem }>(`/invoices/${id}/documents`, {
     method: "POST",
     body: formData,
-  }).catch(() => {
-    return {
-      data: {
-        id: `doc-${Date.now()}`,
-        fileName: file.name,
-        mimeType: file.type,
-        storageKey: `uploads/${file.name}`,
-        fileSize: file.size,
-        createdAt: new Date().toISOString(),
-      },
-    };
   });
 }
 
