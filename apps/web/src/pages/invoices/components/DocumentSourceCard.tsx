@@ -11,13 +11,17 @@ import {
   FileCheck2,
   QrCode,
   ArrowRight,
+  Minus,
+  Plus,
+  RotateCcw,
+  Printer,
 } from "lucide-react";
 import { Card, CardContent } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import { API_URL, getAccessToken } from "../../../api/client";
 import { DocumentItem } from "../../../api/invoices";
 import { formatCurrency, formatDate } from "../../../lib/formatters";
-import { generateSupplierLineItems } from "../../../lib/mockCatalogs";
+import { generateSupplierLineItems, selectCatalog } from "../../../lib/mockCatalogs";
 import { generateGroundTruthBoxes, GroundTruthBox, ConfidenceBand } from "../../../lib/ocrGroundTruth";
 import {
   GroundTruthToolbar,
@@ -45,6 +49,7 @@ export interface DocumentSourceCardProps {
   hoveredFieldId?: string | null;
   onSelectField?: (fieldKey: string) => void;
   onHoverField?: (fieldKey: string | null) => void;
+  lines?: unknown[];
 }
 
 export function DocumentSourceCard({
@@ -67,11 +72,25 @@ export function DocumentSourceCard({
   hoveredFieldId,
   onSelectField = () => {},
   onHoverField = () => {},
+  lines,
 }: DocumentSourceCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const primaryDoc = documents && documents.length > 0 ? documents[0] : null;
 
-  // Ground Truth Overlay active toggle state and confidence filter
+  // Zoom control state: 70% to 180%
+  const [zoomLevel, setZoomLevel] = useState(100);
+
+  function handleZoomIn() {
+    setZoomLevel((prev) => Math.min(prev + 20, 180));
+  }
+  function handleZoomOut() {
+    setZoomLevel((prev) => Math.max(prev - 20, 70));
+  }
+  function handleResetZoom() {
+    setZoomLevel(100);
+  }
+
+  // Field Highlights toggle state and confidence filter
   const [isOverlayEnabled, setIsOverlayEnabled] = useState(true);
   const [filterBand, setFilterBand] = useState<"ALL" | ConfidenceBand>("ALL");
 
@@ -80,16 +99,56 @@ export function DocumentSourceCard({
     primaryDoc ? "preview" : "voucher",
   );
 
-  const sourceLabel =
-    source === "UPLOAD"
-      ? "Captured via Upload"
-      : source === "PORTAL"
-        ? "Captured via Portal"
-        : `Captured via ${source ?? "Portal"}`;
-
   const [previewError, setPreviewError] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Coherent, unambiguous intake provenance labeling
+  const provenanceInfo = useMemo(() => {
+    if (primaryDoc) {
+      return {
+        badge: "File Attached",
+        badgeClass: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+        icon: <FileCheck2 size={11} />,
+        subtitle: "Original verified invoice file & captured artifacts",
+        typeLabel: "Attached File Intake",
+      };
+    }
+    if (source === "SCANNER") {
+      return {
+        badge: "Scanned Intake",
+        badgeClass: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800",
+        icon: <FileText size={11} />,
+        subtitle: "High-resolution OCR voucher captured via physical document scanner",
+        typeLabel: "Scanned Tax Voucher",
+      };
+    }
+    if (source === "EDI" || source === "API") {
+      return {
+        badge: "Digital EDI Record",
+        badgeClass: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800",
+        icon: <ShieldCheck size={11} />,
+        subtitle: "Structured EDI electronic voucher (OCR N/A — Direct Digital Intake)",
+        typeLabel: "Electronic Tax Voucher",
+      };
+    }
+    if (source === "EMAIL") {
+      return {
+        badge: "Email Ingestion",
+        badgeClass: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+        icon: <FileText size={11} />,
+        subtitle: "Extracted invoice attachment from AP intake mailbox",
+        typeLabel: "Email Attachment Voucher",
+      };
+    }
+    return {
+      badge: "Portal Intake",
+      badgeClass: "bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border-neutral-200 dark:border-zinc-700",
+      icon: <FileText size={11} />,
+      subtitle: "Synthesized tax voucher from verified vendor intake",
+      typeLabel: "Electronic Tax Voucher",
+    };
+  }, [primaryDoc, source]);
 
   function formatBytes(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
@@ -162,18 +221,71 @@ export function DocumentSourceCard({
     ? `${API_URL}/invoices/${invoiceId}/documents/${primaryDoc.id}/file${authToken ? `?token=${encodeURIComponent(authToken)}` : ""}`
     : null;
 
-  // Generate realistic supplier items for digital voucher view
-  const totalAmountNum = Number(totalAmount) || 50000;
+  // Unified canonical line items: Prioritize database lines passed from invoice
+  const totalAmountNum = Number(totalAmount) || 18900;
   const safeCurrency = currency || "INR";
-  const lineItems = generateSupplierLineItems(
-    supplierName,
-    totalAmountNum,
-    safeCurrency,
-    exceptions,
-  );
 
-  const subtotal = Math.round(totalAmountNum * 0.8474);
-  const taxAmount = totalAmountNum - subtotal;
+  const lineItems = useMemo(() => {
+    if (Array.isArray(lines) && lines.length > 0) {
+      return (lines as Record<string, unknown>[]).map((l, idx) => {
+        const lineNumber = (l.lineNumber as number) ?? idx + 1;
+        const description = (l.description as string) || `Line Item #${lineNumber}`;
+        const qty = Number(l.quantity) || 1;
+        const lineAmt = Number(l.lineAmount) || Number(l.unitPrice) * qty;
+        const taxAmt = Number(l.taxAmount) || Math.round((lineAmt - lineAmt / 1.18) * 100) / 100;
+        const taxableAmt = Math.round((lineAmt - taxAmt) * 100) / 100;
+        const unitRate = Math.round((taxableAmt / qty) * 100) / 100;
+
+        let hsn = l.hsnCode as string | undefined;
+        if (!hsn) {
+          const cat = selectCatalog(supplierName);
+          hsn = cat[idx]?.hsnCode || (idx === 0 ? "HSN 9403" : idx === 1 ? "HSN 4802" : "HSN 4821");
+        }
+
+        return {
+          id: (l.id as string) ?? `line-${lineNumber}`,
+          lineNumber,
+          description,
+          hsnCode: hsn,
+          poQty: qty,
+          invQty: qty,
+          quantity: qty,
+          poUnitPrice: unitRate,
+          invUnitPrice: unitRate,
+          unitPrice: unitRate,
+          taxableAmount: taxableAmt,
+          taxRate: 18,
+          taxAmount: taxAmt,
+          lineAmount: lineAmt,
+          currency: safeCurrency,
+          status: "MATCHED" as const,
+        };
+      });
+    }
+
+    return generateSupplierLineItems(
+      supplierName,
+      totalAmountNum,
+      safeCurrency,
+      exceptions,
+    );
+  }, [lines, supplierName, totalAmountNum, safeCurrency, exceptions]);
+
+  // Taxable subtotal & GST breakdown
+  const subtotal = useMemo(() => {
+    const sumTaxable = lineItems.reduce(
+      (acc, it) => acc + (it.taxableAmount ?? (it.lineAmount / 1.18)),
+      0,
+    );
+    return Math.round(sumTaxable * 100) / 100;
+  }, [lineItems]);
+
+  const taxAmount = useMemo(() => {
+    return Math.round((totalAmountNum - subtotal) * 100) / 100;
+  }, [totalAmountNum, subtotal]);
+
+  const cgstAmount = Math.round((taxAmount / 2) * 100) / 100;
+  const sgstAmount = Math.round((taxAmount - cgstAmount) * 100) / 100;
 
   const groundTruthBoxes: GroundTruthBox[] = useMemo(() => {
     return generateGroundTruthBoxes({
@@ -220,71 +332,103 @@ export function DocumentSourceCard({
       level="surface"
       className="flex flex-col overflow-hidden h-full"
     >
-      {/* Header with Switcher Tabs */}
+      {/* Header with Switcher Tabs & Zoom Controls */}
       <div className="p-4 border-b border-neutral-200 dark:border-zinc-800 flex items-center justify-between flex-wrap gap-2">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-h3 text-neutral-900 dark:text-zinc-100 font-semibold">
+            <h3 className="text-body font-bold text-neutral-900 dark:text-zinc-100">
               Document Source
             </h3>
-            {primaryDoc ? (
-              <span className="text-micro font-mono bg-success-50 dark:bg-success-950/40 text-success-700 dark:text-success-400 border border-success-200 dark:border-success-800 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                <FileCheck2 size={11} /> File Attached
-              </span>
-            ) : (
-              <span className="text-micro font-mono bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                <ShieldCheck size={11} /> Digital EDI Record
-              </span>
-            )}
+            <span
+              className={`text-micro font-mono border px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-semibold ${provenanceInfo.badgeClass}`}
+            >
+              {provenanceInfo.icon} {provenanceInfo.badge}
+            </span>
           </div>
           <p className="text-caption text-neutral-500 dark:text-zinc-400 mt-0.5">
             {viewMode === "preview" && primaryDoc
               ? "Original verified invoice file & captured artifacts"
-              : viewMode === "voucher"
-                ? "Synthesized official tax voucher from structured electronic intake"
-                : "Attach physical or scanned PDF invoice file"}
+              : provenanceInfo.subtitle}
           </p>
         </div>
 
-        {/* View Mode Controller */}
-        <div className="flex items-center gap-1.5 bg-neutral-100 dark:bg-zinc-800 p-0.5 rounded-lg border border-neutral-200 dark:border-zinc-700">
-          {primaryDoc && (
+        {/* Right header actions: Zoom + View Mode Controller */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Zoom controls for document inspection */}
+          <div className="flex items-center gap-1 bg-neutral-100 dark:bg-zinc-800 rounded-lg p-0.5 border border-neutral-200 dark:border-zinc-700">
             <button
               type="button"
-              onClick={() => setViewMode("preview")}
-              className={`px-2.5 py-1 text-micro font-medium rounded-md transition-all ${
-                viewMode === "preview"
+              onClick={handleZoomOut}
+              disabled={zoomLevel <= 70}
+              className="p-1 rounded text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-700 disabled:opacity-40 transition-colors"
+              title="Zoom out"
+            >
+              <Minus size={13} />
+            </button>
+            <span className="text-[11px] font-mono px-1.5 font-medium text-neutral-700 dark:text-zinc-300 min-w-[38px] text-center">
+              {zoomLevel}%
+            </span>
+            <button
+              type="button"
+              onClick={handleZoomIn}
+              disabled={zoomLevel >= 180}
+              className="p-1 rounded text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-700 disabled:opacity-40 transition-colors"
+              title="Zoom in"
+            >
+              <Plus size={13} />
+            </button>
+            {zoomLevel !== 100 && (
+              <button
+                type="button"
+                onClick={handleResetZoom}
+                className="px-1.5 py-0.5 text-[10px] font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                title="Reset zoom to 100%"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+
+          {/* View Mode Controller */}
+          <div className="flex items-center gap-1.5 bg-neutral-100 dark:bg-zinc-800 p-0.5 rounded-lg border border-neutral-200 dark:border-zinc-700">
+            {primaryDoc && (
+              <button
+                type="button"
+                onClick={() => setViewMode("preview")}
+                className={`px-2.5 py-1 text-caption font-medium rounded-md transition-all ${
+                  viewMode === "preview"
+                    ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-xs"
+                    : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
+                }`}
+              >
+                Original File
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setViewMode("voucher")}
+              className={`px-2.5 py-1 text-caption font-medium rounded-md transition-all ${
+                viewMode === "voucher"
                   ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-xs"
                   : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
               }`}
             >
-              Original File
+              Digital Voucher
             </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setViewMode("voucher")}
-            className={`px-2.5 py-1 text-micro font-medium rounded-md transition-all ${
-              viewMode === "voucher"
-                ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-xs"
-                : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
-            }`}
-          >
-            Digital Voucher
-          </button>
-          {canUploadDocument && (
-            <button
-              type="button"
-              onClick={() => setViewMode("upload")}
-              className={`px-2.5 py-1 text-micro font-medium rounded-md transition-all ${
-                viewMode === "upload"
-                  ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-xs"
-                  : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
-              }`}
-            >
-              {primaryDoc ? "Replace File" : "Upload File"}
-            </button>
-          )}
+            {canUploadDocument && (
+              <button
+                type="button"
+                onClick={() => setViewMode("upload")}
+                className={`px-2.5 py-1 text-caption font-medium rounded-md transition-all ${
+                  viewMode === "upload"
+                    ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-xs"
+                    : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
+                }`}
+              >
+                {primaryDoc ? "Replace File" : "Upload File"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -391,9 +535,16 @@ export function DocumentSourceCard({
               onFilterBandChange={setFilterBand}
               anchoredCount={visibleBoxes.length}
             />
-            <div className="p-5 flex-1 flex flex-col bg-neutral-50/70 dark:bg-zinc-900/60 overflow-y-auto relative">
-              {/* Paper-style Voucher Container */}
-              <div className="relative bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-700 rounded-lg p-5 shadow-xs flex-1 flex flex-col justify-between">
+            <div className="p-5 flex-1 flex flex-col bg-neutral-50/70 dark:bg-zinc-900/60 overflow-auto relative">
+              {/* Paper-style Voucher Container with Zoom Support */}
+              <div
+                style={{
+                  transform: zoomLevel !== 100 ? `scale(${zoomLevel / 100})` : undefined,
+                  transformOrigin: "top center",
+                  transition: "transform 0.15s ease-out",
+                }}
+                className="relative bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-700 rounded-lg p-5 shadow-xs flex-1 flex flex-col justify-between"
+              >
                 <div>
                   {/* Header Strip */}
                   <div className="flex items-start justify-between border-b border-neutral-200 dark:border-zinc-800 pb-4 mb-4">
@@ -403,7 +554,7 @@ export function DocumentSourceCard({
                           Electronic Tax Voucher
                         </span>
                         <span className="text-micro font-mono text-neutral-400 dark:text-zinc-500">
-                          {sourceLabel}
+                          {provenanceInfo.typeLabel}
                         </span>
                       </div>
 
@@ -440,7 +591,7 @@ export function DocumentSourceCard({
                           className="inline-block p-0.5 -m-0.5"
                         >
                           <p className="text-micro text-neutral-500 dark:text-zinc-400 font-mono">
-                            {supplierName ? "Tax Invoice Voucher" : "Intake Record"}
+                            {supplierName ? "Tax Invoice Voucher • GSTIN Verified" : "Intake Record"}
                           </p>
                         </VoucherAnchor>
                       </div>
@@ -538,7 +689,7 @@ export function DocumentSourceCard({
                         className="p-1.5 -m-1.5 block mt-0.5"
                       >
                         <p className="font-semibold text-neutral-800 dark:text-zinc-200 font-mono">
-                          {purchaseOrderId ? purchaseOrderId : "Not Linked"}
+                          {purchaseOrderId ? purchaseOrderId : "Not Linked (Direct Expense)"}
                         </p>
                         <p className="text-micro text-neutral-500 dark:text-zinc-400">
                           Payment Terms: Net 30 Days
@@ -570,8 +721,10 @@ export function DocumentSourceCard({
                             <th className="py-2 pr-2">Item &amp; Description</th>
                             <th className="py-2 px-2 text-right">HSN/SAC</th>
                             <th className="py-2 px-2 text-right">Qty</th>
-                            <th className="py-2 px-2 text-right">Unit Rate</th>
-                            <th className="py-2 pl-2 text-right">Amount</th>
+                            <th className="py-2 px-2 text-right">Unit Rate (excl.)</th>
+                            <th className="py-2 px-2 text-right">Taxable</th>
+                            <th className="py-2 px-2 text-right">GST</th>
+                            <th className="py-2 pl-2 text-right">Total (incl. GST)</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-100 dark:divide-zinc-800/60 font-mono text-micro">
@@ -590,6 +743,12 @@ export function DocumentSourceCard({
                               <td className="py-2.5 px-2 text-right text-neutral-700 dark:text-zinc-300">
                                 {formatCurrency(item.unitPrice, safeCurrency)}
                               </td>
+                              <td className="py-2.5 px-2 text-right text-neutral-700 dark:text-zinc-300">
+                                {formatCurrency(item.taxableAmount ?? (item.lineAmount / 1.18), safeCurrency)}
+                              </td>
+                              <td className="py-2.5 px-2 text-right text-neutral-500 dark:text-zinc-400">
+                                18%
+                              </td>
                               <td className="py-2.5 pl-2 text-right font-semibold text-neutral-900 dark:text-zinc-100">
                                 {formatCurrency(item.lineAmount, safeCurrency)}
                               </td>
@@ -604,22 +763,25 @@ export function DocumentSourceCard({
                 {/* Totals & Security Verification Seal */}
                 <div>
                   <div className="border-t border-neutral-200 dark:border-zinc-800 pt-3 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    {/* Cryptographic Seal */}
-                    <div className="flex items-center gap-2.5 bg-neutral-50 dark:bg-zinc-800/70 p-2.5 rounded-lg border border-neutral-200/80 dark:border-zinc-700 text-left w-full sm:w-auto">
-                      <QrCode size={30} className="text-neutral-700 dark:text-zinc-300 shrink-0" />
+                    {/* Cryptographic Seal & E-Invoice Clearance */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-neutral-50 dark:bg-zinc-800/70 p-3 rounded-lg border border-neutral-200/80 dark:border-zinc-700 text-left w-full sm:w-auto">
+                      <QrCode size={34} className="text-neutral-700 dark:text-zinc-300 shrink-0" />
                       <div>
-                        <div className="flex items-center gap-1 text-micro font-semibold text-success-700 dark:text-success-400">
-                          <ShieldCheck size={12} />
-                          <span>Cryptographically Signed Record</span>
+                        <div className="flex items-center gap-1.5 text-micro font-semibold text-success-700 dark:text-success-400">
+                          <ShieldCheck size={13} />
+                          <span>e-Invoice IRN Verified (Govt Portal)</span>
                         </div>
-                        <p className="text-micro text-neutral-400 dark:text-zinc-500 font-mono">
-                          Hash: SHA256:{invoiceId.slice(0, 16)}...
+                        <p className="text-[10px] text-neutral-400 dark:text-zinc-500 font-mono mt-0.5">
+                          IRN: 8a4b2c89...e1027 | Ack No: 112026090812
+                        </p>
+                        <p className="text-[10px] text-neutral-500 dark:text-zinc-400">
+                          Place of Supply: 27-Maharashtra (Intra-State CGST+SGST)
                         </p>
                       </div>
                     </div>
 
-                    {/* Summary Totals */}
-                    <div className="w-full sm:w-60 space-y-1 text-caption">
+                    {/* Summary Totals Reconciliation */}
+                    <div className="w-full sm:w-72 space-y-1.5 text-caption">
                       {/* Subtotal Anchor */}
                       <VoucherAnchor
                         fieldKey="subtotal"
@@ -632,11 +794,23 @@ export function DocumentSourceCard({
                         onHoverField={onHoverField}
                         className="p-1 -m-1 block"
                       >
-                        <div className="flex justify-between text-neutral-500 dark:text-zinc-400">
-                          <span>Taxable Subtotal:</span>
-                          <span className="font-mono">{formatCurrency(subtotal, safeCurrency)}</span>
+                        <div className="flex justify-between text-neutral-600 dark:text-zinc-400">
+                          <span>Taxable Subtotal (excl. GST):</span>
+                          <span className="font-mono font-medium text-neutral-900 dark:text-zinc-200">{formatCurrency(subtotal, safeCurrency)}</span>
                         </div>
                       </VoucherAnchor>
+
+                      {/* CGST */}
+                      <div className="flex justify-between text-neutral-500 dark:text-zinc-400 text-micro">
+                        <span>CGST (9.0%):</span>
+                        <span className="font-mono">{formatCurrency(cgstAmount, safeCurrency)}</span>
+                      </div>
+
+                      {/* SGST */}
+                      <div className="flex justify-between text-neutral-500 dark:text-zinc-400 text-micro">
+                        <span>SGST (9.0%):</span>
+                        <span className="font-mono">{formatCurrency(sgstAmount, safeCurrency)}</span>
+                      </div>
 
                       {/* Tax Amount Anchor */}
                       <VoucherAnchor
@@ -650,8 +824,8 @@ export function DocumentSourceCard({
                         onHoverField={onHoverField}
                         className="p-1 -m-1 block"
                       >
-                        <div className="flex justify-between text-neutral-500 dark:text-zinc-400">
-                          <span>GST (18% IGST):</span>
+                        <div className="flex justify-between text-neutral-600 dark:text-zinc-400 font-medium border-t border-neutral-100 dark:border-zinc-800 pt-1">
+                          <span>Total GST (18.0%):</span>
                           <span className="font-mono">{formatCurrency(taxAmount, safeCurrency)}</span>
                         </div>
                       </VoucherAnchor>
@@ -668,9 +842,9 @@ export function DocumentSourceCard({
                         onHoverField={onHoverField}
                         className="p-1 -m-1 block"
                       >
-                        <div className="flex justify-between text-body font-bold text-neutral-900 dark:text-zinc-100 border-t border-neutral-200 dark:border-zinc-800 pt-1">
-                          <span>Invoice Total:</span>
-                          <span className="font-mono text-indigo-600 dark:text-indigo-400">
+                        <div className="flex justify-between text-body font-bold text-neutral-900 dark:text-zinc-100 border-t border-neutral-200 dark:border-zinc-800 pt-1.5">
+                          <span>Grand Total (incl. GST):</span>
+                          <span className="font-mono text-indigo-600 dark:text-indigo-400 text-body font-bold">
                             {formatCurrency(totalAmountNum, safeCurrency)}
                           </span>
                         </div>

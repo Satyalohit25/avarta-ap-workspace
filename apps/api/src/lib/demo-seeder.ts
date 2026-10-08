@@ -252,9 +252,9 @@ export async function seedDemoDataset(prismaClient: PrismaClient): Promise<SeedS
       { description: "Packaging & Insurance Surcharge", quantity: 1, unitPrice: 2300 },
     ],
     "SUP-003": [
-      { description: "HP LaserJet Pro MFP M428 Printer", quantity: 3, unitPrice: 1800 },
-      { description: "A4 Copy Paper (5-Ream Box)", quantity: 20, unitPrice: 145 },
-      { description: "Delivery & Setup Charges", quantity: 1, unitPrice: 500 },
+      { description: "Ergonomic High-Back Mesh Executive Task Chairs", quantity: 6, unitPrice: 1334.7458 },
+      { description: "Multi-Purpose Copier Paper (A4 80GSM - 500 Sheets Bulk Box)", quantity: 25, unitPrice: 224.2373 },
+      { description: "Thermal Barcode Label Rolls (100mm x 150mm Premium)", quantity: 30, unitPrice: 80.0847 },
     ],
     "SUP-004": [
       { description: "Dell PowerEdge R750 Rack Server", quantity: 2, unitPrice: 4850 },

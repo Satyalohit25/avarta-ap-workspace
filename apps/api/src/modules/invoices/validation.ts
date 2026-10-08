@@ -66,7 +66,14 @@ export const listInvoicesQuerySchema = z.object({
 // target state (Doc 14 §14.11).
 export const transitionSchema = z
   .object({
-    action: z.enum(["APPROVE", "REJECT", "RETRY_VALIDATION", "RUN_MATCHING"]),
+    action: z.enum([
+      "APPROVE",
+      "REJECT",
+      "RETRY_VALIDATION",
+      "RUN_MATCHING",
+      "SUBMIT_APPROVAL",
+      "HOLD_REQUEST_CORRECTION",
+    ]),
     comment: z.string().optional(),
   })
   .superRefine((data, ctx) => {

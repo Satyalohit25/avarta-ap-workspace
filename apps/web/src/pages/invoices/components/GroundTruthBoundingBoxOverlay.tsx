@@ -33,7 +33,7 @@ export function GroundTruthToolbar({
   filterBand,
   onFilterBandChange,
   anchoredCount,
-  helperText = "Click highlighted field to inspect extraction",
+  helperText = "Click any highlighted field to inspect extracted data",
   className = "",
 }: GroundTruthToolbarProps) {
   return (
@@ -44,25 +44,25 @@ export function GroundTruthToolbar({
         <button
           type="button"
           onClick={() => onToggleEnabled(!isEnabled)}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-micro font-medium transition-all ${
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-caption font-medium transition-all ${
             isEnabled
               ? "bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-semibold shadow-2xs"
               : "bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400 border border-neutral-200 dark:border-zinc-700 hover:text-neutral-900 dark:hover:text-zinc-200"
           }`}
-          title="Toggle interactive AI extraction coordinates overlay on the document"
+          title="Toggle field location highlights on the document preview"
         >
           {isEnabled ? (
-            <Eye size={12} className="text-indigo-600 dark:text-indigo-400" />
+            <Eye size={13} className="text-indigo-600 dark:text-indigo-400" />
           ) : (
-            <EyeOff size={12} />
+            <EyeOff size={13} />
           )}
-          <span>Ground Truth Overlay: {isEnabled ? "ON" : "OFF"}</span>
+          <span>Field Highlights: {isEnabled ? "ON" : "OFF"}</span>
         </button>
 
         {isEnabled && (
-          <div className="hidden sm:flex items-center gap-1 pl-2 border-l border-neutral-200 dark:border-zinc-700 text-micro">
-            <span className="text-neutral-400 dark:text-zinc-500 flex items-center gap-1 mr-1">
-              <Filter size={11} /> Filter:
+          <div className="hidden sm:flex items-center gap-1 pl-2 border-l border-neutral-200 dark:border-zinc-700 text-caption">
+            <span className="text-neutral-500 dark:text-zinc-400 flex items-center gap-1 mr-1 text-micro">
+              <Filter size={11} /> Confidence:
             </span>
             {(["ALL", "HIGH", "MEDIUM", "LOW"] as const).map((band) => (
               <button
@@ -89,12 +89,12 @@ export function GroundTruthToolbar({
       </div>
 
       {isEnabled && (
-        <div className="flex items-center gap-2 text-micro">
-          <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-900">
-            <CheckCircle2 size={11} />
-            <span>{anchoredCount} Coordinates Anchored</span>
+        <div className="flex items-center gap-2 text-caption">
+          <span className="inline-flex items-center gap-1 text-neutral-600 dark:text-zinc-300 bg-neutral-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full border border-neutral-200 dark:border-zinc-700 text-micro font-medium">
+            <CheckCircle2 size={11} className="text-emerald-600 dark:text-emerald-400" />
+            <span>{anchoredCount} Fields Mapped</span>
           </span>
-          <span className="text-neutral-400 dark:text-zinc-500 hidden md:inline">
+          <span className="text-neutral-500 dark:text-zinc-400 hidden md:inline text-micro">
             {helperText}
           </span>
         </div>
@@ -119,9 +119,9 @@ export interface VoucherAnchorProps {
 }
 
 /**
- * DOM-native ground-truth anchor for responsive Digital Voucher representations.
- * Renders directly onto the HTML element hierarchy to ensure zero coordinate drift,
- * complete scroll synchronization, and no collision with toolbars or table data.
+ * DOM-native field anchor for responsive Digital Voucher representations.
+ * Renders quiet, unobtrusive highlights that NEVER block document text.
+ * High-confidence fields stay quiet; exceptions and active selections illuminate prominently.
  */
 export function VoucherAnchor({
   fieldKey,
@@ -134,7 +134,6 @@ export function VoucherAnchor({
   onHoverField,
   children,
   className = "",
-  badgePlacement = "top-right",
   displayTag,
 }: VoucherAnchorProps) {
   if (!isEnabled) {
@@ -158,28 +157,15 @@ export function VoucherAnchor({
   const score = box?.confidence ?? 98;
   const label = box?.label ?? fieldKey;
 
+  // Quiet success: High confidence items show NO harsh border when unhovered.
+  // Exceptions (medium/low) show gentle warning/alert indicators.
   const ringClasses = isHighlighted
-    ? "ring-2 ring-indigo-600 dark:ring-indigo-400 bg-indigo-50/70 dark:bg-indigo-950/60 shadow-xs"
-    : band === "HIGH"
-      ? "ring-1.5 ring-emerald-500/60 dark:ring-emerald-500/40 bg-emerald-50/20 dark:bg-emerald-950/20 hover:ring-emerald-500 dark:hover:ring-emerald-400"
-      : band === "MEDIUM"
-        ? "ring-1.5 ring-amber-500/60 dark:ring-amber-500/40 bg-amber-50/25 dark:bg-amber-950/25 hover:ring-amber-500 dark:hover:ring-amber-400"
-        : "ring-1.5 ring-rose-500/60 dark:ring-rose-500/40 bg-rose-50/25 dark:bg-rose-950/25 hover:ring-rose-500 dark:hover:ring-rose-400";
-
-  const badgeBg = isHighlighted
-    ? "bg-indigo-600 text-white"
-    : band === "HIGH"
-      ? "bg-emerald-600 text-white dark:bg-emerald-500 dark:text-zinc-950"
-      : band === "MEDIUM"
-        ? "bg-amber-600 text-white dark:bg-amber-500 dark:text-zinc-950"
-        : "bg-rose-600 text-white dark:bg-rose-500 dark:text-zinc-950";
-
-  const badgePositionClass =
-    badgePlacement === "top-left"
-      ? "absolute -top-2 left-1 z-10"
-      : badgePlacement === "inline"
-        ? "inline-flex items-center ml-1.5"
-        : "absolute -top-2 right-1 z-10";
+    ? "ring-2 ring-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/60 shadow-xs"
+    : band === "MEDIUM"
+      ? "ring-1 ring-amber-400/80 bg-amber-50/30 dark:bg-amber-950/30"
+      : band === "LOW"
+        ? "ring-1 ring-rose-400/80 bg-rose-50/30 dark:bg-rose-950/30"
+        : "hover:bg-neutral-100/70 dark:hover:bg-zinc-800/60 hover:ring-1 hover:ring-indigo-300 dark:hover:ring-indigo-700/60";
 
   return (
     <div
@@ -198,29 +184,30 @@ export function VoucherAnchor({
       }}
       onMouseEnter={() => onHoverField(fieldKey)}
       onMouseLeave={() => onHoverField(null)}
-      className={`relative rounded-md transition-all duration-150 cursor-pointer ${ringClasses} ${className}`}
-      title={`${label}: ${score}% Confidence (Click to focus extraction field)`}
-      aria-label={`${label} anchor, ${score}% confidence`}
+      className={`relative rounded transition-all duration-150 cursor-pointer ${ringClasses} ${className}`}
+      title={`${label}: ${score}% Confidence (Click to inspect and edit)`}
+      aria-label={`${label} field marker, ${score}% confidence`}
     >
-      {badgePlacement !== "inline" && (
+      {/* Floating indicator: Rendered ONLY on hover or active, positioned clear of the text */}
+      {isHighlighted && (
         <span
-          className={`${badgePositionClass} ${badgeBg} text-[10px] font-mono font-bold leading-none px-1.5 py-0.5 rounded shadow-2xs pointer-events-none transition-transform ${
-            isHighlighted ? "scale-105 ring-1 ring-white dark:ring-zinc-900" : ""
-          }`}
+          className="absolute -top-3 right-0 z-20 bg-indigo-700 text-white text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded shadow-sm pointer-events-none whitespace-nowrap animate-in fade-in zoom-in-95 duration-100"
         >
-          {displayTag || `${score}%`}
+          {displayTag || `${label}: ${score}%`}
         </span>
+      )}
+
+      {/* Exception indicator: Rendered if low/medium confidence when NOT highlighted */}
+      {!isHighlighted && band !== "HIGH" && (
+        <span
+          className={`absolute -top-1.5 -right-1.5 z-10 w-2.5 h-2.5 rounded-full pointer-events-none ring-2 ring-white dark:ring-zinc-900 ${
+            band === "MEDIUM" ? "bg-amber-500" : "bg-rose-500"
+          }`}
+          title={`Needs review: ${score}% confidence`}
+        />
       )}
 
       {children}
-
-      {badgePlacement === "inline" && (
-        <span
-          className={`${badgePositionClass} ${badgeBg} text-[10px] font-mono font-bold leading-none px-1.5 py-0.5 rounded shadow-2xs pointer-events-none`}
-        >
-          {displayTag || `${score}%`}
-        </span>
-      )}
     </div>
   );
 }

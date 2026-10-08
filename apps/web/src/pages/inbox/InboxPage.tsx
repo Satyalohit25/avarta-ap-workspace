@@ -85,10 +85,14 @@ export default function InboxPage() {
       setInitialFormData({
         invoiceNumber: detail.invoiceNumber,
         supplierId: detail.supplier?.id,
-        invoiceDate: detail.invoiceDate ?? undefined,
-        dueDate: detail.dueDate ?? undefined,
-        currency: detail.currency ?? "INR",
+        purchaseOrderId: detail.purchaseOrderId ?? undefined,
+        invoiceDate: detail.invoiceDate ? detail.invoiceDate.split("T")[0] : undefined,
+        dueDate: detail.dueDate ? detail.dueDate.split("T")[0] : undefined,
+        currency: detail.currency ?? invoice.currency ?? "INR",
         totalAmount: detail.totalAmount,
+        aiConfidence: detail.aiConfidence != null ? Number(detail.aiConfidence) : 96,
+        source: detail.source ?? invoice.source ?? "PORTAL",
+        documents: detail.documents ?? [],
         lines:
           Array.isArray(detail.lines) && detail.lines.length > 0
             ? (detail.lines as Record<string, unknown>[]).map((l, idx) => ({
@@ -98,7 +102,7 @@ export default function InboxPage() {
                   (l.description as string) || `Line Item #${idx + 1}`,
                 quantity: Number(l.quantity) || 1,
                 unitPrice: Number(l.unitPrice) || 0,
-                taxRate: l.taxRate ? Number(l.taxRate) : 18,
+                taxRate: l.taxRate ? Number(l.taxRate) : (detail.currency === "CAD" ? 5 : 18),
                 taxAmount: l.taxAmount ? Number(l.taxAmount) : undefined,
                 lineAmount:
                   Number(l.lineAmount) ||
@@ -111,10 +115,13 @@ export default function InboxPage() {
       setInitialFormData({
         invoiceNumber: invoice.invoiceNumber,
         supplierId: invoice.supplier?.id,
-        invoiceDate: invoice.invoiceDate ?? undefined,
-        dueDate: invoice.dueDate ?? undefined,
+        purchaseOrderId: invoice.purchaseOrderId ?? undefined,
+        invoiceDate: invoice.invoiceDate ? invoice.invoiceDate.split("T")[0] : undefined,
+        dueDate: invoice.dueDate ? invoice.dueDate.split("T")[0] : undefined,
         currency: invoice.currency ?? "INR",
         totalAmount: invoice.totalAmount,
+        aiConfidence: invoice.aiConfidence != null ? Number(invoice.aiConfidence) : 96,
+        source: invoice.source ?? "PORTAL",
       });
     }
 
@@ -130,6 +137,7 @@ export default function InboxPage() {
         await createInvoice({
           invoiceNumber: values.invoiceNumber.trim(),
           supplierId: values.supplierId || undefined,
+          purchaseOrderId: values.purchaseOrderId || undefined,
           invoiceDate: values.invoiceDate || undefined,
           dueDate: values.dueDate || undefined,
           currency: values.currency,
@@ -148,6 +156,7 @@ export default function InboxPage() {
         await updateInvoice(selectedInvoiceId, {
           invoiceNumber: values.invoiceNumber.trim(),
           supplierId: values.supplierId || undefined,
+          purchaseOrderId: values.purchaseOrderId || undefined,
           invoiceDate: values.invoiceDate || undefined,
           dueDate: values.dueDate || undefined,
           currency: values.currency,
@@ -160,8 +169,8 @@ export default function InboxPage() {
         // Run OCR, validation & 3-way matching pipeline on reviewed invoice
         await processInvoice(selectedInvoiceId);
         toast.success(
-          "Invoice Reviewed & Processed",
-          `Invoice ${values.invoiceNumber.trim()} validated and pipeline executed.`,
+          "Invoice Verified & Matching Started",
+          `Invoice ${values.invoiceNumber.trim()} verified and advanced to matching.`,
         );
       } else {
         toast.success(

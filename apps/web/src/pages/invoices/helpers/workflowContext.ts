@@ -217,8 +217,16 @@ export function getInvoiceWorkflowContext(invoice: RawInvoiceData): InvoiceWorkf
       stageNumber = 1;
       break;
     case "PROCESSING":
-      currentStage = hasDocuments ? "OCR Capture & Parsing" : "3-Way Matching";
-      stageNumber = hasDocuments ? 2 : 4;
+      if (workflowState === "VALIDATED" || workflowState === "MATCHED") {
+        currentStage = hasPO ? "3-Way Matching Verified" : "Direct Expense (Non-PO Cleared)";
+        stageNumber = 4;
+      } else if (workflowState === "CAPTURED") {
+        currentStage = "Statutory Validation";
+        stageNumber = 3;
+      } else {
+        currentStage = hasDocuments ? "OCR Capture & Parsing" : "Intake Data Verification";
+        stageNumber = 2;
+      }
       break;
     case "EXCEPTION":
       currentStage = "Exception Resolution";
@@ -276,11 +284,30 @@ export function getInvoiceWorkflowContext(invoice: RawInvoiceData): InvoiceWorkf
       break;
 
     case "PROCESSING":
-      primaryAction = null;
-      bannerTitle = "Processing In Progress (Stage 2: Pipeline)";
-      bannerDescription = "OCR extraction, rule evaluation, and 3-way PO reconciliation are currently executing.";
-      bannerType = "info";
-      nextStepPrompt = "Please wait while the workflow engine verifies invoice data against ERP records.";
+      primaryAction = {
+        label: "Send to Approval",
+        actionKey: "SUBMIT_APPROVAL",
+        variant: "primary",
+        description: "Submit verified invoice to Finance Manager for payment sign-off",
+      };
+      secondaryActions.push({
+        label: "Hold / Request Correction",
+        actionKey: "HOLD_REQUEST_CORRECTION",
+        variant: "outline",
+      });
+      if (!hasPO) {
+        secondaryActions.push({
+          label: "Link Purchase Order",
+          actionKey: "LINK_PO",
+          variant: "outline",
+        });
+      }
+      bannerTitle = "Verification Passed • Ready for Approval";
+      bannerDescription = hasPO
+        ? "Line items, statutory GST arithmetic, and purchase order matching have passed automated verification."
+        : "Direct Non-PO Expense cleared. Statutory GST arithmetic, vendor master, and threshold rules verified.";
+      bannerType = "success";
+      nextStepPrompt = "Review extracted details and click 'Send to Approval' to route to management sign-off.";
       break;
 
     case "EXCEPTION":
@@ -290,6 +317,11 @@ export function getInvoiceWorkflowContext(invoice: RawInvoiceData): InvoiceWorkf
         variant: "primary",
         description: "Open the exceptions drawer to apply manager tolerance or resolve PO mismatch",
       };
+      secondaryActions.push({
+        label: "Hold / Request Correction",
+        actionKey: "HOLD_REQUEST_CORRECTION",
+        variant: "outline",
+      });
       secondaryActions.push({
         label: "Re-run Validation",
         actionKey: "RETRY_VALIDATION",
@@ -308,6 +340,11 @@ export function getInvoiceWorkflowContext(invoice: RawInvoiceData): InvoiceWorkf
         variant: "primary",
         description: "Authorize invoice for scheduled payment release",
       };
+      secondaryActions.push({
+        label: "Hold / Request Correction",
+        actionKey: "HOLD_REQUEST_CORRECTION",
+        variant: "outline",
+      });
       secondaryActions.push({
         label: "Reject Invoice",
         actionKey: "REJECT",

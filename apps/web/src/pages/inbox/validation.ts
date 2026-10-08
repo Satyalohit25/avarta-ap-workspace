@@ -19,6 +19,7 @@ export const invoiceFormSchema = z
       .min(1, "Invoice number is required")
       .max(100, "Invoice number cannot exceed 100 characters"),
     supplierId: z.string().optional(),
+    purchaseOrderId: z.string().optional(),
     invoiceDate: z.string().optional(),
     dueDate: z.string().optional(),
     paymentTerms: z.string().optional(),
@@ -37,6 +38,9 @@ export const invoiceFormSchema = z
       ),
     lines: z.array(invoiceLineSchema).optional(),
     file: z.any().optional(),
+    aiConfidence: z.number().optional(),
+    source: z.string().optional(),
+    documents: z.any().optional(),
   })
   .refine(
     (data) => {

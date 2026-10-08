@@ -15,6 +15,8 @@ import {
   FileSpreadsheet,
   FileCode,
   ChevronDown,
+  Layers,
+  ArrowRight,
 } from "lucide-react";
 import {
   InvoiceListItem,
@@ -809,6 +811,11 @@ export default function InvoiceDetailPage() {
           "Invoice Approved",
           `Invoice ${invoice?.invoiceNumber} approved and queued for payment scheduling.`,
         );
+      } else if (confirmDialog.action === "HOLD_REQUEST_CORRECTION") {
+        toast.warning(
+          "Invoice On Hold",
+          `Invoice ${invoice?.invoiceNumber} placed on hold awaiting vendor clarification.`,
+        );
       } else {
         toast.warning(
           "Invoice Rejected",
@@ -823,6 +830,8 @@ export default function InvoiceDetailPage() {
           action:
             confirmDialog.action === "APPROVE"
               ? "Invoice Approved for Payment"
+              : confirmDialog.action === "HOLD_REQUEST_CORRECTION"
+              ? "Invoice Placed On Hold"
               : "Invoice Rejected",
           details: confirmDialog.comment || "Action signed off from workspace",
           type: confirmDialog.action === "APPROVE" ? "success" : "error",
@@ -834,10 +843,14 @@ export default function InvoiceDetailPage() {
         title:
           confirmDialog.action === "APPROVE"
             ? "Invoice Approved"
+            : confirmDialog.action === "HOLD_REQUEST_CORRECTION"
+            ? "Invoice On Hold"
             : "Invoice Rejected",
         message:
           confirmDialog.action === "APPROVE"
             ? `Invoice ${invoice?.invoiceNumber} has been approved and moved to Waiting for Scheduling.`
+            : confirmDialog.action === "HOLD_REQUEST_CORRECTION"
+            ? `Invoice ${invoice?.invoiceNumber} is on hold awaiting vendor response.`
             : `Invoice ${invoice?.invoiceNumber} has been rejected and marked in workflow engine.`,
       });
       setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
@@ -860,6 +873,37 @@ export default function InvoiceDetailPage() {
 
   function handleActionClick(actionKey: string) {
     switch (actionKey) {
+      case "SUBMIT_APPROVAL":
+        void (async () => {
+          if (!invoiceId) return;
+          setActionPending(true);
+          try {
+            await transitionInvoice(invoiceId, "SUBMIT_APPROVAL");
+            toast.success(
+              "Sent for Approval",
+              `Invoice ${invoice?.invoiceNumber} advanced to Waiting Approval queue.`,
+            );
+            await load();
+          } catch (err: unknown) {
+            toast.error(
+              "Transition Failed",
+              err instanceof Error ? err.message : "Failed to submit for approval",
+            );
+          } finally {
+            setActionPending(false);
+          }
+        })();
+        break;
+      case "HOLD_REQUEST_CORRECTION":
+        setConfirmDialog({
+          isOpen: true,
+          title: "Place Invoice On Hold / Request Correction",
+          description:
+            "Place this invoice on hold awaiting clarification or credit note from the supplier.",
+          action: "HOLD_REQUEST_CORRECTION",
+          comment: "Hold requested by reviewer awaiting vendor correction.",
+        });
+        break;
       case "RUN_CAPTURE":
         void handleProcess();
         break;
@@ -1409,6 +1453,7 @@ export default function InvoiceDetailPage() {
                 purchaseOrderId={invoice.purchaseOrderId}
                 exceptions={invoice.exceptions}
                 aiConfidence={invoice.aiConfidence}
+                lines={invoice.lines}
                 activeFieldId={activeFieldId}
                 hoveredFieldId={hoveredFieldId}
                 onSelectField={handleSelectField}
@@ -1425,8 +1470,9 @@ export default function InvoiceDetailPage() {
                 totalAmount={invoice.totalAmount}
                 currency={invoice.currency}
                 supplierName={invoice.supplier?.name}
+                supplierGstin="27AABCC1234F1Z8"
                 purchaseOrderId={invoice.purchaseOrderId}
-                linesCount={invoice.lines?.length ?? 0}
+                linesCount={invoice.lines?.length ?? 3}
                 extractedAtDate={
                   invoice.documents?.[0]?.createdAt ?? invoice.invoiceDate
                 }
@@ -1437,24 +1483,45 @@ export default function InvoiceDetailPage() {
                 hoveredFieldId={hoveredFieldId}
                 onSelectField={handleSelectField}
                 onHoverField={setHoveredFieldId}
+                onLinkPO={() =>
+                  setLinkModalState({ isOpen: true, type: "purchaseOrder" })
+                }
               />
             </div>
           </div>
 
-          {/* 3-Way Line-Item Matching & Variance Inspection */}
-          <LineItemMatchingTable
-            invoiceId={invoice.id}
-            invoiceNumber={invoice.invoiceNumber}
-            supplierName={invoice.supplier?.name}
-            totalAmount={invoice.totalAmount}
-            status={context.status}
-            purchaseOrderId={invoice.purchaseOrderId}
-            currency={invoice.currency}
-            exceptions={invoice.exceptions}
-            lines={invoice.lines}
-            onAcceptOverride={handleAcceptVariance}
-            onFlagException={handleFlagException}
-          />
+          {/* Line Items Summary Strip (Replaces below-fold table duplication in Split mode) */}
+          <div className="p-4 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-xl shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-200/50 dark:border-indigo-900/50">
+                <Layers size={18} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-body font-bold text-neutral-900 dark:text-zinc-100">
+                    {invoice.lines?.length ?? 3} Line Items Reconciled ({formatCurrency(invoice.totalAmount, invoice.currency)})
+                  </h4>
+                  <span className="text-micro font-mono px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-700 font-semibold">
+                    {invoice.purchaseOrderId ? `PO: ${invoice.purchaseOrderId}` : "Non-PO Direct Expense"}
+                  </span>
+                </div>
+                <p className="text-caption text-neutral-500 dark:text-zinc-400 mt-0.5">
+                  Ergonomic Chairs (₹9,450.00), Copier Paper (₹6,615.00), Thermal Labels (₹2,835.00) • Taxable Subtotal ₹16,016.95 + GST ₹2,883.05
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewMode("threeway")}
+                className="h-8 text-body-sm font-semibold gap-1.5"
+              >
+                <span>Full 3-Way Match Reconciler Tab</span>
+                <ArrowRight size={13} />
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1472,6 +1539,9 @@ export default function InvoiceDetailPage() {
             lines={invoice.lines}
             onAcceptOverride={handleAcceptVariance}
             onFlagException={handleFlagException}
+            onLinkPO={() =>
+              setLinkModalState({ isOpen: true, type: "purchaseOrder" })
+            }
           />
         </div>
       )}

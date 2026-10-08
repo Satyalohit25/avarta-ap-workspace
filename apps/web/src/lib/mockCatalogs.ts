@@ -77,8 +77,11 @@ export interface GeneratedLineItem {
   quantity: number;
   poUnitPrice: number;
   invUnitPrice: number;
-  unitPrice: number;
-  lineAmount: number;
+  unitPrice: number; // Unit rate excl. GST
+  taxableAmount: number; // Line taxable subtotal
+  taxRate: number; // GST rate percentage (e.g. 18%)
+  taxAmount: number; // Line tax amount (18% of taxable)
+  lineAmount: number; // Line total incl. GST
   currency: string;
   status: "MATCHED" | "PRICE_VARIANCE" | "QTY_VARIANCE";
   overrideAccepted?: boolean;
@@ -109,17 +112,21 @@ export function generateSupplierLineItems(
   return catalog.map((cat, idx) => {
     const lineAmt = amounts[idx];
     const qty = cat.typicalQty;
-    const exactUnitPrice = Math.round((lineAmt / qty) * 100) / 100;
+    // Statutory GST split: Line total includes 18% GST (9% CGST + 9% SGST)
+    const taxableAmt = Math.round((lineAmt / 1.18) * 100) / 100;
+    const taxAmt = Math.round((lineAmt - taxableAmt) * 100) / 100;
+    const unitRateExclGst = Math.round((taxableAmt / qty) * 100) / 100;
+    const unitRateInclGst = Math.round((lineAmt / qty) * 100) / 100;
 
-    let poUnitPrice = exactUnitPrice;
-    let invUnitPrice = exactUnitPrice;
+    let poUnitPrice = unitRateExclGst;
+    let invUnitPrice = unitRateExclGst;
     let poQty = qty;
     let invQty = qty;
     let status: "MATCHED" | "PRICE_VARIANCE" | "QTY_VARIANCE" = "MATCHED";
 
     if (idx === 0 && hasPriceException) {
-      poUnitPrice = Math.round(exactUnitPrice * 0.9 * 100) / 100;
-      invUnitPrice = exactUnitPrice;
+      poUnitPrice = Math.round(unitRateExclGst * 0.9 * 100) / 100;
+      invUnitPrice = unitRateExclGst;
       status = "PRICE_VARIANCE";
     } else if (idx === 1 && hasQtyException) {
       poQty = Math.max(1, Math.round(qty * 0.8));
@@ -138,6 +145,9 @@ export function generateSupplierLineItems(
       poUnitPrice,
       invUnitPrice,
       unitPrice: invUnitPrice,
+      taxableAmount: taxableAmt,
+      taxRate: 18,
+      taxAmount: taxAmt,
       lineAmount: lineAmt,
       currency,
       status,

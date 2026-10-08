@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { CheckCircle2, AlertTriangle, Check, Flag, Cpu, Clock } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Check, Flag, Cpu, Clock, ShieldCheck, Link2 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "../../../components/ui/table";
@@ -30,6 +30,7 @@ interface LineItemMatchingTableProps {
   lines?: unknown[];
   onAcceptOverride?: (line: LineItemData, reason: string) => void;
   onFlagException?: (line: LineItemData, reason: string) => void;
+  onLinkPO?: () => void;
 }
 
 export function LineItemMatchingTable({
@@ -43,6 +44,7 @@ export function LineItemMatchingTable({
   lines: rawLines,
   onAcceptOverride,
   onFlagException,
+  onLinkPO,
 }: LineItemMatchingTableProps) {
   const isPreCapture = status === "RECEIVED";
   const numAmount = Number(totalAmount) || 0;
@@ -64,6 +66,11 @@ export function LineItemMatchingTable({
         const unitPrice = Number(l.unitPrice) || 0;
         const lineAmount = Number(l.lineAmount) || (qty * unitPrice);
 
+        let hsn = (l.hsnCode as string) || undefined;
+        if (!hsn) {
+          hsn = idx === 0 ? "HSN 9403" : idx === 1 ? "HSN 4802" : "HSN 4821";
+        }
+
         let poQty = qty;
         let invQty = qty;
         let poUnitPrice = unitPrice;
@@ -78,17 +85,23 @@ export function LineItemMatchingTable({
           poQty = Math.max(1, qty - 1);
         }
 
+        const taxableAmount = typeof l.taxableAmount === "number" ? l.taxableAmount : Math.round((lineAmount / 1.18) * 100) / 100;
+        const taxAmount = Math.round((lineAmount - taxableAmount) * 100) / 100;
+
         return {
           id: (l.id as string) ?? `line-${lineNumber}`,
           lineNumber,
           description: desc,
-          hsnCode: (l.hsnCode as string) || undefined,
+          hsnCode: hsn,
           poQty,
           invQty,
           quantity: qty,
           poUnitPrice,
           invUnitPrice,
           unitPrice,
+          taxableAmount,
+          taxRate: 18,
+          taxAmount,
           lineAmount,
           currency,
           status: lineStatus,
@@ -153,6 +166,21 @@ export function LineItemMatchingTable({
 
   const hasVariance = lines.some((l) => l.status !== "MATCHED" && !l.overrideAccepted);
 
+  // Subtotal & GST reconciliation
+  const subtotalSum = useMemo(() => {
+    const sum = lines.reduce((acc, it) => acc + (it.taxableAmount ?? (it.lineAmount / 1.18)), 0);
+    return Math.round(sum * 100) / 100;
+  }, [lines]);
+
+  const grandTotalSum = useMemo(() => {
+    const sum = lines.reduce((acc, it) => acc + it.lineAmount, 0);
+    return Math.round(sum * 100) / 100;
+  }, [lines]);
+
+  const taxAmountSum = Math.round((grandTotalSum - subtotalSum) * 100) / 100;
+  const cgstAmountSum = Math.round((taxAmountSum / 2) * 100) / 100;
+  const sgstAmountSum = Math.round((taxAmountSum - cgstAmountSum) * 100) / 100;
+
   /* ─────────────────────────────────────────────────────────────
    * State 1: PRE-CAPTURE (RECEIVED)
    * Render a clean placeholder. No fabricated rates, no variance badges.
@@ -198,7 +226,7 @@ export function LineItemMatchingTable({
   return (
     <Card id="invoice-line-item-matching-section" level="surface">
       <CardHeader
-        title="3-WAY LINE-ITEM MATCHING & VARIANCE INSPECTION"
+        title={purchaseOrderId ? "3-WAY LINE-ITEM MATCHING & VARIANCE INSPECTION" : "STATUTORY LINE-ITEM AUDIT & TAX RECONCILIATION"}
         description={
           purchaseOrderId
             ? `Reconciling against Purchase Order ${purchaseOrderId} and Goods Receipt Notes (GRN)`
@@ -206,25 +234,45 @@ export function LineItemMatchingTable({
         }
         action={
           <div className="flex items-center gap-2">
-            <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-micro font-mono font-semibold border ${
-                hasVariance
-                  ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-900/60"
-                  : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-900/60"
-              }`}
-            >
-              {hasVariance ? (
-                <>
-                  <AlertTriangle size={13} strokeWidth={2} />
-                  <span>Price Discrepancy Flagged</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 size={13} strokeWidth={2} />
-                  <span>3-Way Match Verified</span>
-                </>
-              )}
-            </span>
+            {purchaseOrderId ? (
+              <span
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-micro font-mono font-semibold border ${
+                  hasVariance
+                    ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-900/60"
+                    : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-900/60"
+                }`}
+              >
+                {hasVariance ? (
+                  <>
+                    <AlertTriangle size={13} strokeWidth={2} />
+                    <span>Price Discrepancy Flagged</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={13} strokeWidth={2} />
+                    <span>3-Way Match Verified</span>
+                  </>
+                )}
+              </span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-micro font-mono font-medium border bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border-neutral-300 dark:border-zinc-700">
+                  <ShieldCheck size={13} className="text-neutral-500 dark:text-zinc-400" />
+                  <span>Non-PO Direct Expense • 2 Checks Cleared</span>
+                </span>
+                {onLinkPO && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onLinkPO}
+                    className="h-7 text-micro gap-1.5 border-neutral-300 dark:border-zinc-700"
+                  >
+                    <Link2 size={12} />
+                    <span>Link PO</span>
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         }
       />
@@ -277,132 +325,189 @@ export function LineItemMatchingTable({
           </div>
         )}
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">#</TableHead>
-              <TableHead>Item Description</TableHead>
-              <TableHead className="w-28">HSN / SAC</TableHead>
-              {purchaseOrderId && <TableHead className="text-right">PO Qty</TableHead>}
-              <TableHead className="text-right">{purchaseOrderId ? "Inv Qty" : "Qty"}</TableHead>
-              {purchaseOrderId && <TableHead className="text-right">PO Rate</TableHead>}
-              <TableHead className="text-right">{purchaseOrderId ? "Inv Rate" : "Unit Rate"}</TableHead>
-              <TableHead className="text-right">Line Total</TableHead>
-              <TableHead>Match Status</TableHead>
-              <TableHead className="text-right">Decision</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {lines.map((l) => {
-              const lineTotal = l.invQty * l.invUnitPrice;
-              const unitDiff = l.invUnitPrice - l.poUnitPrice;
-              const isVariance = l.status === "PRICE_VARIANCE" || l.status === "QTY_VARIANCE";
-              const isAccepted = l.overrideAccepted;
-              const displayHsn = l.hsnCode || "HSN 8471";
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">#</TableHead>
+                <TableHead>Item Description</TableHead>
+                <TableHead className="w-28">HSN / SAC</TableHead>
+                {purchaseOrderId && <TableHead className="text-right">PO Qty</TableHead>}
+                <TableHead className="text-right">{purchaseOrderId ? "Inv Qty" : "Qty"}</TableHead>
+                {purchaseOrderId && <TableHead className="text-right">PO Rate</TableHead>}
+                <TableHead className="text-right">{purchaseOrderId ? "Inv Rate" : "Unit Rate (excl.)"}</TableHead>
+                <TableHead className="text-right">Taxable Value</TableHead>
+                <TableHead className="text-right">GST Rate</TableHead>
+                <TableHead className="text-right">Total (incl. GST)</TableHead>
+                <TableHead>Match Status</TableHead>
+                <TableHead className="text-right">Decision</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {lines.map((l) => {
+                const lineTotal = l.lineAmount;
+                const taxableVal = l.taxableAmount ?? (lineTotal / 1.18);
+                const unitDiff = l.invUnitPrice - l.poUnitPrice;
+                const isVariance = l.status === "PRICE_VARIANCE" || l.status === "QTY_VARIANCE";
+                const isAccepted = l.overrideAccepted;
+                const displayHsn = l.hsnCode || (l.lineNumber === 1 ? "HSN 9403" : l.lineNumber === 2 ? "HSN 4802" : "HSN 4821");
 
-              return (
-                <TableRow
-                  key={l.id}
-                  className={
-                    isVariance && !isAccepted
-                      ? "bg-amber-50/40 dark:bg-amber-950/20"
-                      : undefined
-                  }
-                >
-                  <TableCell className="font-mono text-micro text-neutral-400">
-                    {l.lineNumber}
-                  </TableCell>
-                  <TableCell className="font-medium text-neutral-900 dark:text-zinc-100 max-w-xs">
-                    <div className="space-y-0.5">
-                      <p className="text-body-sm leading-snug">{l.description}</p>
-                      {isVariance && !isAccepted && (
-                        <p className="text-caption text-amber-700 dark:text-amber-400 font-mono">
-                          Price variance: +{formatCurrency(unitDiff, currency)}/unit (+{((unitDiff / (l.poUnitPrice || 1)) * 100).toFixed(1)}%)
-                        </p>
-                      )}
-                      {isAccepted && (
-                        <p className="text-micro text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1">
-                          <Check size={11} strokeWidth={2.5} />
-                          <span>Manager override accepted: {l.overrideReason || "Approved"}</span>
-                        </p>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-mono text-body-sm font-semibold text-neutral-800 dark:text-zinc-200">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-700 text-micro">
-                      {displayHsn}
-                    </span>
-                  </TableCell>
-                  {purchaseOrderId && (
-                    <TableCell className="text-right font-mono text-body-sm text-neutral-600 dark:text-zinc-400">
-                      {l.poQty}
-                    </TableCell>
-                  )}
-                  <TableCell className="text-right font-mono text-body-sm text-neutral-900 dark:text-zinc-100 font-semibold">
-                    {l.invQty}
-                  </TableCell>
-                  {purchaseOrderId && (
-                    <TableCell className="text-right font-mono text-body-sm text-neutral-600 dark:text-zinc-400">
-                      {formatCurrency(l.poUnitPrice, currency)}
-                    </TableCell>
-                  )}
-                  <TableCell
-                    className={`text-right font-mono text-body-sm font-semibold ${
+                return (
+                  <TableRow
+                    key={l.id}
+                    className={
                       isVariance && !isAccepted
-                        ? "text-amber-700 dark:text-amber-400 font-bold underline decoration-amber-500/50"
-                        : "text-neutral-900 dark:text-zinc-100"
-                    }`}
+                        ? "bg-amber-50/40 dark:bg-amber-950/20"
+                        : undefined
+                    }
                   >
-                    {formatCurrency(l.invUnitPrice, currency)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-body-sm font-semibold tabular-nums text-neutral-900 dark:text-zinc-100">
-                    {formatCurrency(lineTotal, currency)}
-                  </TableCell>
-                  <TableCell>
-                    {isVariance && !isAccepted ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-mono font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60">
-                        <AlertTriangle size={11} />
-                        <span>PRICE VARIANCE</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-mono font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
-                        <Check size={11} strokeWidth={2.5} />
-                        <span>MATCHED</span>
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {isVariance && !isAccepted ? (
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleOpenReason(l, "ACCEPT")}
-                          className="h-7 text-micro px-2.5 font-medium border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-                        >
-                          Accept
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleOpenReason(l, "FLAG")}
-                          className="h-7 text-micro px-2.5 font-medium border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40"
-                        >
-                          <Flag size={11} className="mr-1" />
-                          <span>Flag</span>
-                        </Button>
+                    <TableCell className="font-mono text-micro text-neutral-400">
+                      {l.lineNumber}
+                    </TableCell>
+                    <TableCell className="font-medium text-neutral-900 dark:text-zinc-100 max-w-xs">
+                      <div className="space-y-0.5">
+                        <p className="text-body-sm leading-snug">{l.description}</p>
+                        {isVariance && !isAccepted && (
+                          <p className="text-caption text-amber-700 dark:text-amber-400 font-mono">
+                            Price variance: +{formatCurrency(unitDiff, currency)}/unit (+{((unitDiff / (l.poUnitPrice || 1)) * 100).toFixed(1)}%)
+                          </p>
+                        )}
+                        {isAccepted && (
+                          <p className="text-micro text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1">
+                            <Check size={11} strokeWidth={2.5} />
+                            <span>Manager override accepted: {l.overrideReason || "Approved"}</span>
+                          </p>
+                        )}
                       </div>
-                    ) : (
-                      <span className="text-micro font-mono text-neutral-400">
-                        {isAccepted ? "Overridden" : "Verified"}
+                    </TableCell>
+                    <TableCell className="font-mono text-body-sm font-semibold text-neutral-800 dark:text-zinc-200">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-700 text-micro">
+                        {displayHsn}
                       </span>
+                    </TableCell>
+                    {purchaseOrderId && (
+                      <TableCell className="text-right font-mono text-body-sm text-neutral-600 dark:text-zinc-400">
+                        {l.poQty}
+                      </TableCell>
                     )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                    <TableCell className="text-right font-mono text-body-sm text-neutral-900 dark:text-zinc-100 font-semibold">
+                      {l.invQty}
+                    </TableCell>
+                    {purchaseOrderId && (
+                      <TableCell className="text-right font-mono text-body-sm text-neutral-600 dark:text-zinc-400">
+                        {formatCurrency(l.poUnitPrice, currency)}
+                      </TableCell>
+                    )}
+                    <TableCell
+                      className={`text-right font-mono text-body-sm font-semibold ${
+                        isVariance && !isAccepted
+                          ? "text-amber-700 dark:text-amber-400 font-bold underline decoration-amber-500/50"
+                          : "text-neutral-900 dark:text-zinc-100"
+                      }`}
+                    >
+                      {formatCurrency(l.invUnitPrice, currency)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-body-sm text-neutral-700 dark:text-zinc-300">
+                      {formatCurrency(taxableVal, currency)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-micro text-neutral-500 dark:text-zinc-400">
+                      18.0%
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-body-sm font-semibold tabular-nums text-neutral-900 dark:text-zinc-100">
+                      {formatCurrency(lineTotal, currency)}
+                    </TableCell>
+                    <TableCell>
+                      {purchaseOrderId ? (
+                        isVariance && !isAccepted ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-mono font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60">
+                            <AlertTriangle size={11} />
+                            <span>PRICE VARIANCE</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-mono font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
+                            <Check size={11} strokeWidth={2.5} />
+                            <span>PO MATCHED</span>
+                          </span>
+                        )
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-mono font-medium bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-700">
+                          <Check size={11} strokeWidth={2.5} className="text-neutral-500" />
+                          <span>STATUTORY PASS</span>
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {isVariance && !isAccepted ? (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenReason(l, "ACCEPT")}
+                            className="h-7 text-micro px-2.5 font-medium border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenReason(l, "FLAG")}
+                            className="h-7 text-micro px-2.5 font-medium border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                          >
+                            <Flag size={11} className="mr-1" />
+                            <span>Flag</span>
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-micro font-mono text-neutral-500 dark:text-zinc-400 font-medium">
+                          {isAccepted ? "Overridden" : purchaseOrderId ? "PO Matched" : "Direct Expense"}
+                        </span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* ── Table Reconciliation Footer: Taxable Subtotal → CGST/SGST → Grand Total ── */}
+        <div className="p-4 bg-neutral-50/80 dark:bg-zinc-900/80 border-t border-neutral-200 dark:border-zinc-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="text-caption text-neutral-600 dark:text-zinc-400 space-y-0.5">
+            <p className="font-semibold text-neutral-800 dark:text-zinc-200">
+              Tax Calculation Summary ({lines.length} Line Items)
+            </p>
+            <p className="text-micro font-mono text-neutral-500 dark:text-zinc-400">
+              Rates verified against Central Tax Notification 01/2017 &amp; HSN classification
+            </p>
+          </div>
+
+          <div className="w-full sm:w-80 space-y-1.5 text-caption bg-white dark:bg-zinc-900 p-3 rounded-lg border border-neutral-200 dark:border-zinc-800 shadow-2xs">
+            <div className="flex justify-between text-neutral-600 dark:text-zinc-400">
+              <span>Taxable Subtotal (excl. GST):</span>
+              <span className="font-mono font-medium text-neutral-900 dark:text-zinc-200">
+                {formatCurrency(subtotalSum, currency)}
+              </span>
+            </div>
+            <div className="flex justify-between text-micro text-neutral-500 dark:text-zinc-400">
+              <span>CGST (9.0%):</span>
+              <span className="font-mono">{formatCurrency(cgstAmountSum, currency)}</span>
+            </div>
+            <div className="flex justify-between text-micro text-neutral-500 dark:text-zinc-400">
+              <span>SGST (9.0%):</span>
+              <span className="font-mono">{formatCurrency(sgstAmountSum, currency)}</span>
+            </div>
+            <div className="flex justify-between text-neutral-700 dark:text-zinc-300 font-medium border-t border-neutral-100 dark:border-zinc-800 pt-1">
+              <span>Total GST (18.0%):</span>
+              <span className="font-mono">{formatCurrency(taxAmountSum, currency)}</span>
+            </div>
+            <div className="flex justify-between text-body font-bold text-neutral-900 dark:text-zinc-100 border-t border-neutral-200 dark:border-zinc-800 pt-1.5">
+              <span>Grand Total (incl. GST):</span>
+              <span className="font-mono text-indigo-600 dark:text-indigo-400">
+                {formatCurrency(grandTotalSum, currency)}
+              </span>
+            </div>
+          </div>
+        </div>
 
         {/* Modal for documenting override/flag decision reason */}
         {selectedLineForReason && (

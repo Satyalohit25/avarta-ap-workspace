@@ -38,7 +38,8 @@ export function InvoiceFormDialog({
           className={cn(
             "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
             "bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-xl",
-            "p-6 max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto shadow-2xl space-y-5 focus:outline-none transition-all duration-200"
+            "p-6 w-[96vw] max-h-[92vh] overflow-y-auto shadow-2xl space-y-5 focus:outline-none transition-all duration-200",
+            isCreate ? "max-w-4xl" : "max-w-5xl"
           )}
         >
           {/* Header */}
@@ -51,8 +52,8 @@ export function InvoiceFormDialog({
               </DialogPrimitive.Title>
               <DialogPrimitive.Description className="text-body-sm text-neutral-500 dark:text-zinc-400 mt-1 truncate min-w-0">
                 {isCreate
-                  ? "Enter vendor details, itemized lines, and verify real-time accounting reconciliation."
-                  : "Review OCR-extracted fields and lines before pushing the invoice through validation & matching."}
+                  ? "Enter supplier details, itemized lines, and verify real-time accounting reconciliation."
+                  : "Quick triage & field verification. For side-by-side document annotation, line item mapping, or exception resolution, open the full workspace."}
               </DialogPrimitive.Description>
             </div>
 

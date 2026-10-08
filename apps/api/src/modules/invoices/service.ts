@@ -498,7 +498,13 @@ export async function retryValidation(organizationId: string, invoiceId: string,
 export async function transitionInvoice(
   organizationId: string,
   invoiceId: string,
-  action: "APPROVE" | "REJECT" | "RETRY_VALIDATION" | "RUN_MATCHING",
+  action:
+    | "APPROVE"
+    | "REJECT"
+    | "RETRY_VALIDATION"
+    | "RUN_MATCHING"
+    | "SUBMIT_APPROVAL"
+    | "HOLD_REQUEST_CORRECTION",
   userId?: string,
   comment?: string
 ) {
@@ -514,8 +520,20 @@ export async function transitionInvoice(
   } else if (action === "REJECT") {
     if (!comment) throw ApiError.badRequest("Comment is required for rejection.");
     await applyTransition({ invoiceId, event: "REJECTED", triggeredBy: userId, reason: comment });
-  } else if (action === "RUN_MATCHING") {
+  } else if (action === "RUN_MATCHING" || action === "SUBMIT_APPROVAL") {
     await runThreeWayMatching({ organizationId, invoiceId, userId });
+  } else if (action === "HOLD_REQUEST_CORRECTION") {
+    await prisma.exception.create({
+      data: {
+        organizationId,
+        invoiceId,
+        type: "MANUAL_REVIEW",
+        severity: "MEDIUM",
+        title: "Invoice Placed On Hold / Correction Requested",
+        description: comment || "Reviewer requested invoice hold and vendor clarification.",
+        status: "OPEN",
+      },
+    });
   }
 
   return getInvoice(organizationId, invoiceId);
