@@ -1,4 +1,4 @@
-import { Clock, FileCheck, ArrowRight } from "lucide-react";
+import { FileCheck, ArrowRight } from "lucide-react";
 import { InvoiceListItem } from "../../../api/invoices";
 import { Card, CardHeader, CardContent } from "../../../components/ui/Card";
 import { StatusBadge } from "../../../components/StatusBadge";
@@ -78,6 +78,7 @@ export function RecentInvoicesPanel({ invoices, loading, onInspect }: RecentInvo
                   <button
                     type="button"
                     onClick={() => onInspect(inv)}
+                    aria-label={`Inspect and process invoice ${inv.invoiceNumber}`}
                     className="inline-flex items-center gap-1 text-[12px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors cursor-pointer"
                   >
                     <span>Inspect &amp; Process</span>

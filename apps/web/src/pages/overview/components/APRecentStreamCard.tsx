@@ -31,7 +31,7 @@ export function APRecentStreamCard({ items }: APRecentStreamCardProps) {
   }
 
   // Display clean, verified items (fallback if needed)
-  const displayItems = items.slice(0, 4);
+  const displayItems = items.slice(0, 6);
 
   return (
     <div className="rounded-xl border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 p-3 shadow-2xs">
@@ -51,7 +51,7 @@ export function APRecentStreamCard({ items }: APRecentStreamCardProps) {
       </div>
 
       {/* Compact High-Density Grid (Reduced Table Footprint) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
         {displayItems.map((item) => (
           <button
             key={item.id}

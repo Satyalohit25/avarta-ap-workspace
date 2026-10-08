@@ -72,7 +72,7 @@ export function AppLayout() {
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <TopNav onOpenMobileMenu={() => setIsMobileOpen(true)} />
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-[1680px] w-full mx-auto px-3.5 sm:px-5 py-2">
+          <div className="w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-2.5">
             <Outlet />
           </div>
         </main>

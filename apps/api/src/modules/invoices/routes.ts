@@ -9,6 +9,7 @@ import {
   getDocumentFileHandler,
   getHandler,
   listHandler,
+  needsAttentionHandler,
   updateHandler,
   processHandler,
   transitionHandler,
@@ -19,7 +20,7 @@ export const invoiceRoutes = Router();
 
 invoiceRoutes.use(requireAuth);
 
-invoiceRoutes.get("/needs-attention", listHandler);
+invoiceRoutes.get("/needs-attention", needsAttentionHandler);
 invoiceRoutes.get("/", listHandler);
 invoiceRoutes.get("/:invoiceId/audit", auditHandler);
 invoiceRoutes.post(
@@ -38,6 +39,7 @@ invoiceRoutes.get("/:invoiceId/documents/:documentId/file", getDocumentFileHandl
 invoiceRoutes.post(
   "/:invoiceId/process",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
+  requireIdempotencyKey,
   processHandler
 );
 invoiceRoutes.post(

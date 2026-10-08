@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-const amountSchema = z.union([z.string(), z.number()]).refine(
-  (val) => !isNaN(Number(val)) && Number(val) >= 0,
+const amountSchema = z.coerce.number().refine(
+  (val) => !isNaN(val) && val >= 0,
   { message: "Amount must be a valid non-negative number" }
 );
 

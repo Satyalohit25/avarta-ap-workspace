@@ -38,8 +38,8 @@ export function listInvoices(params: { status?: string; search?: string; page?: 
   return apiRequest<ListResponse>("/invoices", { query: params });
 }
 
-export function getNeedsAttentionInvoices() {
-  return apiRequest<ListResponse>("/invoices/needs-attention");
+export function getNeedsAttentionInvoices(params: { status?: string; search?: string; page?: number } = {}) {
+  return apiRequest<ListResponse>("/invoices/needs-attention", { query: params });
 }
 
 export interface InvoiceApprovalItem {
@@ -208,8 +208,11 @@ export function updateInvoice(
   });
 }
 
-export function processInvoice(id: string) {
-  return apiRequest<{ data: InvoiceListItem }>(`/invoices/${id}/process`, { method: "POST" });
+export function processInvoice(id: string, idempotencyKey?: string) {
+  return apiRequest<{ data: InvoiceListItem }>(`/invoices/${id}/process`, {
+    method: "POST",
+    headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+  });
 }
 
 export function transitionInvoice(id: string, action: string, comment?: string) {

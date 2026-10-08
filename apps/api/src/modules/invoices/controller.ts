@@ -22,6 +22,20 @@ export async function listHandler(req: Request, res: Response, next: NextFunctio
   }
 }
 
+export async function needsAttentionHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const query = listInvoicesQuerySchema.parse(req.query);
+    const result = await invoiceService.listInvoices({
+      organizationId: orgId(req),
+      ...query,
+      status: query.status ?? "EXCEPTION,PENDING_APPROVAL",
+    });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const invoice = await invoiceService.getInvoice(orgId(req), req.params.invoiceId);

@@ -62,7 +62,7 @@ function ExceptionTag({ reason }: { reason: string }) {
 
   return (
     <span
-      className={`inline-flex text-[10px] font-semibold px-1.5 py-0.5 rounded border ${cls}`}
+      className={`inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded border shrink-0 w-fit ${cls}`}
       title={reason}
     >
       {tag}
@@ -288,7 +288,7 @@ export function APWorkstationGrid({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
       {/* ── LEFT PANEL: WORK QUEUE ── */}
       <div className="lg:col-span-7 rounded-xl border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 p-3.5 flex flex-col justify-between shadow-2xs">
-        <div>
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-neutral-100 dark:border-zinc-800/80">
             <div className="flex items-center gap-2 min-w-0">
@@ -362,43 +362,38 @@ export function APWorkstationGrid({
           )}
 
           {/* Queue rows */}
-          <div className="mt-2 space-y-1.5 min-h-[200px] max-h-[224px] overflow-y-auto pr-1">
+          <div className="mt-2 space-y-1.5 flex-1 min-h-[300px] max-h-[440px] overflow-y-auto pr-1">
             {displayedInvoices.length === 0 ? (
-              <div className="py-10 text-center">
-                <Check size={20} className="text-emerald-500 mx-auto mb-1.5" />
-                <p className="text-[11px] font-semibold text-neutral-600 dark:text-zinc-400">All caught up!</p>
+              <div className="py-14 text-center">
+                <Check size={22} className="text-emerald-500 mx-auto mb-1.5" />
+                <p className="text-[12px] font-semibold text-neutral-600 dark:text-zinc-400">All caught up!</p>
                 <p className="text-[10px] text-neutral-400 dark:text-zinc-500 mt-0.5">
                   No items matching this filter.
                 </p>
               </div>
             ) : (
-              displayedInvoices.slice(0, 4).map((inv) => {
+              displayedInvoices.map((inv) => {
                 const isPinged = pingedItems[inv.id];
                 return (
                   <div
                     key={inv.id}
                     onClick={() => handleRowClick(inv)}
-                    className="py-2 px-2.5 rounded-lg border border-neutral-100 dark:border-zinc-800 bg-neutral-50/40 dark:bg-zinc-900/40 hover:bg-neutral-50 dark:hover:bg-zinc-800/60 hover:border-neutral-200 dark:hover:border-zinc-700 transition-all flex items-center justify-between gap-2 cursor-pointer group"
+                    className="py-2 px-3 rounded-lg border border-neutral-100 dark:border-zinc-800 bg-neutral-50/40 dark:bg-zinc-900/40 hover:bg-neutral-50 dark:hover:bg-zinc-800/60 hover:border-neutral-200 dark:hover:border-zinc-700 transition-all flex items-center justify-between gap-3 cursor-pointer group"
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => e.key === "Enter" && handleRowClick(inv)}
                     aria-label={`Invoice ${inv.invoiceNumber} from ${inv.vendor}`}
                   >
-                    {/* Left: invoice ID + vendor + reason tag */}
-                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                      <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-mono text-[10px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
-                            {inv.invoiceNumber}
-                          </span>
-                          <span className="text-[11px] font-medium text-neutral-900 dark:text-zinc-100 truncate">
-                            {inv.vendor}
-                          </span>
-                          <AgeBadge days={inv.daysWaiting} urgency={inv.urgency} />
-                        </div>
-                        {/* Reason tag replaces truncated free-text */}
-                        <ExceptionTag reason={inv.detailReason} />
-                      </div>
+                    {/* Left: invoice ID + vendor + exception tag + age */}
+                    <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
+                      <span className="font-mono text-[10.5px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+                        {inv.invoiceNumber}
+                      </span>
+                      <span className="text-[12px] font-semibold text-neutral-900 dark:text-zinc-100 truncate max-w-[180px] sm:max-w-[240px]">
+                        {inv.vendor}
+                      </span>
+                      <ExceptionTag reason={inv.detailReason} />
+                      <AgeBadge days={inv.daysWaiting} urgency={inv.urgency} />
                     </div>
 
                     {/* Right: amount + owner + contextual action */}
@@ -789,7 +784,7 @@ export function APWorkstationGrid({
 
           {/* ── View 3: Supplier Exposure ── */}
           {activeRightTab === "EXPOSURE" && (
-            <div className="mt-2 space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
+            <div className="mt-2 space-y-1.5 flex-1 min-h-[280px] max-h-[440px] overflow-y-auto pr-1">
               {topSuppliers.map((sup) => (
                 <div
                   key={sup.id}

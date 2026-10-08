@@ -144,7 +144,7 @@ export function InvoiceForm({
   useEffect(() => {
     if (mode === "create" || (initialData?.lines && initialData.lines.length > 0)) {
       setAmount(reconciledTotal.toFixed(2));
-      clearFieldError("amount");
+      clearFieldError("totalAmount");
     }
   }, [reconciledTotal, mode, initialData?.lines]);
 
@@ -698,19 +698,26 @@ export function InvoiceForm({
             )}
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <span className="text-micro text-neutral-500 font-medium">Invoiced Amount:</span>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={amount}
-              onChange={(e) => {
-                setAmount(e.target.value);
-                clearFieldError("totalAmount");
-              }}
-              className="w-28 h-7 px-2 font-mono text-body-sm font-bold text-right border border-neutral-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 rounded focus:border-indigo-500 focus:outline-none"
-            />
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-micro text-neutral-500 font-medium">Invoiced Amount:</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={amount}
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                  clearFieldError("totalAmount");
+                }}
+                className="w-28 h-7 px-2 font-mono text-body-sm font-bold text-right border border-neutral-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 rounded focus:border-indigo-500 focus:outline-none"
+              />
+            </div>
+            {fieldErrors.totalAmount && (
+              <p className="text-[11px] text-rose-600 dark:text-rose-400 font-medium text-right">
+                {fieldErrors.totalAmount}
+              </p>
+            )}
           </div>
         </div>
       </div>

@@ -363,7 +363,7 @@ async function runValidations(
       ruleCode: "VENDOR_EXISTS",
       ruleName: "Vendor Exists",
       message: "No supplier is linked to this invoice.",
-      exceptionType: "MISSING_REQUIRED_FIELD",
+      exceptionType: "UNKNOWN_VENDOR",
       severity: "HIGH",
     });
   }

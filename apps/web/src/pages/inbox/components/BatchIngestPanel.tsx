@@ -121,7 +121,7 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
       <CardContent className="p-5 flex-1 flex flex-col space-y-4">
         {batchSuccessCount !== null && (
           <Alert type="success" title="Batch Ingestion Completed">
-            Successfully ingested {batchSuccessCount} invoice(s) into the Received queue.
+            Successfully ingested {batchSuccessCount} invoice(s) into the Received queue. Placeholder amounts are assigned for demo simulation — review and verify invoice details before processing.
           </Alert>
         )}
 
@@ -242,7 +242,7 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
               ))}
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 space-y-1.5">
               <Button
                 type="button"
                 onClick={handleProcessBatch}
@@ -256,6 +256,9 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
                     : `Ingest & Queue ${queuedFiles.length} Invoices`}
                 </span>
               </Button>
+              <p className="text-[11px] text-neutral-500 dark:text-zinc-400 text-center">
+                Demo simulation assigns placeholder amounts. Invoices remain in Received state until verified.
+              </p>
             </div>
           </div>
         )}
