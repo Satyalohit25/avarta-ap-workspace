@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Inbox } from "lucide-react";
+import { Inbox, RefreshCw } from "lucide-react";
 import { DashboardOverview, getDashboardOverview, StreamItem } from "../../api/dashboard";
 import { transitionInvoice } from "../../api/invoices";
 import { SkeletonRows } from "../../components/Skeleton";
@@ -62,6 +62,8 @@ export default function OverviewPage() {
   const { toast } = useToast();
   const [data, setData] = useState<DashboardOverview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [releasedInvoices, setReleasedInvoices] = useState<Record<string, boolean>>({});
   const [releasedCount, setReleasedCount] = useState<number>(0);
   const [releasedAmount, setReleasedAmount] = useState<number>(0);
@@ -85,14 +87,25 @@ export default function OverviewPage() {
     }
   };
 
-  useEffect(() => {
+  const fetchDashboard = useCallback((isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
     getDashboardOverview()
-      .then((res) => setData(res.data))
+      .then((res) => {
+        setData(res.data);
+        setLastRefreshed(new Date());
+      })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setRefreshing(false);
+      });
   }, []);
 
-  const timeFormatted = new Date().toLocaleString("en-IN", {
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
+
+  const timeFormatted = lastRefreshed.toLocaleString("en-IN", {
     timeZone: "Asia/Kolkata",
     hour: "numeric",
     minute: "numeric",
@@ -117,12 +130,29 @@ export default function OverviewPage() {
               Mission Control
             </span>
           </div>
-          <p className="text-[11px] text-neutral-500 dark:text-zinc-400 mt-0.5">
-            Operational cash horizon, actionable work queue, and pipeline velocity as of {timeFormatted}
+          <p className="text-[11px] text-neutral-500 dark:text-zinc-400 mt-0.5 flex items-center gap-1.5">
+            <span>Operational cash horizon, actionable work queue, and pipeline velocity</span>
+            <span className="text-neutral-400 dark:text-zinc-500">·</span>
+            <span>Updated {timeFormatted}</span>
           </p>
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => fetchDashboard(true)}
+            disabled={refreshing || loading}
+            className="h-8 px-2.5 rounded-lg border border-neutral-200 dark:border-zinc-700 text-[11px] font-medium text-neutral-600 dark:text-zinc-400 hover:bg-neutral-50 dark:hover:bg-zinc-800 transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh dashboard data"
+            aria-label="Refresh dashboard"
+          >
+            <RefreshCw
+              size={12}
+              className={refreshing ? "animate-spin text-indigo-500" : "text-neutral-400"}
+              aria-hidden="true"
+            />
+            <span>{refreshing ? "Refreshing…" : "Refresh"}</span>
+          </button>
           <Button
             size="sm"
             variant="outline"
