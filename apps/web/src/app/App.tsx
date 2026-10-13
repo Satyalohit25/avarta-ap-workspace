@@ -24,7 +24,16 @@ const ArchivePage = lazy(() => import("../pages/archive/ArchivePage"));
 const NotificationsPage = lazy(() => import("../pages/notifications/NotificationsPage"));
 const ProfilePage = lazy(() => import("../pages/profile/ProfilePage"));
 const VendorInvoiceTrackPage = lazy(() => import("../pages/public/VendorInvoiceTrackPage"));
+const PrivacyPolicyPage = lazy(() => import("../pages/public/PrivacyPolicyPage"));
+const TermsOfServicePage = lazy(() => import("../pages/public/TermsOfServicePage"));
+const DpaPage = lazy(() => import("../pages/public/DpaPage"));
+const SubprocessorsPage = lazy(() => import("../pages/public/SubprocessorsPage"));
+const ForgotPasswordPage = lazy(() => import("../pages/public/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("../pages/public/ResetPasswordPage"));
+const RefundPolicyPage = lazy(() => import("../pages/public/RefundPolicyPage"));
 const NotFoundPage = lazy(() => import("../pages/NotFoundPage"));
+import { CookieConsentBanner } from "../components/ui/CookieConsentBanner";
+import { NetworkStatusAlert } from "../components/ui/NetworkStatusAlert";
 
 // Eagerly prefetch primary demo routes when browser is idle to ensure 0ms tab switching
 function useRoutePrefetch() {
@@ -69,9 +78,17 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <ToastProvider>
+            <NetworkStatusAlert />
             <Suspense fallback={<PageFallback />}>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                <Route path="/terms" element={<TermsOfServicePage />} />
+                <Route path="/dpa" element={<DpaPage />} />
+                <Route path="/subprocessors" element={<SubprocessorsPage />} />
+                <Route path="/refund" element={<RefundPolicyPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/track/:token" element={<VendorInvoiceTrackPage />} />
                 <Route path="/invoices/track/:token" element={<VendorInvoiceTrackPage />} />
 
@@ -96,6 +113,7 @@ export default function App() {
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Suspense>
+            <CookieConsentBanner />
           </ToastProvider>
         </AuthProvider>
       </ThemeProvider>

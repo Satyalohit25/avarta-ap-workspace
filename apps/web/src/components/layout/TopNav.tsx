@@ -83,7 +83,7 @@ export function TopNav({ onOpenMobileMenu }: TopNavProps) {
             onClick={toggleTheme}
             className="p-2 text-neutral-500 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-100 hover:bg-neutral-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer"
             title={`Switch to ${theme === "light" ? "Dark" : "Light"} mode`}
-            aria-label="Toggle Theme"
+            aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode (currently in ${theme} mode)`}
           >
             {theme === "light" ? <Moon size={17} strokeWidth={1.75} /> : <Sun size={17} strokeWidth={1.75} />}
           </button>

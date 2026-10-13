@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../../app/AuthContext";
 import { ApiRequestError } from "../../api/client";
@@ -160,6 +160,15 @@ export default function LoginPage() {
                 required
               />
 
+              <div className="flex justify-end -mt-2">
+                <Link
+                  to="/forgot-password"
+                  className="text-micro font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+
               {error && <Alert type="error">{error}</Alert>}
 
               <Button type="submit" disabled={submitting} className="w-full h-10 font-semibold text-body-sm rounded-md">
@@ -241,6 +250,35 @@ export default function LoginPage() {
               </span>
             </button>
           </div>
+        </div>
+
+        {/* Footer Legal Links */}
+        <div className="flex flex-wrap items-center justify-center gap-3 text-micro text-neutral-400 dark:text-zinc-500 pt-2">
+          <Link to="/privacy" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+            Privacy Policy
+          </Link>
+          <span>•</span>
+          <Link to="/terms" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+            Terms of Service
+          </Link>
+          <span>•</span>
+          <Link to="/dpa" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+            DPA
+          </Link>
+          <span>•</span>
+          <Link to="/subprocessors" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+            Subprocessors
+          </Link>
+          <span>•</span>
+          <Link to="/refund" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+            Refund Policy
+          </Link>
+          <span>•</span>
+          <a href="/.well-known/security.txt" target="_blank" rel="noreferrer noopener" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+            Security.txt
+          </a>
+          <span>•</span>
+          <span>© 2026 Avarta AP Workspace</span>
         </div>
       </div>
     </div>

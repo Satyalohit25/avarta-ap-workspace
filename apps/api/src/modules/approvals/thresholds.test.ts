@@ -35,6 +35,16 @@ describe("Approval Threshold Engine (Step 3)", () => {
       const tierHigh = getTierForAmount(10_000_000);
       expect(tierHigh.name).toContain("Tier 3");
     });
+
+    it("assigns USD amounts with zero gaps: <= $10k Tier 1, $10,001-$50k Tier 2, > $50k Tier 3", () => {
+      expect(getTierForAmount(5_000, "USD").name).toContain("Tier 1");
+      expect(getTierForAmount(10_000, "USD").name).toContain("Tier 1");
+      // Formerly problematic gap: $10,001 to $50,000 is now cleanly Tier 2
+      expect(getTierForAmount(10_001, "USD").name).toContain("Tier 2");
+      expect(getTierForAmount(25_000, "USD").name).toContain("Tier 2");
+      expect(getTierForAmount(50_000, "USD").name).toContain("Tier 2");
+      expect(getTierForAmount(50_001, "USD").name).toContain("Tier 3");
+    });
   });
 
   describe("canRoleApproveAmount", () => {

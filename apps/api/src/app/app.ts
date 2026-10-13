@@ -3,6 +3,7 @@ import express from "express";
 import { env } from "../config/env";
 import { errorHandler } from "../middleware/error-handler";
 import { requestId } from "../middleware/request-id";
+import { apiRateLimiter } from "../middleware/rate-limiter";
 import { router } from "./routes";
 
 import { prisma } from "../config/database";
@@ -35,6 +36,19 @@ export function createApp() {
       credentials: true,
     })
   );
+
+  // Standard OWASP Security Headers
+  app.use((_req, res, next) => {
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    if (process.env.NODE_ENV === "production") {
+      res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+    }
+    next();
+  });
+
   app.use(express.json({ limit: "10mb" }));
   app.use(requestId);
 
@@ -67,6 +81,7 @@ export function createApp() {
     }
   });
 
+  app.use("/api", apiRateLimiter);
   app.use("/api/v1", router);
   app.use("/api", router);
 

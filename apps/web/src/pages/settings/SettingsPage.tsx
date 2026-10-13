@@ -27,9 +27,18 @@ import {
   Users,
   RotateCcw,
   AlertTriangle,
+  KeyRound,
+  HardDrive,
+  Sparkles,
+  CreditCard,
 } from "lucide-react";
 import { DEMO_ACCOUNTS } from "../../lib/constants";
 import { resetDemoEnvironment } from "../../api/demo";
+import { ByokConfigCard } from "./components/ByokConfigCard";
+import { ByodbConfigCard } from "./components/ByodbConfigCard";
+import { ErpConnectorsCard } from "./components/ErpConnectorsCard";
+import { BillingPlanCard } from "./components/BillingPlanCard";
+import { TeamManagementCard } from "./components/TeamManagementCard";
 
 const CANONICAL_AUDIT_LOGS = [
   {
@@ -197,7 +206,7 @@ export default function SettingsPage() {
       id: "tier-2",
       tier: "Tier 2: Mid-Value Invoices",
       name: "Department Budget Review",
-      threshold: "₹1,00,001 – ₹5,00,000",
+      threshold: "₹1,00,001 – ₹5,00,000 / $10,001 – $50,000",
       description:
         "Dual sign-off sequence required before entering scheduled payment batch.",
       signers: ["Finance Executive", "Finance Manager"],
@@ -660,66 +669,32 @@ export default function SettingsPage() {
             ),
           },
           {
+            id: "byok",
+            label: "AI & Storage Keys (BYOK)",
+            icon: <KeyRound size={15} />,
+            content: (
+              <div className="space-y-4 pt-2">
+                <ByokConfigCard />
+              </div>
+            ),
+          },
+          {
+            id: "byodb",
+            label: "Database Sovereignty (BYODB)",
+            icon: <HardDrive size={15} />,
+            content: (
+              <div className="space-y-4 pt-2">
+                <ByodbConfigCard />
+              </div>
+            ),
+          },
+          {
             id: "erp-sync",
             label: "ERP & Accounting Integrations",
             icon: <Database size={15} />,
             content: (
               <div className="space-y-4 pt-2">
-                <Card level="surface">
-                  <CardHeader
-                    title="Connected Accounting Systems & ERP Gateways"
-                    description="Complement your general ledger without replacing it seamlessly."
-                  />
-                  <CardContent className="p-5 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {ERP_INTEGRATIONS.map((erp) => (
-                        <div
-                          key={erp.id}
-                          className="p-4 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-3 flex flex-col justify-between shadow-2xs"
-                        >
-                          <div className="space-y-1.5">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Database
-                                  size={16}
-                                  className="text-indigo-600 dark:text-indigo-400"
-                                />
-                                <span className="font-semibold text-body-sm text-neutral-900 dark:text-zinc-100">
-                                  {erp.name}
-                                </span>
-                              </div>
-                              <span
-                                className={`text-micro font-mono font-semibold px-2 py-0.5 rounded-full ${
-                                  erp.status === "CONNECTED"
-                                    ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-900/60"
-                                    : "bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400 border border-neutral-200 dark:border-zinc-700"
-                                }`}
-                              >
-                                {erp.status}
-                              </span>
-                            </div>
-                            <p className="text-caption text-neutral-500 dark:text-zinc-400">
-                              {erp.description}
-                            </p>
-                          </div>
-
-                          <div className="pt-2 border-t border-neutral-100 dark:border-zinc-800 flex items-center justify-between text-micro font-mono text-neutral-500">
-                            <span>Last Sync: {erp.lastSync}</span>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-micro font-medium"
-                            >
-                              {erp.status === "CONNECTED"
-                                ? "Configure"
-                                : "Connect"}
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                <ErpConnectorsCard />
               </div>
             ),
           },
@@ -800,11 +775,13 @@ export default function SettingsPage() {
             icon: <Users size={15} />,
             content: (
               <div className="space-y-6 pt-2">
+                <TeamManagementCard />
+
                 {/* Canonical Users Table */}
                 <Card level="surface">
                   <CardHeader
-                    title="Team Members & Role-Based Access"
-                    description="Standard demonstration personas with role-based segregation of duties"
+                    title="Persona Accounts & Role Hierarchy Reference"
+                    description="Standard enterprise roles and segregation of duties rules"
                   />
                   <CardContent className="p-0">
                     <Table>
@@ -932,6 +909,16 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 )}
+              </div>
+            ),
+          },
+          {
+            id: "billing",
+            label: "Subscription & Usage Quotas",
+            icon: <CreditCard size={15} />,
+            content: (
+              <div className="space-y-4 pt-2">
+                <BillingPlanCard />
               </div>
             ),
           },

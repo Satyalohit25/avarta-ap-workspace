@@ -18,6 +18,8 @@ import {
   extractDocumentHandler,
 } from "./controller";
 
+import { enforceInvoiceQuota } from "../billing/middleware";
+
 export const invoiceRoutes = Router();
 
 invoiceRoutes.use(requireAuth);
@@ -34,6 +36,7 @@ invoiceRoutes.get("/:invoiceId/audit", auditHandler);
 invoiceRoutes.post(
   "/",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
+  enforceInvoiceQuota,
   upload.single("file"),
   createHandler
 );

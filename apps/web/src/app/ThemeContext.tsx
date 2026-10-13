@@ -16,7 +16,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       localStorage.getItem("avarta_theme") ||
       localStorage.getItem("clearops_theme");
     if (saved === "dark" || saved === "light") return saved;
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    return "dark"; // Default is dark mode per release specification
   });
 
   useEffect(() => {

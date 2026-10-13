@@ -9,5 +9,13 @@ demoRoutes.use(requireAuth);
 demoRoutes.post(
   "/reset",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER"),
-  resetDemoHandler
+  (req, res, next) => {
+    if (process.env.NODE_ENV === "production") {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "Demo scenario reset is permanently disabled in the production environment.",
+      });
+    }
+    return resetDemoHandler(req, res, next);
+  }
 );

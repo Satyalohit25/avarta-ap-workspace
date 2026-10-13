@@ -11,6 +11,8 @@ import { publicRoutes } from "../modules/public/routes";
 import { auditRoutes } from "../modules/audit/routes";
 import { reportRoutes } from "../modules/reports/routes";
 import { demoRoutes } from "../modules/demo/routes";
+import { integrationRoutes } from "../modules/integrations/routes";
+import { billingRoutes } from "../modules/billing/routes";
 
 export const router = Router();
 
@@ -26,6 +28,10 @@ router.use("/dashboard", dashboardRoutes);
 router.use("/audit", auditRoutes);
 router.use("/reports", reportRoutes);
 router.use("/demo", demoRoutes);
+router.use("/integrations", integrationRoutes);
+router.use("/settings/integrations", integrationRoutes);
+router.use("/billing", billingRoutes);
+router.use("/settings/billing", billingRoutes);
 
 
 

@@ -159,7 +159,7 @@ export async function extractDocumentHandler(req: Request, res: Response, next: 
     const uploadsDir = path.resolve(process.cwd(), "uploads");
     const filePath = path.resolve(uploadsDir, req.file.filename);
     const { extractInvoiceFromFile } = await import("../../ai/extractor");
-    const extracted = await extractInvoiceFromFile(filePath, req.file.mimetype, req.file.originalname);
+    const extracted = await extractInvoiceFromFile(filePath, req.file.mimetype, req.file.originalname, orgId(req));
     res.json({ data: extracted });
   } catch (err) {
     next(err);

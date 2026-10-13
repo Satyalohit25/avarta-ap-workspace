@@ -221,9 +221,9 @@ export default function InboxPage() {
               <span className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100">
                 Inbound Ingestion Mailbox
               </span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-900/60">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Active
+              <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded-full border border-sky-200 dark:border-sky-900/60">
+                <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                Forwarding Address
               </span>
             </div>
             <p className="text-caption text-neutral-500 dark:text-zinc-400 mt-0.5">

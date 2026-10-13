@@ -122,9 +122,30 @@ export async function extractInvoiceFromFile(
   filePath: string,
   mimeType: string,
   originalName: string,
+  organizationId?: string,
 ): Promise<ExtractedInvoiceData> {
-  const geminiKey = process.env.GEMINI_API_KEY;
-  const openaiKey = process.env.OPENAI_API_KEY;
+  let geminiKey = process.env.GEMINI_API_KEY;
+  let openaiKey = process.env.OPENAI_API_KEY;
+
+  // Check tenant BYOK configuration
+  if (organizationId) {
+    try {
+      const { IntegrationRepository } = await import("../modules/integrations/repository");
+      const { decryptSecret } = await import("../lib/crypto");
+      const byokRecords = await IntegrationRepository.findByType(organizationId, "BYOK_AI");
+      const activeByok = byokRecords.find((r) => r.status === "CONNECTED");
+      if (activeByok?.encryptedConfig) {
+        const plainKey = decryptSecret(activeByok.encryptedConfig);
+        if (activeByok.provider === "GEMINI") {
+          geminiKey = plainKey;
+        } else if (activeByok.provider === "OPENAI") {
+          openaiKey = plainKey;
+        }
+      }
+    } catch {
+      // Fallback to default keys
+    }
+  }
 
   if (geminiKey && fs.existsSync(filePath)) {
     try {
