@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { authenticate } from "../../middleware/authenticate";
-import { requireRole } from "../../middleware/authorize";
+import { requireAuth } from "../../middleware/auth";
+import { requireRole } from "../../middleware/permissions";
 import { getTenantUsage, upgradeTenantPlan, getBillingReceipts } from "./service";
 import { handleBillingWebhook } from "./webhooks";
 import { SAAS_PLANS, PlanTier } from "./plans";
@@ -17,9 +17,9 @@ billingRoutes.get("/plans", (_req: Request, res: Response) => {
   res.json({ data: Object.values(SAAS_PLANS) });
 });
 
-billingRoutes.get("/usage", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+billingRoutes.get("/usage", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const orgId = req.user!.organizationId;
+    const orgId = req.auth!.organizationId;
     const usage = await getTenantUsage(orgId);
     res.json({ data: usage });
   } catch (err) {
@@ -27,9 +27,9 @@ billingRoutes.get("/usage", authenticate, async (req: Request, res: Response, ne
   }
 });
 
-billingRoutes.get("/receipts", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+billingRoutes.get("/receipts", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const orgId = req.user!.organizationId;
+    const orgId = req.auth!.organizationId;
     const receipts = await getBillingReceipts(orgId);
     res.json({ data: receipts });
   } catch (err) {
@@ -40,11 +40,11 @@ billingRoutes.get("/receipts", authenticate, async (req: Request, res: Response,
 // Only Administrator or Finance Manager can upgrade/manage plans
 billingRoutes.post(
   "/upgrade",
-  authenticate,
+  requireAuth,
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const orgId = req.user!.organizationId;
+      const orgId = req.auth!.organizationId;
       const { planTier } = req.body as { planTier: PlanTier };
       const updated = await upgradeTenantPlan(orgId, planTier);
       res.json({ data: updated });

@@ -5,7 +5,7 @@ import { ApiError } from "../../lib/errors";
 
 export async function enforceInvoiceQuota(req: Request, _res: Response, next: NextFunction): Promise<void> {
   try {
-    const orgId = req.user?.organizationId;
+    const orgId = req.auth?.organizationId || (req as any).user?.organizationId;
     if (!orgId) {
       return next(ApiError.unauthorized("Authentication required to verify invoice quota"));
     }
@@ -18,7 +18,7 @@ export async function enforceInvoiceQuota(req: Request, _res: Response, next: Ne
 
 export async function enforceSeatLimit(req: Request, _res: Response, next: NextFunction): Promise<void> {
   try {
-    const orgId = req.user?.organizationId;
+    const orgId = req.auth?.organizationId || (req as any).user?.organizationId;
     if (!orgId) {
       return next(ApiError.unauthorized("Authentication required to verify seat quota"));
     }
@@ -32,7 +32,7 @@ export async function enforceSeatLimit(req: Request, _res: Response, next: NextF
 export function requirePlanFeature(featureKey: keyof PlanFeatures) {
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
-      const orgId = req.user?.organizationId;
+      const orgId = req.auth?.organizationId || (req as any).user?.organizationId;
       if (!orgId) {
         return next(ApiError.unauthorized("Authentication required"));
       }

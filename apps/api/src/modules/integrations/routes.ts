@@ -13,7 +13,7 @@ integrationRoutes.use(requireAuth);
  */
 integrationRoutes.get("/status", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const organizationId = req.auth.organizationId;
+    const organizationId = req.auth!.organizationId;
     const summary = await IntegrationsService.getSummary(organizationId);
     return res.json({ data: summary });
   } catch (err) {
@@ -27,7 +27,7 @@ integrationRoutes.get("/status", async (req: Request, res: Response, next: NextF
  */
 integrationRoutes.post("/byok/test", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const organizationId = req.auth.organizationId;
+    const organizationId = req.auth!.organizationId;
     const { provider, apiKey, save } = req.body;
 
     if (!provider || !apiKey) {
@@ -53,7 +53,7 @@ integrationRoutes.post("/byok/test", async (req: Request, res: Response, next: N
  */
 integrationRoutes.post("/byodb/test", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const organizationId = req.auth.organizationId;
+    const organizationId = req.auth!.organizationId;
     const { connectionUrl, save } = req.body;
 
     if (!connectionUrl) {
@@ -78,7 +78,7 @@ integrationRoutes.post("/byodb/test", async (req: Request, res: Response, next: 
  */
 integrationRoutes.post("/erp/test", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const organizationId = req.auth.organizationId;
+    const organizationId = req.auth!.organizationId;
     const { provider, config, save } = req.body;
 
     if (!provider) {
@@ -104,8 +104,8 @@ integrationRoutes.post("/erp/test", async (req: Request, res: Response, next: Ne
  */
 integrationRoutes.post("/erp/sync-now", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const organizationId = req.auth.organizationId;
-    const userId = req.auth.userId;
+    const organizationId = req.auth!.organizationId;
+    const userId = req.auth!.userId;
 
     const result = await IntegrationsService.syncInvoicesToErp(organizationId, userId);
     return res.json({
