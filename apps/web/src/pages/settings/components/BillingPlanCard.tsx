@@ -84,7 +84,7 @@ export function BillingPlanCard() {
       setIsUpgrading(false);
       toast({
         type: "success",
-        message: `Plan upgraded to ${planId === "ENTERPRISE" ? "Enterprise Sovereignty" : planId}! New limits are now active.`,
+        title: `Plan upgraded to ${planId === "ENTERPRISE" ? "Enterprise Sovereignty" : planId}! New limits are now active.`,
       });
     }, 600);
   };
@@ -265,7 +265,7 @@ export function BillingPlanCard() {
                 </td>
                 <td className="py-3 text-right">
                   <button
-                    onClick={() => toast({ type: "info", message: "Receipt AV-2026-8910 downloaded (PDF)." })}
+                    onClick={() => toast({ type: "info", title: "Receipt AV-2026-8910 downloaded (PDF)." })}
                     className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
                   >
                     <span>Download PDF</span>
@@ -282,7 +282,7 @@ export function BillingPlanCard() {
                 </td>
                 <td className="py-3 text-right">
                   <button
-                    onClick={() => toast({ type: "info", message: "Receipt AV-2026-7840 downloaded (PDF)." })}
+                    onClick={() => toast({ type: "info", title: "Receipt AV-2026-7840 downloaded (PDF)." })}
                     className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
                   >
                     <span>Download PDF</span>

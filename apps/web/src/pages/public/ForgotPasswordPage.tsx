@@ -93,7 +93,7 @@ export default function ForgotPasswordPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@company.com"
-                  startIcon={<Mail size={16} />}
+                  leftIcon={<Mail size={16} />}
                 />
 
                 <Button

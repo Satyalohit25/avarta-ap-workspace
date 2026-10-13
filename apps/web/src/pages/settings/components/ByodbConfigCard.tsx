@@ -17,7 +17,7 @@ import {
 import { testByodbConnection, fetchIntegrationsStatus, ByodbTestResponse } from "../../../api/integrations";
 
 export function ByodbConfigCard() {
-  const toast = useToast();
+  const { toast } = useToast();
   const [mode, setMode] = useState<"MANAGED" | "CUSTOM">("MANAGED");
   const [connectionUrl, setConnectionUrl] = useState("");
   const [showUrl, setShowUrl] = useState(false);

@@ -84,11 +84,11 @@ export default function LoginPage() {
         <div className="absolute w-[600px] h-[600px] rounded-full bg-radial from-indigo-500/8 dark:from-indigo-400/10 via-transparent to-transparent blur-2xl" />
         
         {/* Large Grand Crest Watermark */}
-        <div className="w-[780px] max-w-[94vw] h-auto opacity-[0.07] dark:opacity-[0.11] transition-opacity duration-300 transform scale-105 sm:scale-110">
+        <div className="w-[780px] max-w-[94vw] aspect-square opacity-[0.07] dark:opacity-[0.11] transition-opacity duration-300 transform scale-105 sm:scale-110 contain-layout">
           <AvartaCrest 
             variant="full" 
             glow 
-            className="w-full h-auto" 
+            className="w-full h-full" 
           />
         </div>
       </div>
@@ -97,7 +97,7 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-sm">
         <div className="text-center mb-6">
           <h1 
-            className="font-old-english text-6xl text-neutral-900 dark:text-zinc-50 font-normal leading-none mb-1 tracking-wide"
+            className="font-old-english text-6xl text-neutral-900 dark:text-zinc-50 font-normal leading-none mb-1 tracking-wide min-h-[60px]"
             style={{ letterSpacing: "0.06em" }}
           >
             Avarta
@@ -152,7 +152,7 @@ export default function LoginPage() {
                     className="text-neutral-400 hover:text-neutral-600 dark:text-zinc-500 dark:hover:text-zinc-300 focus:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400 dark:focus-visible:ring-zinc-400 rounded p-0.5 transition-colors"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
                   </button>
                 }
                 placeholder="••••••••"

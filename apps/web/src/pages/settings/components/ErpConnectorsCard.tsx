@@ -64,7 +64,7 @@ const DEFAULT_CONNECTORS: ErpConnectorMeta[] = [
 ];
 
 export function ErpConnectorsCard() {
-  const toast = useToast();
+  const { toast } = useToast();
   const [connectors, setConnectors] = useState<ErpConnectorMeta[]>(DEFAULT_CONNECTORS);
   const [isSyncing, setIsSyncing] = useState(false);
   const [testingId, setTestingId] = useState<string | null>(null);

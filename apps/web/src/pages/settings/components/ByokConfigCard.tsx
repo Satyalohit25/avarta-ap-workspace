@@ -17,7 +17,7 @@ import {
 import { testByokKey, fetchIntegrationsStatus, ByokTestResponse } from "../../../api/integrations";
 
 export function ByokConfigCard() {
-  const toast = useToast();
+  const { toast } = useToast();
   const [provider, setProvider] = useState<"GEMINI" | "OPENAI" | "TEXTRACT">("GEMINI");
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);

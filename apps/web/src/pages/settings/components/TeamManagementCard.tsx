@@ -75,7 +75,7 @@ export function TeamManagementCard() {
     if (activeSeats >= maxSeats) {
       toast({
         type: "error",
-        message: "Team seat quota reached (10/10). Please upgrade your subscription plan to add more members.",
+        title: "Team seat quota reached (10/10). Please upgrade your subscription plan to add more members.",
       });
       return;
     }
@@ -97,7 +97,7 @@ export function TeamManagementCard() {
       setInviting(false);
       toast({
         type: "success",
-        message: `Invitation email sent to ${newMember.email} with ${ROLE_LABELS[newMember.role]} privileges.`,
+        title: `Invitation email sent to ${newMember.email} with ${ROLE_LABELS[newMember.role]} privileges.`,
       });
     }, 500);
   };
@@ -108,7 +108,7 @@ export function TeamManagementCard() {
     );
     toast({
       type: "info",
-      message: `${name}'s account has been deactivated. Historical audit actions remain preserved.`,
+      title: `${name}'s account has been deactivated. Historical audit actions remain preserved.`,
     });
   };
 

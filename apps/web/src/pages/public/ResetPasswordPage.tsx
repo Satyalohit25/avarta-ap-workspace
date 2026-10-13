@@ -90,7 +90,7 @@ export default function ResetPasswordPage() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Minimum 8 characters"
-                  startIcon={<Lock size={16} />}
+                  leftIcon={<Lock size={16} />}
                 />
 
                 <Input
@@ -100,7 +100,7 @@ export default function ResetPasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Re-enter password"
-                  startIcon={<Lock size={16} />}
+                  leftIcon={<Lock size={16} />}
                 />
 
                 <Button

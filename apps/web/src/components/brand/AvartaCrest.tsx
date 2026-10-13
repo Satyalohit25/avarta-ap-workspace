@@ -82,6 +82,7 @@ export function AvartaCrest({
           height={512}
           className={`w-full h-full object-contain ${blendModeClass} ${glowClass} transition-opacity duration-200 select-none pointer-events-none`}
           loading="eager"
+          fetchPriority="high"
         />
       </div>
     );
@@ -110,6 +111,7 @@ export function AvartaCrest({
             }}
             className={`object-contain ${blendModeClass} ${glowClass} select-none pointer-events-none transition-transform duration-200`}
             loading="eager"
+            fetchPriority="high"
           />
         </div>
       </div>
