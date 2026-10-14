@@ -59,6 +59,7 @@ export async function createHandler(req: Request, res: Response, next: NextFunct
 
     const invoice = await invoiceService.createInvoice({
       organizationId: orgId(req),
+      userId: req.auth?.userId,
       ...body,
       file: fileInfo,
     });

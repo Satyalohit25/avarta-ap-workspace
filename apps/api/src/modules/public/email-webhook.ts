@@ -128,6 +128,14 @@ export async function processInboundEmail(input: InboundEmailInput): Promise<Inb
       throw new Error(`Attachment ${att.fileName} exceeds the maximum allowed size of 10MB.`);
     }
 
+    // Ignore small inline email signature icons (< 10 KB) such as social media badges, email footers, or tracking pixels
+    const MIN_IMAGE_ATTACHMENT_SIZE = 10 * 1024; // 10 KB threshold
+    const isImage = normalizedMime.startsWith("image/");
+    if (isImage && buffer.length < MIN_IMAGE_ATTACHMENT_SIZE) {
+      console.info(`[EMAIL INTAKE] Skipping small inline email signature icon / asset: ${att.fileName} (${buffer.length} bytes)`);
+      continue;
+    }
+
     const storageKey = `email_${invoice.id}_${Date.now()}_${path.basename(att.fileName)}`;
     const filePath = path.resolve(uploadsDir, storageKey);
     fs.writeFileSync(filePath, buffer);

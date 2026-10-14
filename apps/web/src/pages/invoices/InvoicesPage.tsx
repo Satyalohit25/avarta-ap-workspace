@@ -60,15 +60,32 @@ export default function InvoicesPage() {
 
   // Selection & Pagination State
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [currentPage, setCurrentPage] = useState<number>(() => {
+    const p = Number(searchParams.get("page"));
+    return !isNaN(p) && p > 0 ? p : 1;
+  });
   const [pageSize, setPageSize] = useState<number>(10);
   const [isBulkOperating, setIsBulkOperating] = useState<boolean>(false);
 
-  // Keep search query synced with URL search param
+  // Keep search query and page synced with URL search params
   useEffect(() => {
     const s = searchParams.get("search") ?? "";
     setSearchQuery((prev) => (prev !== s ? s : prev));
+    const p = Number(searchParams.get("page"));
+    const validPage = !isNaN(p) && p > 0 ? p : 1;
+    setCurrentPage((prev) => (prev !== validPage ? validPage : prev));
   }, [searchParams]);
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+    const nextParams = new URLSearchParams(searchParams);
+    if (page > 1) {
+      nextParams.set("page", String(page));
+    } else {
+      nextParams.delete("page");
+    }
+    setSearchParams(nextParams);
+  }, [searchParams, setSearchParams]);
 
   const handleSearchChange = useCallback((q: string) => {
     setSearchQuery(q);
@@ -79,6 +96,7 @@ export default function InvoicesPage() {
     } else {
       nextParams.delete("search");
     }
+    nextParams.delete("page");
     setSearchParams(nextParams, { replace: true });
   }, [searchParams, setSearchParams]);
 
@@ -91,6 +109,7 @@ export default function InvoicesPage() {
     } else {
       nextParams.delete("status");
     }
+    nextParams.delete("page");
     setSearchParams(nextParams);
   }, [searchParams, setSearchParams]);
 
@@ -696,10 +715,12 @@ export default function InvoicesPage() {
           </div>
         ) : filteredAndSortedInvoices.length === 0 ? (
           <EmptyState
-            title="No invoices match your criteria."
+            title={searchQuery || status ? "No invoices match your criteria." : "No invoices found."}
             description={
               searchQuery
                 ? `No invoices found matching "${searchQuery}".`
+                : status
+                ? `No invoices found with status "${status}".`
                 : "Upload your first invoice to get started."
             }
             action={
@@ -849,7 +870,7 @@ export default function InvoicesPage() {
               totalItems={totalItems}
               pageSize={pageSize}
               pageSizeOptions={[10, 25, 50]}
-              onPageChange={setCurrentPage}
+              onPageChange={handlePageChange}
               onPageSizeChange={setPageSize}
             />
           </div>

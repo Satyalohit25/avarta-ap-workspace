@@ -67,3 +67,9 @@ export const apiRateLimiter = createRateLimiter({
   windowMs: 60 * 1000, // 1 minute
   maxRequests: 300,    // 300 requests per minute
 });
+
+export const publicTrackRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 30,     // 30 lookups per minute to prevent token/ID enumeration
+  message: "Too many tracking lookups from this IP. Please wait a minute before trying again.",
+});

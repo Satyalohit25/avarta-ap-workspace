@@ -57,6 +57,37 @@ export const invoiceFormSchema = z
       message: "Due date cannot be before invoice date",
       path: ["dueDate"],
     }
+  )
+  .refine(
+    (data) => {
+      if (data.subtotalAmount !== undefined && data.taxAmount !== undefined && data.totalAmount) {
+        const totalNum = Number(data.totalAmount);
+        const expected = data.subtotalAmount + data.taxAmount;
+        if (!isNaN(totalNum) && Math.abs(expected - totalNum) > 1.0) {
+          return false;
+        }
+      }
+      return true;
+    },
+    {
+      message: "Subtotal + Tax must balance with Total Amount (discrepancy exceeds ₹1.00 tolerance)",
+      path: ["totalAmount"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.lines && data.lines.length > 0 && data.subtotalAmount !== undefined && data.subtotalAmount > 0) {
+        const linesSum = data.lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
+        if (Math.abs(linesSum - data.subtotalAmount) > 1.0) {
+          return false;
+        }
+      }
+      return true;
+    },
+    {
+      message: "Line item subtotals (Quantity × Unit Price) do not sum to the specified Subtotal",
+      path: ["subtotalAmount"],
+    }
   );
 
 export type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;

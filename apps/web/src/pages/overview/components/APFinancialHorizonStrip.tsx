@@ -95,6 +95,7 @@ export function APFinancialHorizonStrip({
   const scheduledAmount = rawScheduledAmount + releasedAmount;
 
   const currency = data?.currency || "INR";
+  const hasZeroData = (data?.totalInvoices || 0) === 0;
 
   const anchors: KpiAnchor[] = [
     {
@@ -102,66 +103,96 @@ export function APFinancialHorizonStrip({
       label: "Action Required",
       value: formatCurrency(currentBlocked, currency),
       subtitle: `${totalBlockedCount} invoice${totalBlockedCount !== 1 ? "s" : ""} blocked`,
-      trend: {
-        direction: "positive",
-        label: "↓ 12.5% vs last wk",
-        tooltip: "Fewer invoices blocked than last week — exception resolution rate improving",
-      },
+      trend: hasZeroData
+        ? {
+            direction: "neutral",
+            label: "0 blocked",
+            tooltip: "No exceptions or blocked invoices in workspace",
+          }
+        : {
+            direction: "positive",
+            label: "↓ 12.5% vs last wk",
+            tooltip: "Fewer invoices blocked than last week — exception resolution rate improving",
+          },
       path: "/exceptions",
       isHero: true,
-      sparkPoints: [68, 74, 71, 79, 62, 55, 44],
+      sparkPoints: hasZeroData ? [0, 0, 0, 0, 0, 0, 0] : [68, 74, 71, 79, 62, 55, 44],
     },
     {
       id: "total-outstanding",
       label: "Total Outstanding",
       value: formatCurrency(totalOutstanding, currency),
       subtitle: `${data?.totalInvoices || 0} invoices tracked`,
-      trend: {
-        direction: "positive",
-        label: "↓ 4.2% vs last mo",
-        tooltip: "Outstanding balance is decreasing — working capital position improving",
-      },
+      trend: hasZeroData
+        ? {
+            direction: "neutral",
+            label: "0 open invoices",
+            tooltip: "No outstanding balances detected",
+          }
+        : {
+            direction: "positive",
+            label: "↓ 4.2% vs last mo",
+            tooltip: "Outstanding balance is decreasing — working capital position improving",
+          },
       path: "/invoices",
-      sparkPoints: [82, 79, 75, 78, 71, 68, 65],
+      sparkPoints: hasZeroData ? [0, 0, 0, 0, 0, 0, 0] : [82, 79, 75, 78, 71, 68, 65],
     },
     {
       id: "due-this-week",
       label: "Due This Week",
       value: formatCurrency(due7DaysAmount, currency),
       subtitle: `${due7DaysCount} maturing soon`,
-      trend: {
-        direction: "neutral",
-        label: "⚡ Save ₹17,750",
-        tooltip: "Early payment discount available if settled before due date (2% on qualifying invoices)",
-      },
+      trend: hasZeroData
+        ? {
+            direction: "neutral",
+            label: "No upcoming dues",
+            tooltip: "No invoices maturing within 7 days",
+          }
+        : {
+            direction: "neutral",
+            label: "⚡ Save ₹17,750",
+            tooltip: "Early payment discount available if settled before due date (2% on qualifying invoices)",
+          },
       path: "/payments",
-      sparkPoints: [30, 40, 55, 45, 60, 70, 75],
+      sparkPoints: hasZeroData ? [0, 0, 0, 0, 0, 0, 0] : [30, 40, 55, 45, 60, 70, 75],
     },
     {
       id: "scheduled",
       label: "Scheduled",
       value: formatCurrency(scheduledAmount, currency),
       subtitle: `${scheduledCount} batch${scheduledCount !== 1 ? "es" : ""} queued`,
-      trend: {
-        direction: "neutral",
-        label: "4 runs on track",
-        tooltip: "All scheduled payment runs are progressing on time",
-      },
+      trend: hasZeroData
+        ? {
+            direction: "neutral",
+            label: "0 runs queued",
+            tooltip: "No payment runs currently scheduled",
+          }
+        : {
+            direction: "neutral",
+            label: "4 runs on track",
+            tooltip: "All scheduled payment runs are progressing on time",
+          },
       path: "/payments",
-      sparkPoints: [20, 25, 30, 28, 35, 40, 38],
+      sparkPoints: hasZeroData ? [0, 0, 0, 0, 0, 0, 0] : [20, 25, 30, 28, 35, 40, 38],
     },
     {
       id: "pending-approval",
       label: "Pending Approval",
       value: formatCurrency(awaitingAmount, currency),
       subtitle: `${awaitingCount} awaiting sign-off`,
-      trend: {
-        direction: "positive",
-        label: "↓ 1.8d avg wait",
-        tooltip: "Average approval turnaround is decreasing — Approval SLA met",
-      },
+      trend: hasZeroData
+        ? {
+            direction: "neutral",
+            label: "Queue clear",
+            tooltip: "No invoices currently awaiting sign-off",
+          }
+        : {
+            direction: "positive",
+            label: "↓ 1.8d avg wait",
+            tooltip: "Average approval turnaround is decreasing — Approval SLA met",
+          },
       path: "/approvals",
-      sparkPoints: [60, 55, 50, 48, 42, 38, 35],
+      sparkPoints: hasZeroData ? [0, 0, 0, 0, 0, 0, 0] : [60, 55, 50, 48, 42, 38, 35],
     },
   ];
 

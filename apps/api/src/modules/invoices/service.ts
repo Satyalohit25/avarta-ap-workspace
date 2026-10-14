@@ -56,6 +56,7 @@ export async function getInvoice(organizationId: string, id: string) {
 
 interface CreateInvoiceInput {
   organizationId: string;
+  userId?: string | null;
   supplierId?: string | null;
   invoiceNumber: string;
   invoiceDate?: string | null;
@@ -107,6 +108,17 @@ export interface UpdateInvoiceInput {
 export async function updateInvoice(input: UpdateInvoiceInput) {
   const existing = await repo.findInvoiceById(input.organizationId, input.invoiceId);
   if (!existing) throw ApiError.notFound("Invoice not found");
+
+  if (
+    existing.status === "PAID" ||
+    existing.status === "ARCHIVED" ||
+    existing.workflowState === "PAID" ||
+    existing.workflowState === "ARCHIVED"
+  ) {
+    throw ApiError.badRequest(
+      `Invoices in "${existing.status}" status are immutable and cannot be edited.`
+    );
+  }
 
   const updateData: Record<string, unknown> = {};
   if (input.supplierId !== undefined) updateData.supplierId = input.supplierId || null;
@@ -299,6 +311,22 @@ export async function createInvoice(input: CreateInvoiceInput) {
   }
 
   await startWorkflow(invoice.id);
+
+  await prisma.auditLog.create({
+    data: {
+      organizationId: input.organizationId,
+      userId: input.userId ?? null,
+      action: "INVOICE_CREATED",
+      entityType: "INVOICE",
+      entityId: invoice.id,
+      afterData: {
+        invoiceNumber,
+        totalAmount,
+        currency,
+        source: actualSource,
+      } as unknown as Prisma.InputJsonValue,
+    },
+  });
 
   await prisma.auditLog.create({
     data: {

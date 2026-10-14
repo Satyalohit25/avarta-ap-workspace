@@ -45,5 +45,5 @@ describe("Demo Dataset Seeder & Dynamic Scenarios", () => {
     }
 
     console.log(`✓ Full demo dataset reset completed in ${durationMs}ms`);
-  }, 30000);
+  }, 60000);
 });

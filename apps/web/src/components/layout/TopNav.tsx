@@ -14,7 +14,20 @@ interface TopNavProps {
 export function TopNav({ onOpenMobileMenu }: TopNavProps) {
   const { theme, toggleTheme } = useTheme();
   const [commandOpen, setCommandOpen] = useState(false);
-  const [tourOpen, setTourOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const dismissed = localStorage.getItem("avarta_product_tour_dismissed");
+    const isNewUser = localStorage.getItem("avarta_is_new_user");
+    return isNewUser === "true" && dismissed !== "true";
+  });
+
+  const handleCloseTour = () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("avarta_product_tour_dismissed", "true");
+    }
+    setTourOpen(false);
+  };
+
   const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
     return localStorage.getItem("avarta_user_avatar") || null;
   });
@@ -116,7 +129,7 @@ export function TopNav({ onOpenMobileMenu }: TopNavProps) {
       <Command isOpen={commandOpen} onClose={() => setCommandOpen(false)} />
 
       {/* Interactive Product & Onboarding Tour Modal */}
-      <ProductTourModal isOpen={tourOpen} onClose={() => setTourOpen(false)} />
+      <ProductTourModal isOpen={tourOpen} onClose={handleCloseTour} />
     </>
   );
 }

@@ -147,7 +147,7 @@ export default function ProfilePage() {
   const currentCapabilities = roleCapabilities[userRole] || roleCapabilities["FINANCE_MANAGER"];
 
   return (
-    <div className="space-y-6 w-full pb-16">
+    <div className="space-y-6 w-full max-w-7xl mx-auto pb-16">
       <PageHeader
         title="User Profile & Security"
         subtitle="Manage personal identity, corporate authentication, session health, and developer API credentials."

@@ -2,11 +2,12 @@ import crypto from "crypto";
 import { Router, Request, Response } from "express";
 import { prisma } from "../../config/database";
 import { runWithEngineBypass } from "../../config/tenant-guard";
+import { publicTrackRateLimiter } from "../../middleware/rate-limiter";
 
 export const publicRoutes = Router();
 
-// Public unauthenticated tracking endpoint for vendors
-publicRoutes.get("/invoices/track/:token", async (req: Request, res: Response): Promise<void> => {
+// Public unauthenticated tracking endpoint for vendors with rate limiting
+publicRoutes.get("/invoices/track/:token", publicTrackRateLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const { token } = req.params;
 

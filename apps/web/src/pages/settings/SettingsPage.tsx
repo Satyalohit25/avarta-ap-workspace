@@ -313,7 +313,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="space-y-6 w-full max-w-7xl mx-auto">
       <PageHeader
         title="Settings & Workspace Configuration"
         subtitle="Manage organization financial controls, approval policies, ERP integrations, and audit logs."

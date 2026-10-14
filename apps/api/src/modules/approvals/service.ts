@@ -79,6 +79,24 @@ export async function approveApproval(
     }
   }
 
+  // AICPA SOC 2 Common Criteria: Segregation of Duties (SoD)
+  // An invoice creator/uploader cannot approve their own invoice
+  if (userId) {
+    const creationLog = await prisma.auditLog.findFirst({
+      where: {
+        organizationId,
+        entityId: approval.invoiceId,
+        action: "INVOICE_CREATED",
+      },
+    });
+
+    if (creationLog && creationLog.userId && creationLog.userId === userId) {
+      throw ApiError.forbidden(
+        "Segregation of Duties (SoD) violation: The user who created or uploaded this invoice cannot approve it (AICPA SOC 2 Common Criteria)."
+      );
+    }
+  }
+
   // AGENTS.md rule 4: applyTransition changes workflow_instances.current_state and invoices.status
   await applyTransition({
     invoiceId: approval.invoiceId,

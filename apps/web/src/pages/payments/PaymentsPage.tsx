@@ -43,6 +43,7 @@ export default function PaymentsPage() {
   const [disbursementModalState, setDisbursementModalState] = useState<{
     isOpen: boolean;
     payments: PaymentRow[];
+    batchSessionKey?: string;
   }>({
     isOpen: false,
     payments: [],
@@ -148,7 +149,11 @@ export default function PaymentsPage() {
           const row = paginatedRows[focusedRowIndex];
           if (row.status === "SCHEDULED") {
             e.preventDefault();
-            setDisbursementModalState({ isOpen: true, payments: [row] });
+            setDisbursementModalState({
+              isOpen: true,
+              payments: [row],
+              batchSessionKey: `sess-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            });
           }
         }
       }
@@ -250,9 +255,10 @@ export default function PaymentsPage() {
   async function handleConfirmDisburse(_account: string, _rail: string) {
     setBatchExecuting(true);
     try {
+      const sessionKey = disbursementModalState.batchSessionKey || `sess-${Date.now()}`;
       for (const p of disbursementModalState.payments) {
-        // Enforce per-transaction client idempotency key
-        const idempotencyKey = `pay-${p.id}-${Date.now()}`;
+        // Enforce per-transaction client idempotency key tied to modal session
+        const idempotencyKey = `pay-${p.id}-${sessionKey}`;
         await executePayment(p.id, undefined, idempotencyKey);
       }
       const executedIds = new Set(disbursementModalState.payments.map((p) => p.id));
@@ -503,7 +509,13 @@ export default function PaymentsPage() {
                           <Button
                             size="sm"
                             variant="primary"
-                            onClick={() => setDisbursementModalState({ isOpen: true, payments: [p] })}
+                            onClick={() =>
+                              setDisbursementModalState({
+                                isOpen: true,
+                                payments: [p],
+                                batchSessionKey: `sess-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                              })
+                            }
                             disabled={batchExecuting}
                             className="h-7 text-caption shadow-xs"
                           >
@@ -582,7 +594,13 @@ export default function PaymentsPage() {
             </Button>
             <Button
               size="sm"
-              onClick={() => setDisbursementModalState({ isOpen: true, payments: selectedRows })}
+              onClick={() =>
+                setDisbursementModalState({
+                  isOpen: true,
+                  payments: selectedRows,
+                  batchSessionKey: `sess-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                })
+              }
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold gap-1.5 ml-1"
             >
               <span>Release Batch Disbursement</span>
