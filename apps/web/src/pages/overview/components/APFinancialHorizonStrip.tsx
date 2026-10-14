@@ -168,13 +168,13 @@ export function APFinancialHorizonStrip({
   const [hero, ...secondary] = anchors;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-2.5">
       {/* ── HERO CARD: Action Required — single focal point ── */}
       <button
         type="button"
         id="kpi-action-required"
         onClick={() => navigate(hero.path)}
-        className="lg:col-span-3 p-4 rounded-xl border-2 border-indigo-400/70 dark:border-indigo-600/60 bg-indigo-50/40 dark:bg-indigo-950/25 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all text-left group shadow-sm cursor-pointer flex flex-col justify-between relative overflow-hidden"
+        className="md:col-span-2 xl:col-span-3 p-4 rounded-xl border-2 border-indigo-400/70 dark:border-indigo-600/60 bg-indigo-50/40 dark:bg-indigo-950/25 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all text-left group shadow-sm cursor-pointer flex flex-col justify-between relative overflow-hidden"
         aria-label={`${hero.label}: ${hero.value}`}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none" aria-hidden="true" />
@@ -194,7 +194,7 @@ export function APFinancialHorizonStrip({
         </div>
 
         <div className="my-1.5 relative">
-          <span className="text-[1.65rem] font-bold font-mono tabular-nums text-neutral-900 dark:text-zinc-50 tracking-tight leading-tight block">
+          <span className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-neutral-900 dark:text-zinc-50 tracking-tight leading-tight block truncate">
             {hero.value}
           </span>
         </div>
@@ -211,14 +211,14 @@ export function APFinancialHorizonStrip({
       </button>
 
       {/* ── SECONDARY CARDS: quieter, equal visual weight ── */}
-      <div className="lg:col-span-9 grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div className="md:col-span-2 xl:col-span-9 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
         {secondary.map((item) => (
           <button
             key={item.id}
             type="button"
             id={`kpi-${item.id}`}
             onClick={() => navigate(item.path)}
-            className="p-3.5 rounded-xl border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 hover:border-neutral-300 dark:hover:border-zinc-700 transition-all text-left group shadow-2xs cursor-pointer flex flex-col justify-between"
+            className="p-3.5 rounded-xl border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 hover:border-neutral-300 dark:hover:border-zinc-700 transition-all text-left group shadow-2xs cursor-pointer flex flex-col justify-between min-w-0"
             aria-label={`${item.label}: ${item.value}`}
           >
             <div className="flex items-center justify-between w-full mb-1.5">
@@ -233,7 +233,7 @@ export function APFinancialHorizonStrip({
             </div>
 
             <div className="my-1">
-              <span className="text-[1.15rem] font-bold font-mono tabular-nums text-neutral-900 dark:text-zinc-50 tracking-tight leading-snug block">
+              <span className="text-sm sm:text-base font-bold font-mono tabular-nums text-neutral-900 dark:text-zinc-50 tracking-tight leading-snug block truncate">
                 {item.value}
               </span>
             </div>

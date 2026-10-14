@@ -290,7 +290,7 @@ export function APWorkstationGrid({
       <div className="lg:col-span-7 rounded-xl border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 p-3.5 flex flex-col justify-between shadow-2xs">
         <div className="flex-1 flex flex-col min-h-0">
           {/* Header */}
-          <div className="flex items-center justify-between pb-2 border-b border-neutral-100 dark:border-zinc-800/80">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 pb-2 border-b border-neutral-100 dark:border-zinc-800/80">
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-900 dark:text-zinc-100 shrink-0">
                 Actionable Work Queue

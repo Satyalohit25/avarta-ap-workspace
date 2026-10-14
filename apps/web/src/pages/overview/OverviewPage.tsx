@@ -130,10 +130,10 @@ export default function OverviewPage() {
               Mission Control
             </span>
           </div>
-          <p className="text-[11px] text-neutral-500 dark:text-zinc-400 mt-0.5 flex items-center gap-1.5">
+          <p className="text-[11px] text-neutral-500 dark:text-zinc-400 mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
             <span>Operational cash horizon, actionable work queue, and pipeline velocity</span>
             <span className="text-neutral-400 dark:text-zinc-500">·</span>
-            <span>Updated {timeFormatted}</span>
+            <span className="whitespace-nowrap">Updated {timeFormatted}</span>
           </p>
         </div>
 
