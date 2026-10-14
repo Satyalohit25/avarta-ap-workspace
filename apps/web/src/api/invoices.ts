@@ -15,7 +15,7 @@ export interface InvoiceListItem {
   buyerInvoiceId?: string | null;
   fiscalYear?: string | null;
   erpClearingNumber?: string | null;
-  supplier: { id: string; name: string } | null;
+  supplier: { id: string; name: string; gstin?: string | null } | null;
   invoiceDate?: string | null;
   dueDate: string | null;
   currency: string;
@@ -215,16 +215,20 @@ export function processInvoice(id: string, idempotencyKey?: string) {
   });
 }
 
-export function transitionInvoice(id: string, action: string, comment?: string) {
+export function transitionInvoice(id: string, action: string, comment?: string, idempotencyKey?: string) {
+  const key = idempotencyKey || `idemp-trans-${id}-${action.toLowerCase()}-${Date.now()}`;
   return apiRequest<{ data: InvoiceListItem }>(`/invoices/${id}/transitions`, {
     method: "POST",
+    headers: { "Idempotency-Key": key },
     body: { action, comment },
   });
 }
 
-export function syncInvoiceToErp(id: string, targetErp: string) {
+export function syncInvoiceToErp(id: string, targetErp: string, idempotencyKey?: string) {
+  const key = idempotencyKey || `erp-sync-${id}-${Date.now()}`;
   return apiRequest<{ data: InvoiceListItem }>(`/invoices/${id}/erp-sync`, {
     method: "POST",
+    headers: { "Idempotency-Key": key },
     body: { targetErp },
   });
 }

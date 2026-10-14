@@ -30,7 +30,19 @@ export async function listSuppliers(filters: ListFilters) {
       orderBy: { displayName: "asc" },
       skip: (filters.page - 1) * filters.pageSize,
       take: filters.pageSize,
-      include: { _count: { select: { invoices: true } } },
+      include: {
+        _count: { select: { invoices: true } },
+        invoices: {
+          select: {
+            id: true,
+            status: true,
+            workflowState: true,
+            totalAmount: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
     }),
     prisma.supplier.count({ where }),
   ]);
@@ -41,7 +53,10 @@ export async function listSuppliers(filters: ListFilters) {
 export async function findSupplierById(organizationId: string, id: string) {
   return prisma.supplier.findFirst({
     where: { id, organizationId },
-    include: { invoices: { orderBy: { updatedAt: "desc" }, take: 20 } },
+    include: {
+      invoices: { orderBy: { updatedAt: "desc" }, take: 50 },
+      purchaseOrders: { orderBy: { createdAt: "desc" }, take: 20 },
+    },
   });
 }
 

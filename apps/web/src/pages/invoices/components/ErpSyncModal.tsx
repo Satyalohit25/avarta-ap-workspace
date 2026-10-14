@@ -32,7 +32,7 @@ export interface ErpSyncModalProps {
   vendorName: string;
   totalAmount: number | string;
   currency: string;
-  onConfirmSync: (targetErp: string) => Promise<void>;
+  onConfirmSync: (targetErp: string, idempotencyKey?: string) => Promise<void>;
   isPending?: boolean;
 }
 
@@ -91,7 +91,7 @@ export function ErpSyncModal({
         );
       }
 
-      await onConfirmSync(targetErp);
+      await onConfirmSync(targetErp, idempotencyKey);
       setLifecycle("SUCCESS");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : `Failed to post double-entry voucher to ${targetErp}.`;

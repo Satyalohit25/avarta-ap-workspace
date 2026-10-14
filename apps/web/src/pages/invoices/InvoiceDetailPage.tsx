@@ -17,6 +17,7 @@ import {
   ChevronDown,
   Layers,
   ArrowRight,
+  FileText,
 } from "lucide-react";
 import {
   InvoiceListItem,
@@ -43,6 +44,7 @@ import { BadgeKey } from "../../components/ui/BadgeKey";
 import { TimelineEvent } from "../../components/ui/Timeline";
 import { Dialog } from "../../components/ui/Dialog";
 import { Sheet } from "../../components/ui/Sheet";
+import { Tabs } from "../../components/ui/Tabs";
 import { Alert } from "../../components/ui/Alert";
 import { Breadcrumbs } from "../../components/ui/Breadcrumbs";
 import { useToast } from "../../components/ui/ToastContext";
@@ -766,11 +768,11 @@ export default function InvoiceDetailPage() {
     }
   }
 
-  async function handleErpSync(targetErp: string) {
+  async function handleErpSync(targetErp: string, idempotencyKey?: string) {
     if (!invoiceId) return;
     setActionPending(true);
     try {
-      await syncInvoiceToErp(invoiceId, targetErp);
+      await syncInvoiceToErp(invoiceId, targetErp, idempotencyKey);
       toast.success(
         `Exported to ${targetErp.toUpperCase()}`,
         `GL journal entries created and synchronized for ${invoice?.invoiceNumber}.`,
@@ -1471,7 +1473,7 @@ export default function InvoiceDetailPage() {
                 totalAmount={invoice.totalAmount}
                 currency={invoice.currency}
                 supplierName={invoice.supplier?.name}
-                supplierGstin="27AABCC1234F1Z8"
+                supplierGstin={invoice.supplier?.gstin || "—"}
                 purchaseOrderId={invoice.purchaseOrderId}
                 linesCount={invoice.lines?.length ?? 3}
                 extractedAtDate={
@@ -1572,6 +1574,8 @@ export default function InvoiceDetailPage() {
       <InvoiceActionBar
         context={context}
         invoiceNumber={invoice.invoiceNumber}
+        totalAmount={invoice.totalAmount}
+        currency={invoice.currency}
         onAction={handleActionClick}
         isActionPending={actionPending}
       />

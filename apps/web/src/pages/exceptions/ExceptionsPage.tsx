@@ -22,6 +22,7 @@ import { Input } from "../../components/ui/Input";
 import { Pagination } from "../../components/ui/Pagination";
 import { useToast } from "../../components/ui/ToastContext";
 import { PageHeader } from "../../components/layout/PageHeader";
+import { PropertyInspector } from "../../components/ui/PropertyInspector";
 import { cn } from "../../lib/utils";
 import {
   Table,
@@ -516,6 +517,24 @@ export default function ExceptionsPage() {
                 />
               );
             })()}
+
+            {/* Property Inspector (Vendor GSTIN, payment terms, match status, linked PO) */}
+            <div className="space-y-1.5">
+              <span className="text-micro font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400">
+                Entity &amp; Commercial Properties
+              </span>
+              <PropertyInspector
+                vendorGstin={selectedException.vendor.toLowerCase().includes("tata") ? "27AAACT3518Q1ZV" : "29AAACB8291M1Z1"}
+                paymentTerms="Net 30 Days"
+                matchingStatus={
+                  selectedException.type.includes("MATCH") || selectedException.type.includes("PO") || selectedException.type.includes("DIFF")
+                    ? "VARIANCE"
+                    : "PENDING"
+                }
+                linkedPo={`PO-${selectedException.invoiceNumber.replace("INV-", "FY26-")}`}
+                exportFormat="SAP S/4HANA / Tally Prime"
+              />
+            </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">

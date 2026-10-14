@@ -16,9 +16,9 @@ export interface MetricStripProps {
 export function MetricStrip({ items }: MetricStripProps) {
   return (
     <Card level="surface" className="p-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 divide-y md:divide-y-0 md:divide-x divide-neutral-200 dark:divide-zinc-800">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-neutral-200 dark:divide-zinc-800">
         {items.map((item, idx) => (
-          <div key={item.id} className={idx === 0 ? "" : "pt-3 md:pt-0 md:pl-4"}>
+          <div key={item.id} className={idx === 0 ? "" : "pt-3 sm:pt-0 sm:pl-4"}>
             <div className="flex items-center gap-1.5 mb-1">
               {item.icon && <div className="text-neutral-400 dark:text-zinc-500 shrink-0">{item.icon}</div>}
               <span className="text-micro font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400">

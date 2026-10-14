@@ -20,7 +20,14 @@ export interface SeedSummary {
 }
 
 export async function seedDemoDataset(prismaClient: PrismaClient): Promise<SeedSummary> {
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_PROD_SEED !== "true") {
+    throw new Error(
+      "AGENTS.md Production Gate: seedDemoDataset is strictly disabled in production. Database seeding must only be executed via CLI migration scripts (apps/api/prisma/seed.ts) with ALLOW_PROD_SEED=true."
+    );
+  }
+
   const prisma = prismaClient;
+
 
   // 1. Dependency-ordered clean table wipe inside transaction
   await prisma.$transaction([

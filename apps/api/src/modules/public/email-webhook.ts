@@ -107,19 +107,36 @@ export async function processInboundEmail(input: InboundEmailInput): Promise<Inb
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
 
+  const ALLOWED_MIME_TYPES = new Set([
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "image/jpg",
+  ]);
+  const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB limit matching upload.ts
+
   for (let i = 0; i < attachments.length; i++) {
     const att = attachments[i];
-    const storageKey = `email_${invoice.id}_${Date.now()}_${path.basename(att.fileName)}`;
-    const filePath = path.resolve(uploadsDir, storageKey);
+    const normalizedMime = (att.mimeType || "").toLowerCase();
+    if (!ALLOWED_MIME_TYPES.has(normalizedMime)) {
+      console.warn(`[EMAIL INTAKE] Skipping attachment ${att.fileName} with disallowed MIME: ${att.mimeType}`);
+      continue;
+    }
 
     const buffer = Buffer.from(att.contentBase64, "base64");
+    if (buffer.length > MAX_ATTACHMENT_SIZE) {
+      throw new Error(`Attachment ${att.fileName} exceeds the maximum allowed size of 10MB.`);
+    }
+
+    const storageKey = `email_${invoice.id}_${Date.now()}_${path.basename(att.fileName)}`;
+    const filePath = path.resolve(uploadsDir, storageKey);
     fs.writeFileSync(filePath, buffer);
 
     await prisma.document.create({
       data: {
         invoiceId: invoice.id,
         fileName: att.fileName,
-        mimeType: att.mimeType,
+        mimeType: normalizedMime,
         storageKey,
         fileSize: buffer.length,
       },

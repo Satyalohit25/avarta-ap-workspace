@@ -39,7 +39,7 @@ export function toInvoiceListItem(invoice: InvoiceListPayload) {
     fiscalYear: (invoice as unknown as { fiscalYear?: string | null }).fiscalYear ?? null,
     erpClearingNumber: (invoice as unknown as { erpClearingNumber?: string | null }).erpClearingNumber ?? null,
     supplier: invoice.supplier
-      ? { id: invoice.supplier.id, name: invoice.supplier.displayName }
+      ? { id: invoice.supplier.id, name: invoice.supplier.displayName, gstin: invoice.supplier.gstNumber ?? null }
       : null,
     invoiceDate: invoice.invoiceDate,
     dueDate: invoice.dueDate,

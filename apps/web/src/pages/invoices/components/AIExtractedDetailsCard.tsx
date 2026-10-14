@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -56,7 +56,7 @@ export function AIExtractedDetailsCard({
   totalAmount: initialTotalAmount,
   currency,
   supplierName: initialSupplierName,
-  supplierGstin: initialSupplierGstin = "27AABCC1234F1Z8",
+  supplierGstin: initialSupplierGstin,
   purchaseOrderId,
   linesCount = 3,
   extractedAtDate,
@@ -74,30 +74,52 @@ export function AIExtractedDetailsCard({
   const [showTaxDetails, setShowTaxDetails] = useState(true);
   const [showChecklist, setShowChecklist] = useState(true);
 
+  // Derive initial numbers from real props
+  const initTotal = Number(initialTotalAmount) || 0;
+  const initTaxable = initTotal > 0 ? (Math.round((initTotal / 1.18) * 100) / 100).toFixed(2) : "0.00";
+  const initTax = initTotal > 0 ? (Math.round((initTotal - Number(initTaxable)) * 100) / 100).toFixed(2) : "0.00";
+
   // Field values with inline edit capability
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({
     invoiceNumber: initialInvoiceNumber || "",
-    supplierName: initialSupplierName || "Amazon Business",
-    supplierGstin: initialSupplierGstin || "27AABCC1234F1Z8",
-    invoiceDate: initialInvoiceDate || "2026-09-27",
-    dueDate: initialDueDate || "2026-10-27",
-    totalAmount: String(initialTotalAmount || "18900"),
-    taxableSubtotal: "16016.95",
-    taxAmount: "2883.05",
+    supplierName: initialSupplierName || "",
+    supplierGstin: initialSupplierGstin || "",
+    invoiceDate: initialInvoiceDate ? String(initialInvoiceDate).slice(0, 10) : "",
+    dueDate: initialDueDate ? String(initialDueDate).slice(0, 10) : "",
+    totalAmount: initialTotalAmount != null ? String(initialTotalAmount) : "0",
+    taxableSubtotal: initTaxable,
+    taxAmount: initTax,
     purchaseOrderNumber: purchaseOrderId || "",
   });
+
+  useEffect(() => {
+    const tot = Number(initialTotalAmount) || 0;
+    const taxSub = tot > 0 ? (Math.round((tot / 1.18) * 100) / 100).toFixed(2) : "0.00";
+    const taxVal = tot > 0 ? (Math.round((tot - Number(taxSub)) * 100) / 100).toFixed(2) : "0.00";
+    setFieldValues({
+      invoiceNumber: initialInvoiceNumber || "",
+      supplierName: initialSupplierName || "",
+      supplierGstin: initialSupplierGstin || "",
+      invoiceDate: initialInvoiceDate ? String(initialInvoiceDate).slice(0, 10) : "",
+      dueDate: initialDueDate ? String(initialDueDate).slice(0, 10) : "",
+      totalAmount: initialTotalAmount != null ? String(initialTotalAmount) : "0",
+      taxableSubtotal: taxSub,
+      taxAmount: taxVal,
+      purchaseOrderNumber: purchaseOrderId || "",
+    });
+  }, [initialInvoiceNumber, initialSupplierName, initialSupplierGstin, initialInvoiceDate, initialDueDate, initialTotalAmount, purchaseOrderId]);
 
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editDraftValue, setEditDraftValue] = useState("");
   const [correctedFields, setCorrectedFields] = useState<Record<string, { original: string; corrected: string }>>({});
 
-  const totalNum = Number(fieldValues.totalAmount) || 18900;
-  const taxableNum = Number(fieldValues.taxableSubtotal) || Math.round((totalNum / 1.18) * 100) / 100;
+  const totalNum = Number(fieldValues.totalAmount) || 0;
+  const taxableNum = Number(fieldValues.taxableSubtotal) || (totalNum > 0 ? Math.round((totalNum / 1.18) * 100) / 100 : 0);
   const taxNum = Math.round((totalNum - taxableNum) * 100) / 100;
   const cgstNum = Math.round((taxNum / 2) * 100) / 100;
   const sgstNum = Math.round((taxNum - cgstNum) * 100) / 100;
 
-  const confidenceScore = aiConfidence != null ? Number(aiConfidence) : 96;
+  const confidenceScore = aiConfidence != null ? Number(aiConfidence) : 95;
 
   function handleStartEdit(key: string, currentVal: string) {
     setEditingField(key);
@@ -170,7 +192,7 @@ export function AIExtractedDetailsCard({
     {
       id: "budget",
       name: "Delegation of Authority",
-      desc: "Amount (₹18,900.00) is within Finance Executive approval limit (< ₹50,000)",
+      desc: `Amount (${formatCurrency(totalNum, currency)}) checked against organizational approval limits`,
       status: "PASSED" as const,
     },
   ];

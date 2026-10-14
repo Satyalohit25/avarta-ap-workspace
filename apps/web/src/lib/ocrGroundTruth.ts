@@ -116,12 +116,11 @@ export function generateGroundTruthBoxes(params: GenerateBoxesParams): GroundTru
     if (boxes.length > 0) return boxes;
   }
 
-  // ---------------------------------------------------------------------------
-  // PROFILE: DHL Express Commercial Invoice / International Air Waybill
-  // (Matches the exact 14 numbered sections of the DHL commercial invoice format:
-  // Shipper Lion City Apparel, Airwaybill 6205439187, Ship To Bondi Boutique,
-  // Bill To Harbourline Logistics, SGD 180.00, Men's cotton T-shirts)
-  // ---------------------------------------------------------------------------
+  // De-mocked UI State: Return strictly real OCR extracted bounding boxes; no hardcoded fallback arrays
+  return [];
+}
+
+function _unusedFallbackProfiles(params: GenerateBoxesParams, baseConf: number, curr: string, numTotal: number, supLower: string, invNum: string) {
   const isDhlInvoice =
     supLower.includes("lion city") ||
     supLower.includes("dhl") ||

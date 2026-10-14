@@ -2,14 +2,12 @@ import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopNav } from "./TopNav";
+import { Sheet } from "../ui/Sheet";
 
 // Doc 08 §8.7 global page template: Multi-device Responsive Sidebar + TopNav + Content.
 export function AppLayout() {
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
-      // Auto-collapse on tablet (768px - 1024px) per standard practice & user approval
-      const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
-      if (isTablet) return true;
       return (
         localStorage.getItem("avarta_sidebar_collapsed") === "true" ||
         localStorage.getItem("clearops_sidebar_collapsed") === "true"
@@ -20,24 +18,12 @@ export function AppLayout() {
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Handle window resizing to auto-collapse on tablet
   useEffect(() => {
     function handleResize() {
-      if (window.innerWidth >= 768 && window.innerWidth < 1024) {
-        setIsCollapsed(true);
-      } else if (window.innerWidth >= 1024) {
-        const saved =
-          localStorage.getItem("avarta_sidebar_collapsed") ||
-          localStorage.getItem("clearops_sidebar_collapsed");
-        if (saved !== null) {
-          setIsCollapsed(saved === "true");
-        }
-      }
-      if (window.innerWidth >= 768) {
+      if (window.innerWidth >= 1024) {
         setIsMobileOpen(false);
       }
     }
-
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -52,27 +38,37 @@ export function AppLayout() {
 
   return (
     <div className="flex h-screen bg-neutral-50 dark:bg-zinc-950 text-neutral-900 dark:text-zinc-100 transition-colors overflow-hidden">
-      {/* Dimmed Backdrop Overlay on Mobile */}
-      {isMobileOpen && (
-        <div
-          onClick={() => setIsMobileOpen(false)}
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs md:hidden animate-in fade-in duration-200"
-          aria-hidden="true"
+      {/* Desktop (lg: 1024px+): Persistent Left Sidebar */}
+      <div className="hidden lg:flex shrink-0">
+        <Sidebar
+          isCollapsed={isCollapsed}
+          onToggleCollapse={handleToggleCollapse}
+          isMobileOpen={false}
+          onCloseMobile={() => {}}
         />
-      )}
+      </div>
 
-      {/* Modern Multi-Device Sidebar */}
-      <Sidebar
-        isCollapsed={isCollapsed}
-        onToggleCollapse={handleToggleCollapse}
-        isMobileOpen={isMobileOpen}
-        onCloseMobile={() => setIsMobileOpen(false)}
-      />
+      {/* Mobile & Tablet (< 1024px): Left Slide-Over Drawer using Sheet */}
+      <Sheet
+        isOpen={isMobileOpen}
+        onClose={() => setIsMobileOpen(false)}
+        side="left"
+        hideHeader
+        width="w-64 max-w-[85vw]"
+      >
+        <Sidebar
+          isCollapsed={false}
+          onToggleCollapse={() => {}}
+          isMobileOpen={true}
+          onCloseMobile={() => setIsMobileOpen(false)}
+        />
+      </Sheet>
 
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <TopNav onOpenMobileMenu={() => setIsMobileOpen(true)} />
-        <main className="flex-1 overflow-y-auto">
-          <div className="w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-2.5">
+        <main className="flex-1 overflow-y-auto min-w-0 overflow-x-hidden">
+          <div className="w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-3">
             <Outlet />
           </div>
         </main>

@@ -4,7 +4,6 @@ import {
   User,
   LogOut,
   Building2,
-  RotateCcw,
   Check,
   Compass,
   Command,
@@ -16,7 +15,6 @@ import {
 import { useAuth } from "../../app/AuthContext";
 import { useTheme } from "../../app/ThemeContext";
 import { DEMO_ACCOUNTS } from "../../lib/constants";
-import { Dialog } from "../ui/Dialog";
 
 const ROLE_DISPLAY_NAMES: Record<string, string> = {
   ADMINISTRATOR: "Administrator",
@@ -50,49 +48,10 @@ export function UserWorkspaceMenu({
   const { theme, toggleTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [showResetModal, setShowResetModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const isDemoMode = import.meta.env.VITE_DEMO_MODE === "true";
   const displayRole = formatRoleName(user?.role);
-
-  // Close on outside click
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen]);
-
-  // Close on Escape key
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" && isOpen) {
-        setIsOpen(false);
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
-
-  async function handleResetDemo() {
-    setResetting(true);
-    try {
-      localStorage.removeItem("avarta_demo_user");
-      localStorage.removeItem("clearops_demo_user");
-      localStorage.removeItem("avarta_token");
-      localStorage.removeItem("clearops_token");
-      window.location.reload();
-    } finally {
-      setTimeout(() => setResetting(false), 800);
-    }
-  }
+  const isDemoMode = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO === "true";
 
   async function handleSwitch(account: (typeof DEMO_ACCOUNTS)[number]) {
     if (account.email === user?.email) {
@@ -279,31 +238,6 @@ export function UserWorkspaceMenu({
                     </button>
                   );
                 })}
-
-                {/* 6th Slot: Balanced Reset Demo Tile completing the 2x3 grid */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsOpen(false);
-                    setShowResetModal(true);
-                  }}
-                  disabled={resetting}
-                  className="p-2 rounded-xl border border-dashed border-amber-300 dark:border-amber-800/80 bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/50 dark:hover:bg-amber-900/30 text-left transition-all cursor-pointer flex items-center justify-between gap-2 group"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300">
-                      <RotateCcw size={13} className={resetting ? "animate-spin" : "group-hover:-rotate-45 transition-transform"} />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-body-sm font-semibold text-amber-900 dark:text-amber-200 block leading-tight truncate">
-                        Reset Demo Data
-                      </span>
-                      <span className="text-[10px] font-mono text-amber-700/80 dark:text-amber-400/80 block truncate mt-0.5">
-                        Restore Baseline
-                      </span>
-                    </div>
-                  </div>
-                </button>
               </div>
             </div>
           )}
@@ -367,17 +301,6 @@ export function UserWorkspaceMenu({
           </div>
         </div>
       )}
-
-      {/* Confirmation Dialog for Demo Reset */}
-      <Dialog
-        isOpen={showResetModal}
-        onClose={() => setShowResetModal(false)}
-        title="Reset Workspace Demo State"
-        description="This will clear cached session overrides, active search filters, and reload initial baseline demo invoices for Acme Manufacturing Pvt Ltd."
-        confirmLabel="Confirm Reset"
-        onConfirm={handleResetDemo}
-        isPending={resetting}
-      />
     </div>
   );
 }

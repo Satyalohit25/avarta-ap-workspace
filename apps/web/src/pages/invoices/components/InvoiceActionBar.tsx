@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   CheckSquare,
   Zap,
@@ -7,21 +7,26 @@ import {
   ArrowRight,
   ArrowRightLeft,
   ArrowLeft,
-  ArrowRight as ArrowRightIcon,
   Link2,
   Check,
   PauseCircle,
   ChevronLeft,
   ChevronRight,
   Send,
+  MoreHorizontal,
+  FileDown,
+  History,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../../../components/ui/Button";
+import { formatCurrency } from "../../../lib/formatters";
 import { InvoiceWorkflowContext } from "../helpers/workflowContext";
 
 interface InvoiceActionBarProps {
   context: InvoiceWorkflowContext;
   invoiceNumber: string;
+  totalAmount?: number | string;
+  currency?: string;
   onAction: (actionKey: string) => void;
   isActionPending?: boolean;
 }
@@ -29,11 +34,14 @@ interface InvoiceActionBarProps {
 export function InvoiceActionBar({
   context,
   invoiceNumber,
+  totalAmount,
+  currency = "INR",
   onAction,
   isActionPending = false,
 }: InvoiceActionBarProps) {
   const { status, primaryAction, secondaryActions } = context;
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const navigate = useNavigate();
 
   function handleCopyTrackingLink() {
@@ -125,7 +133,7 @@ export function InvoiceActionBar({
           {isCleanForApproval ? (
             <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
               <Check size={11} strokeWidth={2.5} />
-              <span>Ready for Approval • ₹18,900.00</span>
+              <span>Ready for Approval • {formatCurrency(Number(totalAmount) || 0, currency)}</span>
             </span>
           ) : status === "EXCEPTION" ? (
             <span className="inline-flex items-center gap-1 text-[11px] font-mono text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
@@ -140,31 +148,9 @@ export function InvoiceActionBar({
       </div>
 
       {/* Right: Explicit Primary and Secondary Actions */}
-      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-        {/* Vendor Status Link Button */}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleCopyTrackingLink}
-          className="h-9 px-2.5 text-caption font-medium gap-1.5 rounded-lg text-neutral-600 dark:text-zinc-400 border-neutral-200 dark:border-zinc-700"
-          title="Copy unauthenticated vendor status tracking link"
-        >
-          {copiedLink ? (
-            <>
-              <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
-              <span>Copied</span>
-            </>
-          ) : (
-            <>
-              <Link2 size={13} />
-              <span>Vendor Link</span>
-            </>
-          )}
-        </Button>
-
-        {/* Secondary actions (e.g. Hold / Request Correction, Reject) */}
-        {secondaryActions.map((sec) => (
+      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end relative">
+        {/* Main Secondary Actions (Outline or Destructive — e.g. Reject, Hold) */}
+        {secondaryActions.slice(0, 2).map((sec) => (
           <Button
             key={sec.actionKey}
             type="button"
@@ -183,7 +169,64 @@ export function InvoiceActionBar({
           </Button>
         ))}
 
-        {/* Primary State-Aware Action (e.g. Send to Approval / Approve Invoice) */}
+        {/* ••• More Actions Overflow Menu */}
+        <div className="relative">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowMoreMenu((prev) => !prev)}
+            className="h-9 px-2 text-caption font-medium gap-1 rounded-lg text-neutral-600 dark:text-zinc-400 border-neutral-200 dark:border-zinc-700"
+            title="More actions"
+          >
+            <MoreHorizontal size={16} />
+          </Button>
+
+          {showMoreMenu && (
+            <div className="absolute right-0 bottom-full mb-2 w-52 py-1 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-neutral-200 dark:border-zinc-700 z-50 text-caption animate-in fade-in zoom-in-95 duration-100">
+              <button
+                type="button"
+                onClick={() => {
+                  handleCopyTrackingLink();
+                  setShowMoreMenu(false);
+                }}
+                className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-300 transition-colors"
+              >
+                <Link2 size={14} className="text-neutral-400" />
+                <span>{copiedLink ? "Link Copied!" : "Copy Vendor Link"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onAction("VIEW_AUDIT");
+                  setShowMoreMenu(false);
+                }}
+                className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-300 transition-colors"
+              >
+                <History size={14} className="text-neutral-400" />
+                <span>View Full Audit Log</span>
+              </button>
+
+              {secondaryActions.slice(2).map((sec) => (
+                <button
+                  key={sec.actionKey}
+                  type="button"
+                  onClick={() => {
+                    onAction(sec.actionKey);
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-300 transition-colors"
+                >
+                  {renderActionIcon(sec.actionKey)}
+                  <span>{sec.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Primary State-Aware Action (Exactly 1 solid primary button per AGENTS.md / Zero-Learning-Curve spec) */}
         {primaryAction && primaryAction.actionKey !== "VIEW_AUDIT" && (
           <Button
             type="button"

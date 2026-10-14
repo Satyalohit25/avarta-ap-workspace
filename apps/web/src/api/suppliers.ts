@@ -22,6 +22,10 @@ export interface SupplierListItem {
   accountNumber?: string | null;
   ifscCode?: string | null;
   paymentMethod?: string | null;
+  stpMatchRate?: string;
+  disputeRate?: string;
+  avgTurnaroundDays?: string;
+  riskScore?: "LOW" | "MEDIUM" | "HIGH";
 }
 
 export function listSuppliers(params: { search?: string; status?: string } = {}) {

@@ -221,7 +221,7 @@ Verified by Avarta Workflow & Compliance Engine (Doc 01 §1.4).
       </div>
 
       {/* ── 4-Metric Compliance Strip ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 items-stretch">
         <StatsCard
           title="Archived Vault Records"
           value={invoices.length}

@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Router, Request, Response } from "express";
 import { prisma } from "../../config/database";
 import { runWithEngineBypass } from "../../config/tenant-guard";
@@ -42,25 +43,7 @@ publicRoutes.get("/invoices/track/:token", async (req: Request, res: Response): 
     );
 
     if (!invoice) {
-      // Mocked demo fallback if token is a demo token
-      res.json({
-        data: {
-          invoiceNumber: token.startsWith("INV-") ? token : "INV-2026-1007",
-          buyerInvoiceId: "2522000123",
-          fiscalYear: "2025-2026",
-          supplierName: "Tata Steel Tubes Ltd",
-          amount: 354000,
-          currency: "INR",
-          receivedDate: "2026-08-28T10:00:00Z",
-          publicStatus: "Paid",
-          publicStatusStage: 4, // 1: Received, 2: Under Review, 3: Approved for Payment, 4: Paid
-          estimatedPaymentDate: "2026-09-19",
-          utrNumber: "NEFT-TATAPAY-8941029",
-          clearingDate: "2026-09-02",
-          clearingDocumentNumber: "2533000040",
-          notes: "Remittance dispatched via Host-to-Host banking rail. UTR confirmed by receiving bank.",
-        },
-      });
+      res.status(404).json({ error: "Invoice not found for tracking token" });
       return;
     }
 
@@ -118,6 +101,29 @@ publicRoutes.get("/invoices/track/:token", async (req: Request, res: Response): 
 // Inbound email intake webhook (Step 12)
 publicRoutes.post("/invoices/email-webhook", async (req: Request, res: Response): Promise<void> => {
   try {
+    const webhookSecret = process.env.EMAIL_WEBHOOK_SECRET;
+    const signature =
+      (req.headers["x-webhook-signature"] as string) || (req.headers["x-postmark-signature"] as string);
+
+    if (process.env.NODE_ENV === "production" || webhookSecret) {
+      if (!signature || !webhookSecret) {
+        res.status(401).json({ error: "Missing cryptographic email webhook signature or secret" });
+        return;
+      }
+      const rawPayload = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+      const expected = crypto.createHmac("sha256", webhookSecret).update(rawPayload).digest("hex");
+      let isValid = false;
+      try {
+        isValid = crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+      } catch {
+        isValid = false;
+      }
+      if (!isValid) {
+        res.status(401).json({ error: "Cryptographic signature verification failed" });
+        return;
+      }
+    }
+
     const { from, to, subject, body, attachments, organizationId } = req.body;
     if (!from || !to || !subject) {
       res.status(400).json({ error: "Missing required fields: from, to, subject" });

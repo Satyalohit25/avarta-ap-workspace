@@ -25,7 +25,6 @@ import {
   CheckCircle2,
   Database,
   Users,
-  RotateCcw,
   AlertTriangle,
   KeyRound,
   HardDrive,
@@ -33,7 +32,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { DEMO_ACCOUNTS } from "../../lib/constants";
-import { resetDemoEnvironment } from "../../api/demo";
+
 import { ByokConfigCard } from "./components/ByokConfigCard";
 import { ByodbConfigCard } from "./components/ByodbConfigCard";
 import { ErpConnectorsCard } from "./components/ErpConnectorsCard";
@@ -143,28 +142,6 @@ export default function SettingsPage() {
   const defaultTab = tabParam === "users" || tabParam === "team" ? "users" : (tabParam || "org");
   const [saved, setSaved] = useState(false);
   const [showAddRuleModal, setShowAddRuleModal] = useState(false);
-  const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
-  const [isResettingDemo, setIsResettingDemo] = useState(false);
-
-  async function handleResetDemo() {
-    setIsResettingDemo(true);
-    try {
-      const res = await resetDemoEnvironment();
-      toast.success(
-        "Demo Dataset Reset Successfully",
-        `${res.data.counts.invoices} invoices across 9 scenarios repopulated with relative dates anchored to today.`
-      );
-      setShowResetConfirmModal(false);
-      setTimeout(() => {
-        window.location.reload();
-      }, 1200);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to reset demo dataset";
-      toast.error("Reset Failed", message);
-    } finally {
-      setIsResettingDemo(false);
-    }
-  }
 
   const SETTINGS_STORAGE_KEY = "avarta_workspace_settings";
   const RULES_STORAGE_KEY = "avarta_approval_rules";
@@ -836,79 +813,50 @@ export default function SettingsPage() {
                   </CardContent>
                 </Card>
 
-                {/* Demo Environment Reset Control Card */}
-                <Card level="surface" className="border-amber-200/80 dark:border-amber-900/50 bg-amber-50/20 dark:bg-amber-950/10">
+                {/* Tenant Infrastructure & Data Integrity Card */}
+                <Card level="surface" className="border-neutral-200/80 dark:border-zinc-800 bg-neutral-50/20 dark:bg-zinc-900/10">
                   <CardHeader
-                    title="Demo Environment Data Reset"
-                    description="Instantly wipe transient presentation edits and re-seed all 9 named demonstration scenarios"
+                    title="Tenant Infrastructure & Data Integrity"
+                    description="Enterprise security posture, database isolation, and transactional backup guarantees"
                   />
                   <CardContent className="p-5 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="space-y-1.5 max-w-xl">
-                        <div className="flex items-center gap-2">
-                          <RotateCcw size={16} className="text-amber-600 dark:text-amber-400" />
-                          <h4 className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100">
-                            Dynamic Scenario State Reset
-                          </h4>
-                        </div>
-                        <p className="text-caption text-neutral-600 dark:text-zinc-400 leading-relaxed">
-                          Clicking reset immediately deletes mutated demo records and restores the pristine 28-invoice baseline across 9 coherent scenarios (Clean 3-Way Match, Price Discrepancies, GRN Returns, Statutory GSTIN checks, Tiered Approvals, Fraud Defense, and H2H Batch Banking).
-                          All due dates, issue dates, and audit timelines will dynamically anchor relative to <strong>today's date</strong>.
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="p-3.5 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                        <span className="text-micro font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400 block mb-1">
+                          Tenant Isolation
+                        </span>
+                        <span className="text-body-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                          <CheckCircle2 size={14} /> Strict JWT Scoped
+                        </span>
+                        <p className="text-caption text-neutral-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                          Row-level multi-tenant isolation automatically enforced across all repositories.
                         </p>
                       </div>
-                      <Button
-                        variant="primary"
-                        className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 gap-1.5 cursor-pointer"
-                        onClick={() => setShowResetConfirmModal(true)}
-                        disabled={isResettingDemo}
-                      >
-                        <RotateCcw size={14} className={isResettingDemo ? "animate-spin" : ""} />
-                        <span>{isResettingDemo ? "Resetting Scenario Dataset..." : "Reset Demo Environment"}</span>
-                      </Button>
+                      <div className="p-3.5 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                        <span className="text-micro font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400 block mb-1">
+                          Secret Encryption
+                        </span>
+                        <span className="text-body-sm font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                          <ShieldCheck size={14} /> AES-256-GCM
+                        </span>
+                        <p className="text-caption text-neutral-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                          External API keys and BYODB database connection credentials encrypted at rest.
+                        </p>
+                      </div>
+                      <div className="p-3.5 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                        <span className="text-micro font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400 block mb-1">
+                          Audit Trail &amp; Retention
+                        </span>
+                        <span className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100 flex items-center gap-1.5">
+                          <FileCheck2 size={14} /> Append-Only Immutable
+                        </span>
+                        <p className="text-caption text-neutral-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                          Zero deletions per AGENTS.md Rule 3. Financial audit trail permanently preserved.
+                        </p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Confirmation Modal */}
-                {showResetConfirmModal && (
-                  <div className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/80 backdrop-blur-xs flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-xl p-6 max-w-md w-full shadow-xl space-y-4">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 shrink-0">
-                          <AlertTriangle size={20} />
-                        </div>
-                        <div>
-                          <h3 className="text-h3 text-neutral-900 dark:text-zinc-100 font-semibold">
-                            Confirm Demo Environment Reset
-                          </h3>
-                          <p className="text-caption text-neutral-500 dark:text-zinc-400 mt-1 leading-relaxed">
-                            Are you sure you want to reset the demo database? This will clear all pending approvals, released payments, and uploaded invoices, restoring the clean 9-scenario baseline anchored to today.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-neutral-100 dark:border-zinc-800">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setShowResetConfirmModal(false)}
-                          disabled={isResettingDemo}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="button"
-                          className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5 cursor-pointer"
-                          onClick={handleResetDemo}
-                          disabled={isResettingDemo}
-                        >
-                          <RotateCcw size={14} className={isResettingDemo ? "animate-spin" : ""} />
-                          <span>{isResettingDemo ? "Resetting..." : "Confirm & Reset Dataset"}</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             ),
           },

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { listPayments, executePayment, PaymentRow } from "../../api/payments";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SkeletonRows } from "../../components/Skeleton";
@@ -25,6 +25,7 @@ import { Wallet, CheckCircle2, ArrowRight, Search, X, Download } from "lucide-re
 import { DisbursementModal } from "./components/DisbursementModal";
 
 export default function PaymentsPage() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [rows, setRows] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -405,7 +406,10 @@ export default function PaymentsPage() {
                       setCurrentPage(1);
                     },
                   }
-                : undefined
+                : {
+                    label: "Connect ERP / Bank Rails",
+                    onClick: () => navigate("/settings?tab=integrations"),
+                  }
             }
           />
         ) : (

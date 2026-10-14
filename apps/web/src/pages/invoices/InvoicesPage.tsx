@@ -475,15 +475,9 @@ export default function InvoicesPage() {
         }
       />
 
+      {/* ── Top-Left Search Bar ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <Tabs
-          tabs={tabs}
-          defaultTabId={status ?? ""}
-          variant="pill"
-          onChange={handleTabChange}
-        />
-
-        <div className="relative w-full sm:w-72">
+        <div className="relative w-full sm:w-80">
           <Input
             id="invoice-search-filter"
             name="searchQuery"
@@ -491,7 +485,7 @@ export default function InvoicesPage() {
             aria-label="Filter by invoice number or vendor"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Filter by invoice # or vendor..."
+            placeholder="Search invoices, PO #, or vendor..."
             leftIcon={<Search size={14} className="text-neutral-400" />}
             rightIcon={
               searchQuery ? (
@@ -507,6 +501,16 @@ export default function InvoicesPage() {
             }
           />
         </div>
+      </div>
+
+      {/* ── Status Tabs / Pills Directly Above Table ── */}
+      <div className="flex items-center justify-between gap-4 overflow-x-auto pb-1">
+        <Tabs
+          tabs={tabs}
+          defaultTabId={status ?? ""}
+          variant="pill"
+          onChange={handleTabChange}
+        />
       </div>
 
       {/* Quick-Filter Horizon Chips (Avarta AP Design System) */}
@@ -707,7 +711,10 @@ export default function InvoicesPage() {
                       handleTabChange("");
                     },
                   }
-                : undefined
+                : {
+                    label: "Upload your first invoice",
+                    onClick: () => navigate("/inbox"),
+                  }
             }
           />
         ) : (

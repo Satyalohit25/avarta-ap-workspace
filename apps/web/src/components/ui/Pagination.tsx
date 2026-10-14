@@ -59,7 +59,7 @@ export function Pagination({
       )}
       aria-label="Pagination"
     >
-      {/* Left: Summary and Page Size Selector */}
+      {/* Left: Summary */}
       <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
         <span className="text-caption font-medium">
           Showing <span className="font-semibold text-neutral-900 dark:text-zinc-100 tabular-nums">{startItem}</span>
@@ -67,7 +67,10 @@ export function Pagination({
           <span className="font-semibold text-neutral-900 dark:text-zinc-100 tabular-nums">{endItem}</span> of{" "}
           <span className="font-semibold text-neutral-900 dark:text-zinc-100 tabular-nums">{totalItems}</span> results
         </span>
+      </div>
 
+      {/* Right: Controls (Page-size + Pagination anchored bottom-right) */}
+      <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-end">
         {onPageSizeChange && (
           <div className="flex items-center gap-1.5 text-caption">
             <span className="hidden md:inline text-neutral-500 dark:text-zinc-500">Rows:</span>
@@ -89,15 +92,13 @@ export function Pagination({
             />
           </div>
         )}
-      </div>
 
-      {/* Right: Controls */}
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-          disabled={currentPage <= 1}
-          aria-label="Previous page"
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+            disabled={currentPage <= 1}
+            aria-label="Previous page"
           className="inline-flex items-center justify-center h-8 px-2.5 rounded-md border border-neutral-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-neutral-700 dark:text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-50 dark:hover:bg-zinc-800 text-caption font-medium transition-colors shadow-2xs"
         >
           <ChevronLeft size={14} className="mr-1" />
@@ -147,6 +148,7 @@ export function Pagination({
           <span>Next</span>
           <ChevronRight size={14} className="ml-1" />
         </button>
+      </div>
       </div>
     </nav>
   );

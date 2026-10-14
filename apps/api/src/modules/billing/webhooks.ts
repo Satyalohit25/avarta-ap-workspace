@@ -27,10 +27,24 @@ export function verifyWebhookSignature(rawPayload: string, signature: string, se
   }
 }
 
-/**
- * Processes incoming billing webhook idempotently.
- */
 export async function handleBillingWebhook(req: Request, res: Response): Promise<void> {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || process.env.BILLING_WEBHOOK_SECRET;
+  const signature =
+    (req.headers["stripe-signature"] as string) || (req.headers["x-billing-signature"] as string);
+
+  if (process.env.NODE_ENV === "production" || webhookSecret) {
+    if (!signature || !webhookSecret) {
+      res.status(401).json({ error: "Missing cryptographic webhook signature or configured secret" });
+      return;
+    }
+    const rawPayload = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+    const isValid = verifyWebhookSignature(rawPayload, signature, webhookSecret);
+    if (!isValid) {
+      res.status(401).json({ error: "Cryptographic signature verification failed" });
+      return;
+    }
+  }
+
   const eventId = (req.headers["stripe-event-id"] as string) || (req.body?.id as string) || `evt_${Date.now()}`;
   const eventType = req.body?.type || req.body?.event || "unknown";
   const orgId = req.body?.data?.object?.metadata?.organizationId || req.body?.payload?.organizationId;

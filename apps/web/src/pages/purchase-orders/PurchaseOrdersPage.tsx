@@ -536,7 +536,10 @@ export default function PurchaseOrdersPage() {
                       setMatchingFilter("ALL");
                     },
                   }
-                : undefined
+                : {
+                    label: "Create Purchase Order",
+                    onClick: () => setShowCreateModal(true),
+                  }
             }
           />
         ) : (

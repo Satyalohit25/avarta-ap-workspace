@@ -45,50 +45,13 @@ export function ApAgingCashForecastView() {
     currency: string;
   }>({
     summary: {
-      totalOutstanding: 2854000,
-      current: 1845000,
-      days31_60: 620000,
-      days61_90: 245000,
-      days91_plus: 144000,
+      totalOutstanding: 0,
+      current: 0,
+      days31_60: 0,
+      days61_90: 0,
+      days91_plus: 0,
     },
-    byVendor: [
-      {
-        vendorId: "v1",
-        vendorName: "Tata Chemicals Industrial Solutions",
-        current: 850000,
-        days31_60: 120000,
-        days61_90: 0,
-        days91_plus: 0,
-        total: 970000,
-      },
-      {
-        vendorId: "v2",
-        vendorName: "Reliance Logistics & Freight Corp",
-        current: 420000,
-        days31_60: 250000,
-        days61_90: 85000,
-        days91_plus: 0,
-        total: 755000,
-      },
-      {
-        vendorId: "v3",
-        vendorName: "Acme Industrial Supplies Pvt Ltd",
-        current: 310000,
-        days31_60: 150000,
-        days61_90: 90000,
-        days91_plus: 70000,
-        total: 620000,
-      },
-      {
-        vendorId: "v4",
-        vendorName: "CloudScale Hosting & Compute",
-        current: 265000,
-        days31_60: 100000,
-        days61_90: 70000,
-        days91_plus: 74000,
-        total: 509000,
-      },
-    ],
+    byVendor: [],
     currency: "INR",
   });
 
@@ -97,28 +60,23 @@ export function ApAgingCashForecastView() {
     weeks: CashForecastWeek[];
     currency: string;
   }>({
-    totalNext30Days: 1945000,
-    weeks: [
-      { weekNumber: 1, startDate: "2026-09-20", endDate: "2026-09-26", projectedAmount: 650000, paymentCount: 5 },
-      { weekNumber: 2, startDate: "2026-09-27", endDate: "2026-10-03", projectedAmount: 520000, paymentCount: 4 },
-      { weekNumber: 3, startDate: "2026-10-04", endDate: "2026-10-10", projectedAmount: 440000, paymentCount: 3 },
-      { weekNumber: 4, startDate: "2026-10-11", endDate: "2026-10-17", projectedAmount: 335000, paymentCount: 2 },
-    ],
+    totalNext30Days: 0,
+    weeks: [],
     currency: "INR",
   });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    apiRequest<{ data: typeof aging }>("/reports/aging")
-      .then((res) => {
-        if (res.data) setAging(res.data);
+    setIsLoading(true);
+    Promise.all([
+      apiRequest<{ data: typeof aging }>("/reports/aging").catch(() => null),
+      apiRequest<{ data: typeof forecast }>("/reports/cash-forecast").catch(() => null),
+    ])
+      .then(([agingRes, forecastRes]) => {
+        if (agingRes?.data) setAging(agingRes.data);
+        if (forecastRes?.data) setForecast(forecastRes.data);
       })
-      .catch(() => {});
-
-    apiRequest<{ data: typeof forecast }>("/reports/cash-forecast")
-      .then((res) => {
-        if (res.data) setForecast(res.data);
-      })
-      .catch(() => {});
+      .finally(() => setIsLoading(false));
   }, []);
 
   const total = aging.summary.totalOutstanding || 1;
@@ -134,7 +92,7 @@ export function ApAgingCashForecastView() {
       {/* ─────────────────────────────────────────────────────────────
        * 1. High-Level Liquidity & AP Aging Metrics
        * ───────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 items-stretch">
         <StatsCard
           title="Total Outstanding AP"
           value={formatCurrency(aging.summary.totalOutstanding, aging.currency)}
@@ -266,28 +224,34 @@ export function ApAgingCashForecastView() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-3">
-              {forecast.weeks.map((week) => {
-                const heightPct = Math.round((week.projectedAmount / maxWeekly) * 100);
-                return (
-                  <div key={week.weekNumber} className="space-y-1">
-                    <div className="flex items-center justify-between text-caption font-medium">
-                      <span className="text-neutral-700 dark:text-zinc-300">
-                        Week {week.weekNumber} ({week.startDate} to {week.endDate})
-                      </span>
-                      <span className="font-mono font-semibold text-neutral-900 dark:text-zinc-100">
-                        {formatCurrency(week.projectedAmount, forecast.currency)}
-                      </span>
+            <div className="space-y-4">
+              {forecast.weeks.length === 0 ? (
+                <div className="text-center py-6 text-neutral-400 font-mono text-body-sm">
+                  No upcoming disbursements projected for the next 30 days.
+                </div>
+              ) : (
+                forecast.weeks.map((week) => {
+                  const heightPct = Math.round((week.projectedAmount / maxWeekly) * 100);
+                  return (
+                    <div key={week.weekNumber} className="space-y-1">
+                      <div className="flex items-center justify-between text-caption font-medium">
+                        <span className="text-neutral-700 dark:text-zinc-300">
+                          Week {week.weekNumber} ({week.startDate} to {week.endDate})
+                        </span>
+                        <span className="font-mono font-semibold text-neutral-900 dark:text-zinc-100">
+                          {formatCurrency(week.projectedAmount, forecast.currency)}
+                        </span>
+                      </div>
+                      <div className="h-2.5 w-full rounded-full bg-neutral-100 dark:bg-zinc-800 overflow-hidden">
+                        <div
+                          style={{ width: `${heightPct}%` }}
+                          className="h-full bg-indigo-600 rounded-full transition-all duration-300"
+                        />
+                      </div>
                     </div>
-                    <div className="h-2.5 w-full rounded-full bg-neutral-100 dark:bg-zinc-800 overflow-hidden">
-                      <div
-                        style={{ width: `${heightPct}%` }}
-                        className="h-full bg-indigo-600 rounded-full transition-all duration-300"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
 
             <div className="pt-3 border-t border-neutral-100 dark:border-zinc-800 flex items-center justify-between text-caption text-neutral-500">
@@ -327,29 +291,37 @@ export function ApAgingCashForecastView() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {aging.byVendor.map((vendor) => (
-                <TableRow key={vendor.vendorId}>
-                  <TableCell className="font-medium text-neutral-900 dark:text-zinc-100 flex items-center gap-2">
-                    <Building2 size={15} className="text-neutral-400" />
-                    <span>{vendor.vendorName}</span>
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-emerald-600 dark:text-emerald-400">
-                    {formatCurrency(vendor.current, aging.currency)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-amber-600 dark:text-amber-400">
-                    {formatCurrency(vendor.days31_60, aging.currency)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-orange-600 dark:text-orange-400">
-                    {formatCurrency(vendor.days61_90, aging.currency)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-rose-600 dark:text-rose-400 font-semibold">
-                    {formatCurrency(vendor.days91_plus, aging.currency)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono font-bold text-neutral-900 dark:text-zinc-100">
-                    {formatCurrency(vendor.total, aging.currency)}
+              {aging.byVendor.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-neutral-400 font-mono text-body-sm">
+                    No outstanding aged payables detected across vendors.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                aging.byVendor.map((vendor) => (
+                  <TableRow key={vendor.vendorId}>
+                    <TableCell className="font-medium text-neutral-900 dark:text-zinc-100 flex items-center gap-2">
+                      <Building2 size={15} className="text-neutral-400" />
+                      <span>{vendor.vendorName}</span>
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-emerald-600 dark:text-emerald-400">
+                      {formatCurrency(vendor.current, aging.currency)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-amber-600 dark:text-amber-400">
+                      {formatCurrency(vendor.days31_60, aging.currency)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-orange-600 dark:text-orange-400">
+                      {formatCurrency(vendor.days61_90, aging.currency)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-rose-600 dark:text-rose-400 font-semibold">
+                      {formatCurrency(vendor.days91_plus, aging.currency)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono font-bold text-neutral-900 dark:text-zinc-100">
+                      {formatCurrency(vendor.total, aging.currency)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

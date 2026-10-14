@@ -125,8 +125,8 @@ export function TriSplitThreeWayMatchWorkbench({
         </div>
       </div>
 
-      {/* Tri-Split Grid (PO vs GRN vs Invoice Billed) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-neutral-200 dark:divide-zinc-800">
+      {/* Tri-Split Grid (PO vs GRN vs Invoice Billed) - 3-pane on 27-inch PC (xl: 1280px+), stacked cleanly on laptops & mobile */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 divide-y xl:divide-y-0 xl:divide-x divide-neutral-200 dark:divide-zinc-800">
         {/* Column 1: Purchase Order */}
         <div className="p-4 bg-neutral-50/50 dark:bg-zinc-900/40 space-y-3">
           <div className="flex items-center justify-between border-b border-neutral-200 dark:border-zinc-800 pb-2">

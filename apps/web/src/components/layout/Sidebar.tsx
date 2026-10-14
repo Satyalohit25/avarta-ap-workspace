@@ -137,9 +137,9 @@ export function Sidebar({
   return (
     <aside
       className={`
-        shrink-0 border-r border-neutral-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 flex flex-col transition-all duration-200 z-30 select-none
-        ${isMobileOpen ? "fixed inset-y-0 left-0 w-60 shadow-2xl z-50 flex" : "hidden md:flex"}
-        ${isRail ? "w-16" : "w-60"}
+        shrink-0 border-r border-neutral-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 flex flex-col transition-all duration-200 select-none
+        ${isMobileOpen ? "flex w-64 h-full" : "hidden lg:flex"}
+        ${isRail && !isMobileOpen ? "w-16" : "w-64"}
       `}
     >
       {/* Brand Header */}

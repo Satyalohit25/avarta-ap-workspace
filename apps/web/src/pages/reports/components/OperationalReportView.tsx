@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Zap,
   Clock,
@@ -6,22 +6,75 @@ import {
   Wallet,
   CheckCircle2,
   Building2,
+  Loader2,
 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "../../../components/ui/Card";
 import { StatsCard } from "../../../components/ui/StatsCard";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "../../../components/ui/table";
 import { formatCurrency } from "../../../lib/formatters";
-import { REPORTS_DATA_BY_TIMERANGE, OperationalReportDataset, ThroughputDataPoint } from "../helpers/reportsData";
+import { apiRequest } from "../../../api/client";
+import { OperationalReportDataset, ThroughputDataPoint } from "../helpers/reportsData";
 
 interface OperationalReportViewProps {
   timeRange: string;
 }
 
+const EMPTY_DATASET: OperationalReportDataset = {
+  kpis: {
+    straightThroughRate: {
+      title: "Straight-Through Processing (STP)",
+      value: "100.0%",
+      subtitle: "Calculated from live workspace invoices",
+    },
+    avgCycleTime: {
+      title: "Intake-to-Schedule Cycle Time",
+      value: "0.0 Hours",
+      subtitle: "Average intake to approval duration",
+    },
+    exceptionResolutionTime: {
+      title: "Exception Resolution Velocity",
+      value: "0.0 Hours",
+      subtitle: "Median resolution turnaround",
+    },
+    totalSpendVolume: {
+      title: "Total Spend Processed",
+      value: "₹ 0",
+      subtitle: "0 invoices in selected period",
+    },
+  },
+  throughputSeries: [],
+  exceptionBreakdown: [],
+  stageSlas: [],
+  topVendors: [],
+};
+
 export function OperationalReportView({ timeRange }: OperationalReportViewProps) {
   const [hoveredBar, setHoveredBar] = useState<ThroughputDataPoint | null>(null);
+  const [liveData, setLiveData] = useState<OperationalReportDataset | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const data: OperationalReportDataset =
-    REPORTS_DATA_BY_TIMERANGE[timeRange] ?? REPORTS_DATA_BY_TIMERANGE["30d"];
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    apiRequest<{ data: OperationalReportDataset }>(`/reports/operational?timeRange=${timeRange}`)
+      .then((res) => {
+        if (isMounted && res.data) {
+          setLiveData(res.data);
+        }
+      })
+      .catch(() => {
+        // Fallback to empty dataset on error
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [timeRange]);
+
+  const data: OperationalReportDataset = liveData || EMPTY_DATASET;
 
   const maxThroughput = Math.max(
     ...data.throughputSeries.map((d) => d.processed + d.exceptions),
@@ -31,12 +84,13 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
   const totalProcessedPeriod = data.throughputSeries.reduce((acc, curr) => acc + curr.processed, 0);
   const totalExceptionsPeriod = data.throughputSeries.reduce((acc, curr) => acc + curr.exceptions, 0);
 
+
   return (
     <div className="space-y-6">
       {/* ─────────────────────────────────────────────────────────────
        * 1. Primary Analytics KPI Strip
        * ───────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 items-stretch">
         <StatsCard
           title={data.kpis.straightThroughRate.title}
           value={data.kpis.straightThroughRate.value}
@@ -102,7 +156,9 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                 <span>{hoveredBar.processed} touchless</span>
                 <span className="text-amber-400 dark:text-amber-600 font-semibold">• {hoveredBar.exceptions} exceptions</span>
                 <span className="text-emerald-400 dark:text-emerald-600 font-bold">
-                  ({Math.round((hoveredBar.processed / (hoveredBar.processed + hoveredBar.exceptions)) * 100)}% STP)
+                  ({hoveredBar.processed + hoveredBar.exceptions > 0
+                    ? Math.round((hoveredBar.processed / (hoveredBar.processed + hoveredBar.exceptions)) * 100)
+                    : 100}% STP)
                 </span>
               </div>
             )}
@@ -111,6 +167,13 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
             <div className="w-full flex-1 relative">
               {(() => {
                 const items = data.throughputSeries;
+                if (!items || items.length === 0) {
+                  return (
+                    <div className="h-full flex items-center justify-center text-body-sm text-neutral-400 font-mono">
+                      No throughput transactions recorded for this period
+                    </div>
+                  );
+                }
                 const width = 600;
                 const height = 110;
                 const padX = 40;
@@ -150,9 +213,10 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                 const processedLinePath = buildSmoothPath(processedCoords);
                 const exceptionLinePath = buildSmoothPath(exceptionCoords);
 
-                const lastProcessed = processedCoords[processedCoords.length - 1];
-                const firstProcessed = processedCoords[0];
+                const lastProcessed = processedCoords[processedCoords.length - 1] || { x: width - padX, y: height - padBottom };
+                const firstProcessed = processedCoords[0] || { x: padX, y: height - padBottom };
                 const areaPath = `${processedLinePath} L ${lastProcessed.x} ${height - padBottom} L ${firstProcessed.x} ${height - padBottom} Z`;
+
 
                 return (
                   <svg

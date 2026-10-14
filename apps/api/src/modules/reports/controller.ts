@@ -21,3 +21,15 @@ export async function cashForecastHandler(req: Request, res: Response, next: Nex
     next(err);
   }
 }
+
+export async function operationalReportHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.auth) throw ApiError.unauthorized();
+    const timeRange = typeof req.query.timeRange === "string" ? req.query.timeRange : "30d";
+    const result = await reportService.getOperationalReport(req.auth.organizationId, timeRange);
+    res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+

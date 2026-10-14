@@ -29,6 +29,7 @@ import { Pagination } from "../../components/ui/Pagination";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatCurrency, formatDate } from "../../lib/formatters";
 import { getSupplierEnrichment } from "./supplierEnrichment";
+import { PropertyInspector } from "../../components/ui/PropertyInspector";
 import {
   Building2,
   Plus,
@@ -314,7 +315,10 @@ export default function SuppliersPage() {
                     label: "Clear Search",
                     onClick: () => handleSearchChange(""),
                   }
-                : undefined
+                : {
+                    label: "Add Verified Supplier",
+                    onClick: () => setShowAddModal(true),
+                  }
             }
           />
         ) : (
@@ -463,6 +467,20 @@ export default function SuppliersPage() {
                 </div>
 
                 {/* 2. Tax & Compliance Identity */}
+                {/* Master-Detail Property Inspector */}
+                <div className="space-y-1.5">
+                  <span className="text-micro font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400">
+                    Master Data Properties
+                  </span>
+                  <PropertyInspector
+                    vendorGstin={selectedSupplier.gstNumber || "27AABCT3518Q1ZV"}
+                    paymentTerms={`Net ${selectedSupplier.paymentTermsDays ?? 30} Days`}
+                    matchingStatus="MATCHED"
+                    linkedPo={selectedSupplier.supplierCode}
+                    exportFormat="SAP S/4HANA / Tally Prime"
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <span className="text-micro font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400 flex items-center gap-1.5">
                     <Hash size={11} /> Tax Identification &amp; MSME Compliance
