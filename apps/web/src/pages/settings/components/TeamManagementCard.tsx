@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, UserPlus, Shield, Mail, CheckCircle2, UserX } from "lucide-react";
+import { Users, UserPlus, Shield, UserX } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { Badge } from "../../../components/ui/Badge";
 import { useToast } from "../../../components/ui/ToastContext";

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopNav } from "./TopNav";
+import { EmailVerificationBanner } from "./EmailVerificationBanner";
 import { Sheet } from "../ui/Sheet";
 
 // Doc 08 §8.7 global page template: Multi-device Responsive Sidebar + TopNav + Content.
@@ -64,6 +65,7 @@ export function AppLayout() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <TopNav onOpenMobileMenu={() => setIsMobileOpen(true)} />
+        <EmailVerificationBanner />
         <main className="flex-1 overflow-y-auto min-w-0 overflow-x-hidden">
           <div className="w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-3">
             <Outlet />

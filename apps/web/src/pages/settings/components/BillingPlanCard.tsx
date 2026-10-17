@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CreditCard, Zap, CheckCircle2, ArrowUpRight, FileText, AlertCircle, ShieldCheck } from "lucide-react";
+import { CreditCard, CheckCircle2, ArrowUpRight, FileText } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { Badge } from "../../../components/ui/Badge";
 import { useToast } from "../../../components/ui/ToastContext";

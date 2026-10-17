@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Mail, Copy, Check, Plus } from "lucide-react";
+import { Mail, Copy, Check, Plus, Database } from "lucide-react";
 import {
   createInvoice,
   updateInvoice,
@@ -17,6 +17,7 @@ import { useToast } from "../../components/ui/ToastContext";
 import { BatchIngestPanel } from "./components/BatchIngestPanel";
 import { RecentInvoicesPanel } from "./components/RecentInvoicesPanel";
 import { InvoiceFormDialog } from "./components/InvoiceFormDialog";
+import { ImportWizardModal } from "./components/ImportWizardModal";
 import { InvoiceFormMode } from "./components/InvoiceForm";
 import { InvoiceFormValues } from "./validation";
 import { useAuth } from "../../app/AuthContext";
@@ -32,6 +33,7 @@ export default function InboxPage() {
   const [loadingRecent, setLoadingRecent] = useState(true);
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [importWizardOpen, setImportWizardOpen] = useState(false);
 
   // Dialog & Shared Form State
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -196,20 +198,31 @@ export default function InboxPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header Row: Title on Left, "+ Quick manual entry" Ghost-style Button on Right */}
+      {/* Page Header Row: Title on Left, Import wizard and Manual entry on Right */}
       <PageHeader
         title="Inbox"
         subtitle="Multi-channel ingestion hub & document triage."
         action={
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleOpenCreate}
-            className="gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 font-semibold border border-indigo-200/60 dark:border-indigo-800/60 shadow-2xs"
-          >
-            <Plus size={16} />
-            <span>Quick manual entry</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setImportWizardOpen(true)}
+              className="gap-2 text-neutral-700 dark:text-zinc-300 font-semibold border-neutral-200 dark:border-zinc-700 shadow-2xs"
+            >
+              <Database size={16} />
+              <span>Import from ERP / CSV</span>
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleOpenCreate}
+              className="gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 font-semibold border border-indigo-200/60 dark:border-indigo-800/60 shadow-2xs"
+            >
+              <Plus size={16} />
+              <span>Quick manual entry</span>
+            </Button>
+          </div>
         }
       />
 
@@ -297,6 +310,13 @@ export default function InboxPage() {
         suppliers={suppliers}
         onSubmit={handleFormSubmit}
         submitting={formSubmitting}
+      />
+
+      {/* C3 Import Wizard Modal */}
+      <ImportWizardModal
+        isOpen={importWizardOpen}
+        onClose={() => setImportWizardOpen(false)}
+        onImportComplete={loadData}
       />
     </div>
   );

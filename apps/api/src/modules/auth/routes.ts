@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   loginHandler,
+  signupHandler,
   meHandler,
   listTeamHandler,
   inviteTeamHandler,
@@ -15,6 +16,7 @@ import { enforceSeatLimit } from "../billing/middleware";
 
 export const authRoutes = Router();
 
+authRoutes.post("/signup", authRateLimiter, signupHandler);
 authRoutes.post("/login", authRateLimiter, loginHandler);
 authRoutes.get("/me", requireAuth, meHandler);
 

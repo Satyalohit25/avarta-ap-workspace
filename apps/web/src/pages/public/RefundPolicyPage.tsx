@@ -1,4 +1,4 @@
-import { CreditCard, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { CreditCard, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function RefundPolicyPage() {

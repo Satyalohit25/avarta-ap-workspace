@@ -162,6 +162,15 @@ export default function LoginPage() {
                 {submitting ? "Signing in..." : "Sign in"}
               </Button>
 
+              <div className="text-center pt-1">
+                <span className="text-body-sm text-neutral-500 dark:text-zinc-400">
+                  New to Avarta?{" "}
+                  <Link to="/signup" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
+                    Create a workspace
+                  </Link>
+                </span>
+              </div>
+
               {import.meta.env.DEV && (
                 <div className="pt-2">
                   <button

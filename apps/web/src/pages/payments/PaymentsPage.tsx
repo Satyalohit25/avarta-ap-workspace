@@ -226,6 +226,13 @@ export default function PaymentsPage() {
         "Bank File Exported",
         `Disbursement file for ${listToExport.length} record(s) downloaded for host-to-host corporate banking.`
       );
+    } else if (format === "NACHA") {
+      const idsParam = listToExport.map((p) => p.id).join(",");
+      window.open(`/api/payments/export-file?format=nacha&paymentIds=${encodeURIComponent(idsParam)}`, "_blank");
+      toast.success(
+        "NACHA ACH Batch File Exported",
+        `94-character fixed-width ACH batch file generated for ${listToExport.length} disbursement(s) (C8-4).`
+      );
     }
   }
 
@@ -312,10 +319,21 @@ export default function PaymentsPage() {
               variant="outline"
               onClick={() => handleExportBankFile("CSV")}
               disabled={filteredRows.length === 0}
-              className="gap-2"
+              className="gap-1.5 text-caption font-medium"
+              title="Download standard CSV bank file for corporate banking"
             >
               <Download size={14} />
-              <span>Export Bank File</span>
+              <span>Export CSV</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleExportBankFile("NACHA")}
+              disabled={filteredRows.length === 0}
+              className="gap-1.5 text-caption font-medium"
+              title="Download 94-character fixed-width NACHA ACH batch file (C8-4)"
+            >
+              <Download size={14} />
+              <span>Export NACHA</span>
             </Button>
           </div>
         }

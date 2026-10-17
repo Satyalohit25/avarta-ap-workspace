@@ -25,10 +25,8 @@ import {
   CheckCircle2,
   Database,
   Users,
-  AlertTriangle,
   KeyRound,
   HardDrive,
-  Sparkles,
   CreditCard,
 } from "lucide-react";
 import { ByokConfigCard } from "./components/ByokConfigCard";
@@ -137,52 +135,9 @@ const CANONICAL_AUDIT_LOGS = [
   },
 ];
 
-const ERP_INTEGRATIONS = [
-  {
-    id: "tally",
-    name: "Tally Prime ERP",
-    category: "Accounting & GST Reconciliation",
-    status: "CONNECTED",
-    lastSync: "Today, 10:12 AM",
-    recordsSynced: "1,248 Invoices",
-    description:
-      "Bi-directional sync of purchase vouchers, GST ledger, and payment status.",
-  },
-  {
-    id: "quickbooks",
-    name: "QuickBooks Online",
-    category: "Cloud Accounting",
-    status: "STANDBY",
-    lastSync: "3 days ago",
-    recordsSynced: "412 Invoices",
-    description:
-      "Direct API mapping for bills, supplier profiles, and bank feeds.",
-  },
-  {
-    id: "xero",
-    name: "Xero Accounting",
-    category: "SME Financials",
-    status: "STANDBY",
-    lastSync: "Never connected",
-    recordsSynced: "0 Invoices",
-    description:
-      "Automated AP bill creation and multi-currency exchange rate lock.",
-  },
-  {
-    id: "sap",
-    name: "SAP S/4HANA / Business One",
-    category: "Enterprise ERP",
-    status: "AVAILABLE",
-    lastSync: "Custom IDoc Connector",
-    recordsSynced: "Enterprise Tier",
-    description:
-      "IDoc / OData RFC gateway for PO 3-way matching and MIRO automation.",
-  },
-];
-
 export default function SettingsPage() {
   const { toast } = useToast();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
   const defaultTab = tabParam === "users" || tabParam === "team" ? "users" : (tabParam || "org");
   const [saved, setSaved] = useState(false);

@@ -1,7 +1,17 @@
 import { NextFunction, Request, Response } from "express";
-import { loginSchema } from "./validation";
+import { loginSchema, signupSchema } from "./validation";
 import * as authService from "./service";
 import { ApiError } from "../../lib/errors";
+
+export async function signupHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const body = signupSchema.parse(req.body);
+    const result = await authService.signup(body);
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
 
 export async function loginHandler(req: Request, res: Response, next: NextFunction) {
   try {

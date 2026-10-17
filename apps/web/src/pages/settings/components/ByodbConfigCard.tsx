@@ -5,7 +5,6 @@ import { Input } from "../../../components/ui/Input";
 import { useToast } from "../../../components/ui/ToastContext";
 import {
   Database,
-  ExternalLink,
   CheckCircle2,
   AlertCircle,
   Eye,

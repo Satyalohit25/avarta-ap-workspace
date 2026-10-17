@@ -11,6 +11,9 @@ import { APWorkstationGrid } from "./components/APWorkstationGrid";
 import { APRecentStreamCard } from "./components/APRecentStreamCard";
 
 
+import { EmptyDashboardChecklist } from "./components/EmptyDashboardChecklist";
+import { ProductTourModal } from "../../components/layout/ProductTourModal";
+
 export default function OverviewPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -21,6 +24,7 @@ export default function OverviewPage() {
   const [releasedInvoices, setReleasedInvoices] = useState<Record<string, boolean>>({});
   const [releasedCount, setReleasedCount] = useState<number>(0);
   const [releasedAmount, setReleasedAmount] = useState<number>(0);
+  const [tourOpen, setTourOpen] = useState(false);
 
   const handleAuthorizeRelease = async (invoiceId: string, amount: number) => {
     try {
@@ -68,6 +72,7 @@ export default function OverviewPage() {
 
   // No demo data — honest start per Experience Standard v1.0 §7
   const streamItems = data?.recentStream ?? [];
+  const hasZeroInvoices = (data?.totalInvoices ?? 0) === 0 && streamItems.length === 0;
 
   return (
     <div className="space-y-4 pb-0">
@@ -127,6 +132,9 @@ export default function OverviewPage() {
 
       {loading ? (
         <SkeletonRows count={4} />
+      ) : hasZeroInvoices ? (
+        /* C1-5 & B2: With no data, show setup guidance & interactive checklist instead of zeros */
+        <EmptyDashboardChecklist onOpenTour={() => setTourOpen(true)} />
       ) : (
         <>
           {/* ── Band 1: Financial Horizon & Top Metric Anchors ── */}
@@ -150,6 +158,8 @@ export default function OverviewPage() {
           <APRecentStreamCard items={streamItems} />
         </>
       )}
+
+      <ProductTourModal isOpen={tourOpen} onClose={() => setTourOpen(false)} />
     </div>
   );
 }

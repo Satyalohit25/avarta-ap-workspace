@@ -305,4 +305,90 @@ export async function resetPassword(token: string, newPassword: string) {
   return { success: true, message: "Password updated successfully. You can now log in." };
 }
 
+export async function signup(data: {
+  fullName: string;
+  email: string;
+  password: string;
+  companyName: string;
+  country?: string;
+  termsAccepted: boolean;
+}) {
+  const cleanEmail = data.email.toLowerCase().trim();
+  const country = (data.country || "IN").toUpperCase();
+  const defaultCurrency = country === "IN" ? "INR" : country === "US" ? "USD" : country === "GB" ? "GBP" : "EUR";
+
+  // Check if email already exists
+  const existingUser = await prisma.user.findFirst({
+    where: { email: cleanEmail },
+  });
+
+  if (existingUser) {
+    throw ApiError.conflict("An account with this email already exists. Please log in.");
+  }
+
+  // Create new tenant organization (Organization ID is server-generated, never from request body)
+  const organization = await prisma.organization.create({
+    data: {
+      name: data.companyName.trim(),
+      legalName: data.companyName.trim(),
+      country,
+      defaultCurrency,
+      timezone: country === "IN" ? "Asia/Kolkata" : "UTC",
+    },
+  });
+
+  const passwordHash = await bcrypt.hash(data.password, 10);
+
+  // Create Administrator user for this new workspace
+  const user = await prisma.user.create({
+    data: {
+      organizationId: organization.id,
+      email: cleanEmail,
+      fullName: data.fullName.trim(),
+      passwordHash,
+      role: "ADMINISTRATOR",
+      status: "ACTIVE",
+    },
+    include: { organization: true },
+  });
+
+  // Record Terms & Privacy consent with timestamp in unalterable AuditLog
+  await prisma.auditLog.create({
+    data: {
+      organizationId: organization.id,
+      userId: user.id,
+      action: "USER_SIGNUP",
+      entityType: "USER",
+      entityId: user.id,
+      afterData: {
+        email: user.email,
+        termsAccepted: data.termsAccepted,
+        consentTimestamp: new Date().toISOString(),
+        country,
+        currency: defaultCurrency,
+      },
+      result: "SUCCESS",
+    },
+  });
+
+  const accessToken = signAccessToken({
+    userId: user.id,
+    organizationId: organization.id,
+    role: user.role,
+  });
+
+  return {
+    user: {
+      id: user.id,
+      name: user.fullName,
+      email: user.email,
+      organizationId: organization.id,
+      role: user.role,
+      organizationName: organization.name,
+    },
+    accessToken,
+    expiresIn: env.jwtExpiresIn,
+  };
+}
+
 

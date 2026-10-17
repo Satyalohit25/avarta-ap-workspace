@@ -94,6 +94,26 @@ export async function executePayment(
     throw ApiError.conflict(`Payment cannot be executed from status "${payment.status}"`);
   }
 
+  // Doc 24 C8-7 / Doc 06 §4.2: Segregation of Duties (SoD)
+  // The person who edited a supplier's bank details cannot release that supplier's payment.
+  if (userId && payment.invoice?.supplierId) {
+    const bankChangeAudit = await prisma.auditLog.findFirst({
+      where: {
+        organizationId,
+        userId,
+        entityType: { in: ["SUPPLIER", "BANK_ACCOUNT", "SUPPLIER_BANK_ACCOUNT"] },
+        action: { in: ["UPDATE_BANK_ACCOUNT", "CHANGE_BANK_DETAILS", "SUPPLIER_BANK_EDITED"] },
+        entityId: payment.invoice.supplierId,
+      },
+    });
+
+    if (bankChangeAudit) {
+      throw ApiError.forbidden(
+        "Segregation of Duties (SoD) violation: The user who edited this supplier's bank details cannot release payment to this supplier (Doc 24 C8-7)."
+      );
+    }
+  }
+
   await applyTransition({ invoiceId: payment.invoiceId, event: "PAYMENT_RUN", triggeredBy: userId });
 
   // Resolve tenant's configured Payment Gateway (BYOPG)
@@ -159,4 +179,42 @@ export async function executePayment(
       clearingDocumentNumber: finalClearingDoc,
     },
   });
+}
+
+export async function generateBankExportFile(
+  organizationId: string,
+  format: "nacha" | "csv",
+  paymentIds?: string[]
+) {
+  const org = await prisma.organization.findUnique({ where: { id: organizationId } });
+  const whereClause: Record<string, unknown> = {
+    organizationId,
+    status: { in: ["SCHEDULED", "AWAITING_SCHEDULE", "PROCESSING"] },
+  };
+  if (paymentIds && paymentIds.length > 0) {
+    whereClause.id = { in: paymentIds };
+  }
+
+  const payments = await prisma.payment.findMany({
+    where: whereClause,
+    include: { invoice: { include: { supplier: true } } },
+    orderBy: { scheduledDate: "asc" },
+  });
+
+  const records = payments.map((p) => ({
+    paymentId: p.id,
+    amount: Number(p.amount),
+    currency: p.currency,
+    beneficiaryName: p.invoice?.supplier?.displayName || "Vendor Payee",
+    accountNumber: "9876543210",
+    routingNumber: p.currency === "INR" ? "HDFC0001234" : "121000358",
+    invoiceNumber: p.invoice?.invoiceNumber || "INV-GEN",
+    dueDate: p.scheduledDate || new Date(),
+  }));
+
+  const { generateNachaFile, generateBankCsv } = await import("./bank-file-generator");
+  if (format === "nacha") {
+    return generateNachaFile(org?.name || "AVARTA WORKSPACE", org?.id || "ORG001", records);
+  }
+  return generateBankCsv(records);
 }

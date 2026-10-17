@@ -58,3 +58,22 @@ export async function batchRunHandler(req: Request, res: Response, next: NextFun
   }
 }
 
+export async function exportBankFileHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const format = (req.query.format as string) === "nacha" ? "nacha" : "csv";
+    const paymentIds = req.query.paymentIds ? (req.query.paymentIds as string).split(",") : undefined;
+    const result = await paymentService.generateBankExportFile(orgId(req), format, paymentIds);
+
+    if (format === "nacha") {
+      res.setHeader("Content-Type", "text/plain");
+      res.setHeader("Content-Disposition", 'attachment; filename="avarta-batch-nacha.txt"');
+    } else {
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", 'attachment; filename="avarta-payments.csv"');
+    }
+    res.send(result);
+  } catch (err) {
+    next(err);
+  }
+}
+

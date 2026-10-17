@@ -20,6 +20,7 @@ import { Alert } from "../../components/ui/Alert";
 import { PageHeader } from "../../components/layout/PageHeader";
 import { Dialog } from "../../components/ui/Dialog";
 import { useToast } from "../../components/ui/ToastContext";
+import { MfaEnrollmentModal } from "./components/MfaEnrollmentModal";
 
 interface ApiToken {
   id: string;
@@ -53,6 +54,11 @@ export default function ProfilePage() {
   ]);
   const [newTokenName, setNewTokenName] = useState("");
   const [showNewTokenModal, setShowNewTokenModal] = useState(false);
+  const [showMfaModal, setShowMfaModal] = useState(false);
+  const [mfaEnrolled, setMfaEnrolled] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("avarta_mfa_enrolled") === "true";
+  });
   const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
     return localStorage.getItem("avarta_user_avatar") || null;
   });
@@ -331,14 +337,32 @@ export default function ProfilePage() {
             <CardContent className="p-5 space-y-3.5">
               <div className="flex items-center justify-between pb-3 border-b border-neutral-100 dark:border-zinc-800">
                 <div className="flex items-center gap-2.5">
-                  <ShieldCheck size={16} className="text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-body-sm font-medium text-neutral-900 dark:text-zinc-100">
-                    SSO / MFA Status
-                  </span>
+                  <ShieldCheck size={16} className={mfaEnrolled ? "text-emerald-600 dark:text-emerald-400" : "text-amber-500"} />
+                  <div>
+                    <span className="text-body-sm font-medium text-neutral-900 dark:text-zinc-100 block">
+                      Two-Factor Authentication (MFA)
+                    </span>
+                    <span className="text-[11px] text-neutral-500 dark:text-zinc-400">
+                      {mfaEnrolled ? "Passkey / Authenticator active" : "Required for financial approvals & releases"}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-micro font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                  Enforced (SAML 2.0)
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-micro font-semibold px-2 py-0.5 rounded-full border ${
+                    mfaEnrolled
+                      ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                      : "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+                  }`}>
+                    {mfaEnrolled ? "Enrolled" : "Not Enrolled"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowMfaModal(true)}
+                    className="text-micro font-semibold text-indigo-600 dark:text-indigo-400 hover:underline px-1 py-0.5"
+                  >
+                    {mfaEnrolled ? "Reconfigure" : "Setup (A5)"}
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center justify-between pb-3 border-b border-neutral-100 dark:border-zinc-800">
@@ -467,6 +491,13 @@ export default function ProfilePage() {
           </div>
         </form>
       </Dialog>
+
+      {/* A5 MFA Enrollment Modal */}
+      <MfaEnrollmentModal
+        isOpen={showMfaModal}
+        onClose={() => setShowMfaModal(false)}
+        onEnrollComplete={() => setMfaEnrolled(true)}
+      />
     </div>
   );
 }

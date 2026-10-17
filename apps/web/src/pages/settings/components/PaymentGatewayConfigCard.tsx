@@ -162,6 +162,7 @@ export function PaymentGatewayConfigCard() {
         action={
           <div className="flex items-center gap-2">
             <span
+              title={lastTestedAt ? `Verified: ${new Date(lastTestedAt).toLocaleString()}` : "Gateway status"}
               className={`inline-flex items-center gap-1.5 text-micro font-mono font-semibold px-2.5 py-1 rounded-full ${
                 status === "CONNECTED"
                   ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"

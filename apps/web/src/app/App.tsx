@@ -47,6 +47,7 @@ const DpaPage = lazy(() => import("../pages/public/DpaPage"));
 const SubprocessorsPage = lazy(
   () => import("../pages/public/SubprocessorsPage"),
 );
+const SignUpPage = lazy(() => import("../pages/public/SignUpPage"));
 const ForgotPasswordPage = lazy(
   () => import("../pages/public/ForgotPasswordPage"),
 );
@@ -55,6 +56,7 @@ const ResetPasswordPage = lazy(
 );
 const AcceptInvitePage = lazy(() => import("../pages/public/AcceptInvitePage"));
 const RefundPolicyPage = lazy(() => import("../pages/public/RefundPolicyPage"));
+const ForbiddenPage = lazy(() => import("../pages/ForbiddenPage"));
 const NotFoundPage = lazy(() => import("../pages/NotFoundPage"));
 import { CookieConsentBanner } from "../components/ui/CookieConsentBanner";
 import { NetworkStatusAlert } from "../components/ui/NetworkStatusAlert";
@@ -108,6 +110,7 @@ export default function App() {
             <Suspense fallback={<PageFallback />}>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignUpPage />} />
                 <Route path="/privacy" element={<PrivacyPolicyPage />} />
                 <Route path="/terms" element={<TermsOfServicePage />} />
                 <Route path="/dpa" element={<DpaPage />} />
@@ -161,6 +164,8 @@ export default function App() {
                   <Route path="/profile" element={<ProfilePage />} />
                 </Route>
 
+                <Route path="/forbidden" element={<ForbiddenPage />} />
+                <Route path="/403" element={<ForbiddenPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Suspense>
