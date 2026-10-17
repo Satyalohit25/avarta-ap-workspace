@@ -1,7 +1,6 @@
 export const API_URL = import.meta.env.VITE_API_URL ?? "/api/v1";
 
-let accessToken: string | null =
-  localStorage.getItem("avarta_token") || localStorage.getItem("clearops_token");
+let accessToken: string | null = localStorage.getItem("avarta_token");
 
 export function setAccessToken(token: string | null) {
   accessToken = token;
@@ -9,7 +8,6 @@ export function setAccessToken(token: string | null) {
     localStorage.setItem("avarta_token", token);
   } else {
     localStorage.removeItem("avarta_token");
-    localStorage.removeItem("clearops_token");
   }
 }
 

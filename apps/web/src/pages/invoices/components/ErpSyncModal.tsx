@@ -52,7 +52,6 @@ export function ErpSyncModal({
   const [targetErp, setTargetErp] = useState("SAP");
   const [lifecycle, setLifecycle] = useState<SyncLifecycle>("PREVIEW");
   const [errorMessage, setErrorMessage] = useState("");
-  const [simulateFailure, setSimulateFailure] = useState(false);
   const [activeTab, setActiveTab] = useState<"voucher" | "payload">("voucher");
   const [copiedVoucher, setCopiedVoucher] = useState(false);
 
@@ -72,7 +71,7 @@ export function ErpSyncModal({
   }, [isOpen, invoiceId]);
 
   const numTotal = Number(totalAmount) || 0;
-  const taxAmount = Math.round(numTotal * 0.18 * 100) / 100; // Standard 18% GST/VAT
+  const taxAmount = Math.round(numTotal * 0.18 * 100) / 100;
   const netAmount = Math.round((numTotal - taxAmount) * 100) / 100;
 
   const voucherRef = useMemo(() => {
@@ -84,13 +83,6 @@ export function ErpSyncModal({
     setErrorMessage("");
 
     try {
-      if (simulateFailure) {
-        await new Promise((res) => setTimeout(res, 800));
-        throw new Error(
-          `ERP RFC Gateway Timeout (Code 502): The ${targetErp} connector endpoint failed to acknowledge voucher ${voucherRef}. General ledger state was rolled back.`
-        );
-      }
-
       await onConfirmSync(targetErp, idempotencyKey);
       setLifecycle("SUCCESS");
     } catch (err: unknown) {
@@ -115,8 +107,8 @@ export function ErpSyncModal({
     reference_number: invoiceNumber,
     vendor_entity: {
       name: vendorName,
-      subsidiary_code: "SUB-IND-01",
-      tax_id: "27AABCT3518Q1Z4",
+      subsidiary_code: "SUB-PRIMARY",
+      tax_id: "VENDOR_TAX_REGISTRATION",
     },
     currency: currency,
     exchange_rate: 1.0,
@@ -249,7 +241,7 @@ export function ErpSyncModal({
                   <span className="font-bold text-neutral-900 dark:text-zinc-100">{formatCurrency(taxAmount, currency)}</span>
                 </div>
                 <div>
-                  <span className="text-neutral-400 block">Vendor Entity:</span>
+                  <span className="text-neutral-400 block">Supplier Entity:</span>
                   <span className="text-neutral-800 dark:text-zinc-200">{vendorName}</span>
                 </div>
                 <div>
@@ -389,7 +381,7 @@ export function ErpSyncModal({
                 <div className="flex items-center justify-between text-caption font-medium border-b border-neutral-200/80 dark:border-zinc-800 pb-2">
                   <span className="flex items-center gap-1.5 text-neutral-800 dark:text-zinc-200">
                     <Building2 size={13} className="text-neutral-500" />
-                    <span>Vendor: <strong className="font-semibold">{vendorName}</strong></span>
+                    <span>Supplier: <strong className="font-semibold">{vendorName}</strong></span>
                   </span>
                   <span className="font-mono text-neutral-500 text-micro">
                     Voucher Ref: GL-INV-{invoiceNumber}
@@ -464,22 +456,10 @@ export function ErpSyncModal({
               </div>
             )}
 
-            {/* Edge Case Simulation Toggle */}
-            <div className="pt-1 text-micro font-mono text-neutral-400 dark:text-zinc-500 flex items-center justify-between border-t border-neutral-100 dark:border-zinc-800">
+            {/* Voucher Reference Footer */}
+            <div className="pt-2 text-micro font-mono text-neutral-400 dark:text-zinc-500 flex items-center justify-between border-t border-neutral-100 dark:border-zinc-800">
               <span className="truncate max-w-[320px]">Ref: {voucherRef}</span>
-
-              <label htmlFor="simulate-erp-failure" className="flex items-center gap-1.5 cursor-pointer select-none text-neutral-500 dark:text-zinc-400 hover:text-neutral-800 dark:hover:text-zinc-200">
-                <input
-                  id="simulate-erp-failure"
-                  name="simulateFailure"
-                  type="checkbox"
-                  checked={simulateFailure}
-                  onChange={(e) => setSimulateFailure(e.target.checked)}
-                  aria-label="Simulate ERP Gateway Timeout"
-                  className="rounded border-neutral-300 dark:border-zinc-700 text-red-600 focus:ring-red-500"
-                />
-                <span>Simulate ERP Gateway Timeout</span>
-              </label>
+              <span className="text-micro font-sans text-neutral-400">Idempotent Sync Voucher</span>
             </div>
 
             <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-neutral-200 dark:border-zinc-800">
@@ -489,15 +469,11 @@ export function ErpSyncModal({
               <Button
                 onClick={handleSync}
                 disabled={isPending}
-                className={`gap-2 text-white font-semibold ${simulateFailure ? "bg-amber-600 hover:bg-amber-500" : "bg-indigo-600 hover:bg-indigo-500"}`}
+                className="gap-2 text-white font-semibold bg-indigo-600 hover:bg-indigo-500"
               >
                 <ArrowRightLeft size={15} />
                 <span>
-                  {isPending
-                    ? "Posting Voucher..."
-                    : simulateFailure
-                    ? `Post to ${targetErp} (Trigger Timeout)`
-                    : `Post to ${targetErp}`}
+                  {isPending ? "Posting Voucher..." : `Post to ${targetErp}`}
                 </span>
               </Button>
             </div>

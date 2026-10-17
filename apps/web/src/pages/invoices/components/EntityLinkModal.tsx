@@ -107,10 +107,10 @@ export function EntityLinkModal({
       isOpen={isOpen}
       onClose={onClose}
       size="xl"
-      title={isVendor ? "Assign Supplier / Vendor" : "Link Purchase Order"}
+      title={isVendor ? "Assign Supplier" : "Link Purchase Order"}
       description={
         isVendor
-          ? "Search and link a vendor from master records or designate as Direct GL expense."
+          ? "Search and link a supplier from master records or designate as Direct GL expense."
           : "Reconcile this invoice against an open Purchase Order for automated 3-way matching."
       }
       confirmLabel={submitting ? "Linking..." : "Confirm & Link"}
@@ -122,7 +122,7 @@ export function EntityLinkModal({
         <Input
           id="entity-search-input"
           label={isVendor ? "Search Suppliers" : "Search Purchase Orders"}
-          placeholder={isVendor ? "Type vendor name or code..." : "Type PO number or vendor..."}
+          placeholder={isVendor ? "Type supplier name or code..." : "Type PO number or supplier..."}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           leftIcon={<Search size={15} className="text-neutral-400" />}

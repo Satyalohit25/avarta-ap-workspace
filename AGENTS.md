@@ -48,11 +48,12 @@ than replacing them.
 **Roles:** `Administrator`, `Finance Manager`, `Finance Executive`,
 `Approver`, `Read Only`. No other role names exist.
 
-**Navigation (11 items, sidebar order):** Overview, Inbox, Invoices,
-Exceptions, Approvals, Payments, Suppliers, Purchase Orders, Reports,
-Archive, Settings. Profile and Notifications are reached via the top bar,
-not the sidebar. Audit is not a top-level page — it lives as a tab on
-Invoice/Exception Details and as a section inside Settings.
+**Navigation (12 items, sidebar order):** Overview, Inbox, Invoices,
+Exceptions, Approvals, Payments, Suppliers, Purchase Orders, Items,
+Bank Accounts, Reports, Archive. Settings, Profile, and Notifications
+are reached via the top bar, not the sidebar. Audit is not a top-level
+page — it lives as a tab on Invoice/Exception Details and as a section
+inside Settings.
 
 **Invoice engine states** (`workflow_instances.current_state`):
 `Received, Captured, Validating, Validated, Validation Failed, Matching,

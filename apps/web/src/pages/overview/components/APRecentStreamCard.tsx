@@ -50,65 +50,85 @@ export function APRecentStreamCard({ items }: APRecentStreamCardProps) {
         </Link>
       </div>
 
-      {/* Compact High-Density Grid (Reduced Table Footprint) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
-        {displayItems.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => navigate(`/invoices/${item.id}`)}
-            className="p-2.5 rounded-lg border border-neutral-100 dark:border-zinc-800/80 bg-neutral-50/50 dark:bg-zinc-900/50 hover:bg-neutral-50 dark:hover:bg-zinc-800/60 hover:border-indigo-300 dark:hover:border-indigo-800 transition-all text-left group cursor-pointer flex flex-col justify-between space-y-1.5"
-          >
-            {/* Top Row: Invoice # & Channel */}
-            <div className="flex items-center justify-between gap-1 w-full">
-              <span className="font-mono text-micro font-bold text-indigo-600 dark:text-indigo-400 group-hover:underline flex items-center gap-1">
-                <FileText size={11} />
-                <span>{item.invoiceNumber}</span>
-              </span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-mono text-neutral-500 dark:text-zinc-400">
-                {renderChannelIcon(item.channel)}
-                <span>{item.channel}</span>
-              </span>
-            </div>
-
-            {/* Vendor & Stage */}
-            <div className="space-y-0.5 min-w-0 w-full">
-              <span className="text-body-sm font-medium text-neutral-900 dark:text-zinc-100 truncate block">
-                {item.vendor === "Unknown Vendor" ? "Amazon Business" : item.vendor}
-              </span>
-              <div className="flex items-center justify-between gap-1">
-                <span
-                  className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-semibold border ${
-                    item.statusVariant === "warning"
-                      ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/60"
-                      : item.statusVariant === "error"
-                      ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900/60"
-                      : item.statusVariant === "info"
-                      ? "bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-900/60"
-                      : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/60"
-                  }`}
-                >
-                  {item.stage}
+      {/* Compact High-Density Grid or Honest Empty State */}
+      {displayItems.length === 0 ? (
+        <div className="py-8 px-4 text-center rounded-lg border border-dashed border-neutral-200 dark:border-zinc-800 bg-neutral-50/50 dark:bg-zinc-900/30">
+          <p className="text-body-sm font-medium text-neutral-600 dark:text-zinc-400">
+            No recent activity detected
+          </p>
+          <p className="text-caption text-neutral-500 dark:text-zinc-500 mt-0.5">
+            Invoices ingested via email, manual upload, or ERP sync will stream here in real-time.
+          </p>
+          <div className="mt-3 flex items-center justify-center gap-2">
+            <Link
+              to="/inbox"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-2xs"
+            >
+              <UploadCloud size={13} />
+              <span>Ingest First Invoice</span>
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
+          {displayItems.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => navigate(`/invoices/${item.id}`)}
+              className="p-2.5 rounded-lg border border-neutral-100 dark:border-zinc-800/80 bg-neutral-50/50 dark:bg-zinc-900/50 hover:bg-neutral-50 dark:hover:bg-zinc-800/60 hover:border-indigo-300 dark:hover:border-indigo-800 transition-all text-left group cursor-pointer flex flex-col justify-between space-y-1.5"
+            >
+              {/* Top Row: Invoice # & Channel */}
+              <div className="flex items-center justify-between gap-1 w-full">
+                <span className="font-mono text-micro font-bold text-indigo-600 dark:text-indigo-400 group-hover:underline flex items-center gap-1">
+                  <FileText size={11} />
+                  <span>{item.invoiceNumber}</span>
                 </span>
-                <span className="text-[10px] font-mono text-neutral-500 dark:text-zinc-400">
-                  {item.confidence}% conf
+                <span className="inline-flex items-center gap-1 text-[10px] font-mono text-neutral-500 dark:text-zinc-400">
+                  {renderChannelIcon(item.channel)}
+                  <span>{item.channel}</span>
                 </span>
               </div>
-            </div>
 
-            {/* Bottom Row: Amount & Action Link */}
-            <div className="pt-1 border-t border-neutral-100 dark:border-zinc-800/80 flex items-center justify-between gap-1 w-full">
-              <span className="font-mono text-micro font-bold tabular-nums text-neutral-900 dark:text-zinc-100">
-                {formatCurrency(item.amount, item.currency)}
-              </span>
-              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold group-hover:underline inline-flex items-center gap-0.5">
-                <span>Inspect</span>
-                <ArrowUpRight size={10} />
-              </span>
-            </div>
-          </button>
-        ))}
-      </div>
+              {/* Supplier & Stage */}
+              <div className="space-y-0.5 min-w-0 w-full">
+                <span className="text-body-sm font-medium text-neutral-900 dark:text-zinc-100 truncate block">
+                  {item.vendor && item.vendor !== "Unknown Vendor" ? item.vendor : "Unknown Supplier"}
+                </span>
+                <div className="flex items-center justify-between gap-1">
+                  <span
+                    className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-semibold border ${
+                      item.statusVariant === "warning"
+                        ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/60"
+                        : item.statusVariant === "error"
+                        ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900/60"
+                        : item.statusVariant === "info"
+                        ? "bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-900/60"
+                        : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/60"
+                    }`}
+                  >
+                    {item.stage}
+                  </span>
+                  <span className="text-[10px] font-mono text-neutral-500 dark:text-zinc-400">
+                    {item.confidence}% conf
+                  </span>
+                </div>
+              </div>
+
+              {/* Bottom Row: Amount & Action Link */}
+              <div className="pt-1 border-t border-neutral-100 dark:border-zinc-800/80 flex items-center justify-between gap-1 w-full">
+                <span className="font-mono text-micro font-bold tabular-nums text-neutral-900 dark:text-zinc-100">
+                  {formatCurrency(item.amount, item.currency)}
+                </span>
+                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold group-hover:underline inline-flex items-center gap-0.5">
+                  <span>Inspect</span>
+                  <ArrowUpRight size={10} />
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

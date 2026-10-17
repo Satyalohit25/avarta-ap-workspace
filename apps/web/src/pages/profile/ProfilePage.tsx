@@ -256,7 +256,7 @@ export default function ProfilePage() {
                   />
                   <Input
                     label="Corporate Email Address"
-                    value={user?.email ?? "manager@avarta.dev"}
+                    value={user?.email ?? ""}
                     disabled
                     helpText="Managed by corporate SAML / SSO directory."
                   />
@@ -273,7 +273,7 @@ export default function ProfilePage() {
                             .split("_")
                             .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
                             .join(" ")
-                        : "Finance Manager"}
+                        : "Administrator"}
                     </div>
                   </div>
 
@@ -282,7 +282,11 @@ export default function ProfilePage() {
                       Tenant Organization
                     </label>
                     <div className="h-9 flex items-center px-3 rounded-md border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-800/40 text-body-sm font-medium text-neutral-900 dark:text-zinc-100">
-                      Acme Manufacturing Pvt Ltd (ORG-ACME-IN)
+                      {user?.organizationName
+                        ? `${user.organizationName} (${user.organizationId.slice(0, 8).toUpperCase()})`
+                        : user?.organizationId
+                        ? `Organization (${user.organizationId.slice(0, 8).toUpperCase()})`
+                        : "Primary Organization"}
                     </div>
                   </div>
                 </div>

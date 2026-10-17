@@ -55,18 +55,7 @@ export default function VendorInvoiceTrackPage() {
         }
       })
       .catch(() => {
-        // Fallback for standalone demo
-        setData({
-          invoiceNumber: token ? token.toUpperCase() : "INV-2026-1007",
-          supplierName: "Tata Steel Tubes Ltd",
-          amount: 354000,
-          currency: "INR",
-          receivedDate: "2026-08-28",
-          publicStatus: "Approved for Payment",
-          publicStatusStage: 3,
-          estimatedPaymentDate: "2026-09-19",
-          notes: "Invoice validated and approved. Queued for scheduled electronic remittance.",
-        });
+        setData(null);
       })
       .finally(() => setLoading(false));
   }, [token]);

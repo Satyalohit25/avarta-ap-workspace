@@ -43,7 +43,7 @@ const DEFAULT_CONNECTORS: ErpConnectorMeta[] = [
     category: "Cloud SME Financials",
     status: "STANDBY",
     lastSync: "3 days ago",
-    description: "Automated Bill generation, vendor master linkage, and bank feed clearing references via Intuit API.",
+    description: "Automated Bill generation, supplier master linkage, and bank feed clearing references via Intuit API.",
   },
   {
     id: "xero",
@@ -327,7 +327,7 @@ export function ErpConnectorsCard() {
               {configModalId === "csv" && (
                 <div className="p-3 rounded bg-neutral-50 dark:bg-zinc-800 text-caption text-neutral-600 dark:text-zinc-300 space-y-1">
                   <p className="font-semibold text-neutral-900 dark:text-zinc-100">Standard Double-Entry Format Active</p>
-                  <p>All approved and paid invoices are automatically prepared as balanced double-entry General Ledger rows (Operating Expense Debit, Input Tax Debit, Vendor Liability Credit).</p>
+                  <p>All approved and paid invoices are automatically prepared as balanced double-entry General Ledger rows (Operating Expense Debit, Input Tax Debit, Supplier Liability Credit).</p>
                 </div>
               )}
 

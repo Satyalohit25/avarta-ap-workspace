@@ -1,29 +1,38 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Shield, ArrowLeft, Mail, CheckCircle2 } from "lucide-react";
-import { Card, CardHeader, CardContent } from "../../components/ui/Card";
+import { Card, CardContent } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
+import { apiRequest } from "../../api/client";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [demoToken, setDemoToken] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email.trim()) return;
 
+    setError(null);
     setSubmitting(true);
-    // Simulate API call to /api/auth/forgot-password
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      await apiRequest("/auth/forgot-password", {
+        method: "POST",
+        body: { email: email.trim() },
+      });
       setSubmitted(true);
-      // In development/demo, generate a test token for instant testing
-      setDemoToken("demo_reset_tok_" + Math.random().toString(36).slice(-8));
-    }, 600);
+    } catch (err: unknown) {
+      // Per OWASP security guidelines, still show success message to prevent user enumeration
+      // while capturing log internally
+      console.warn("Forgot password request:", err);
+      setSubmitted(true);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -60,20 +69,6 @@ export default function ForgotPasswordPage() {
                   </p>
                 </div>
 
-                {demoToken && (
-                  <div className="p-3 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/60 dark:border-indigo-800/60 text-left space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-indigo-700 dark:text-indigo-300">
-                      Sandbox Fast-Track Link:
-                    </span>
-                    <Link
-                      to={`/reset-password?token=${demoToken}`}
-                      className="block text-micro font-mono text-indigo-600 dark:text-indigo-400 underline truncate"
-                    >
-                      Click here to simulate reset token
-                    </Link>
-                  </div>
-                )}
-
                 <div className="pt-2">
                   <Link
                     to="/login"
@@ -86,6 +81,8 @@ export default function ForgotPasswordPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
+                {error && <Alert type="error">{error}</Alert>}
+
                 <Input
                   label="Corporate Email Address"
                   type="email"

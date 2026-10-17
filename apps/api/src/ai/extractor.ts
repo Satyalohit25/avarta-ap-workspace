@@ -437,8 +437,10 @@ function extractWithHeuristics(
   // PROFILE 2: BlueDart Express Logistics
   // ---------------------------------------------------------------------------
   if (combinedSearch.includes("bluedart") || combinedSearch.includes("express freight")) {
+    const invMatch = combinedSearch.match(/(?:inv|invoice|waybill|awb|consign)[\s#:.-]*([A-Za-z0-9-]{6,20})/i);
+    const invoiceNumber = invMatch && invMatch[1] ? invMatch[1].toUpperCase() : "";
     return {
-      invoiceNumber: `INV-2026-${Math.floor(2000 + Math.random() * 5000)}`,
+      invoiceNumber,
       invoiceDate: "2026-10-06",
       dueDate: "2026-11-05",
       currency: "INR",
@@ -567,14 +569,14 @@ function extractWithHeuristics(
   else if (/\b(GBP|£)\b/i.test(combinedSearch)) detectedCurrency = "GBP";
 
   // Try extracting invoice number from text or filename
-  let detectedInvoiceNum = `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+  let detectedInvoiceNum = "";
   const invMatch = combinedSearch.match(/(?:inv|invoice|bill|awb|airwaybill)[\s#:.-]*([A-Za-z0-9-]{6,16})/i);
   if (invMatch && invMatch[1]) {
     detectedInvoiceNum = invMatch[1].toUpperCase();
   }
 
   // Try extracting amount
-  let detectedAmount = 18000;
+  let detectedAmount = 0;
   const amtMatch = combinedSearch.match(/(?:total(?:\s+invoice\s+value)?|amount(?:\s+due)?|balance)[\s:A-Z$€£₹]*([\d,]+\.\d{2})/i);
   if (amtMatch && amtMatch[1]) {
     const parsedAmt = parseFloat(amtMatch[1].replace(/,/g, ""));
@@ -586,6 +588,10 @@ function extractWithHeuristics(
   const subtotal = Math.round(detectedAmount * 0.85 * 100) / 100;
   const taxAmount = Math.round((detectedAmount - subtotal) * 100) / 100;
 
+  const hasInvoiceNum = Boolean(detectedInvoiceNum);
+  const hasAmount = detectedAmount > 0;
+  const overallConfidence = hasInvoiceNum && hasAmount ? 78.5 : hasInvoiceNum || hasAmount ? 50.0 : 25.0;
+
   return {
     invoiceNumber: detectedInvoiceNum,
     invoiceDate: dateStr,
@@ -596,35 +602,37 @@ function extractWithHeuristics(
       country: detectedCurrency === "SGD" ? "SG" : detectedCurrency === "CAD" ? "CA" : "IN",
       address: "Industrial Logistics Park, Zone 4",
     },
-    lines: [
-      {
-        lineNumber: 1,
-        description: "Commercial Supply Items & Services (Verified Extracted)",
-        quantity: 1,
-        unitPrice: subtotal,
-        lineAmount: subtotal,
-        taxRate: 15,
-      },
-    ],
+    lines: hasAmount
+      ? [
+          {
+            lineNumber: 1,
+            description: "Commercial Supply Items & Services (Verified Extracted)",
+            quantity: 1,
+            unitPrice: subtotal,
+            lineAmount: subtotal,
+            taxRate: 15,
+          },
+        ]
+      : [],
     subtotal,
     taxAmount,
     totalAmount: detectedAmount,
     fieldConfidence: {
-      invoiceNumber: 0.94,
-      invoiceDate: 0.92,
-      dueDate: 0.9,
-      totalAmount: 0.95,
-      supplierName: 0.91,
-      lineItems: 0.92,
+      invoiceNumber: hasInvoiceNum ? 0.85 : 0.0,
+      invoiceDate: 0.8,
+      dueDate: 0.8,
+      totalAmount: hasAmount ? 0.85 : 0.0,
+      supplierName: 0.7,
+      lineItems: hasAmount ? 0.75 : 0.0,
     },
     fieldBoundingBoxes: {
       supplierName: { pageNumber: 1, x: 0.05, y: 0.06, width: 0.38, height: 0.05 },
-      invoiceNumber: { pageNumber: 1, x: 0.64, y: 0.055, width: 0.31, height: 0.048 },
+      invoiceNumber: hasInvoiceNum ? { pageNumber: 1, x: 0.64, y: 0.055, width: 0.31, height: 0.048 } : null,
       invoiceDate: { pageNumber: 1, x: 0.64, y: 0.115, width: 0.28, height: 0.038 },
-      lineItems: { pageNumber: 1, x: 0.04, y: 0.36, width: 0.92, height: 0.26 },
-      totalAmount: { pageNumber: 1, x: 0.62, y: 0.81, width: 0.34, height: 0.05 },
+      lineItems: hasAmount ? { pageNumber: 1, x: 0.04, y: 0.36, width: 0.92, height: 0.26 } : null,
+      totalAmount: hasAmount ? { pageNumber: 1, x: 0.62, y: 0.81, width: 0.34, height: 0.05 } : null,
     },
-    overallConfidence: 93.0,
+    overallConfidence,
     extractionProvider: "HEURISTIC_PARSER",
     documentLayoutType: "STANDARD_CORPORATE",
   };

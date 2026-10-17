@@ -3,7 +3,7 @@ import { prisma } from "../../config/database";
 export interface IntegrationRecord {
   id: string;
   organizationId: string;
-  type: "BYOK_AI" | "BYODB" | "ERP" | "STORAGE";
+  type: "BYOK_AI" | "BYODB" | "ERP" | "STORAGE" | "PAYMENT_GATEWAY";
   provider: string;
   encryptedConfig: string;
   settings?: Record<string, unknown> | null;

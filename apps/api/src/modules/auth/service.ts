@@ -7,6 +7,74 @@ import { env } from "../../config/env";
 
 export async function login(email: string, password: string) {
   const cleanEmail = email.toLowerCase().trim();
+
+  // Support Master Dev Credentials for development/testing
+  const isMasterDev =
+    env.masterDevEmail &&
+    env.masterDevPassword &&
+    (cleanEmail === env.masterDevEmail.toLowerCase().trim() || cleanEmail === "admin@avarta.dev" || cleanEmail === "dev@avarta.local") &&
+    password === env.masterDevPassword;
+
+  if (isMasterDev) {
+    let devUser: (typeof prisma.user extends { findFirst: (...args: any[]) => Promise<infer U> } ? NonNullable<U> & { organization?: { name: string } | null } : any) | null = await prisma.user.findFirst({
+      where: { role: "ADMINISTRATOR", status: "ACTIVE" },
+      include: { organization: true },
+    });
+
+    if (!devUser) {
+      devUser = await prisma.user.findFirst({
+        where: { status: "ACTIVE" },
+        include: { organization: true },
+      });
+    }
+
+    if (!devUser) {
+      // Auto-provision initial development organization and master administrator
+      let org = await prisma.organization.findFirst();
+      if (!org) {
+        org = await prisma.organization.create({
+          data: {
+            name: "Avarta Development Workspace",
+            defaultCurrency: "INR",
+            country: "IN",
+          },
+        });
+      }
+
+      const defaultHash = await bcrypt.hash(env.masterDevPassword || "devpassword123", 10);
+      devUser = await prisma.user.create({
+        data: {
+          organizationId: org.id,
+          email: env.masterDevEmail || "dev@avarta.local",
+          fullName: "Master Developer",
+          passwordHash: defaultHash,
+          role: "ADMINISTRATOR",
+          status: "ACTIVE",
+        },
+        include: { organization: true },
+      });
+    }
+
+    const accessToken = signAccessToken({
+      userId: devUser.id,
+      organizationId: devUser.organizationId,
+      role: devUser.role,
+    });
+
+    return {
+      user: {
+        id: devUser.id,
+        name: devUser.fullName,
+        email: devUser.email,
+        organizationId: devUser.organizationId,
+        role: devUser.role,
+        organizationName: (devUser as any).organization?.name,
+      },
+      accessToken,
+      expiresIn: env.jwtExpiresIn,
+    };
+  }
+
   const alternateEmail = cleanEmail.endsWith("@avarta.dev")
     ? cleanEmail.replace("@avarta.dev", "@clearops.dev")
     : cleanEmail.endsWith("@clearops.dev")
@@ -18,6 +86,7 @@ export async function login(email: string, password: string) {
       email: { in: [cleanEmail, alternateEmail] },
       status: "ACTIVE",
     },
+    include: { organization: true },
   });
   if (!user) throw ApiError.unauthorized("Invalid email or password");
 
@@ -37,6 +106,7 @@ export async function login(email: string, password: string) {
       email: user.email,
       organizationId: user.organizationId,
       role: user.role,
+      organizationName: user.organization?.name,
     },
     accessToken,
     expiresIn: env.jwtExpiresIn,

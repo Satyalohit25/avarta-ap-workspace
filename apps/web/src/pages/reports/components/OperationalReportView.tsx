@@ -442,7 +442,7 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
       <Card level="surface">
         <CardHeader
           title="Top Supplier Processing Velocity & Match Quality"
-          description="High-volume vendor straight-through rates and turnaround efficiency"
+          description="High-volume supplier straight-through rates and turnaround efficiency"
         />
         <CardContent className="p-0">
           <Table>

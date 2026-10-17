@@ -4,17 +4,16 @@ import {
   User,
   LogOut,
   Building2,
-  Check,
   Compass,
   Command,
   Sun,
   Moon,
   ChevronDown,
   ChevronRight,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "../../app/AuthContext";
 import { useTheme } from "../../app/ThemeContext";
-import { DEMO_ACCOUNTS } from "../../lib/constants";
 
 const ROLE_DISPLAY_NAMES: Record<string, string> = {
   ADMINISTRATOR: "Administrator",
@@ -44,31 +43,13 @@ export function UserWorkspaceMenu({
   onOpenTour,
   onOpenCommand,
 }: UserWorkspaceMenuProps) {
-  const { user, logout, login } = useAuth();
+  const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
-  const [switching, setSwitching] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const displayRole = formatRoleName(user?.role);
-  const isDemoMode = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO === "true";
-
-  async function handleSwitch(account: (typeof DEMO_ACCOUNTS)[number]) {
-    if (account.email === user?.email) {
-      setIsOpen(false);
-      return;
-    }
-    setSwitching(true);
-    try {
-      await login(account.email, account.password);
-      setIsOpen(false);
-      window.location.reload();
-    } catch (err) {
-      console.error("Demo role switch failed:", err);
-    } finally {
-      setSwitching(false);
-    }
-  }
+  const orgName = user?.organizationName ?? "Your Organization";
 
   return (
     <div className="relative" ref={menuRef}>
@@ -97,9 +78,6 @@ export function UserWorkspaceMenu({
             />
           ) : (
             <User size={14} strokeWidth={2} className="text-neutral-600 dark:text-zinc-300" />
-          )}
-          {isDemoMode && (
-            <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-indigo-600 ring-1 ring-white dark:ring-zinc-900" />
           )}
         </span>
 
@@ -150,12 +128,10 @@ export function UserWorkspaceMenu({
                       {displayRole}
                     </span>
                   </div>
-                  <span className="text-caption text-neutral-500 dark:text-zinc-400 font-mono truncate block mt-0.5">
-                    {user?.email ?? "manager@avarta.dev"}
-                  </span>
+                    {user?.email ?? ""}
                   <div className="flex items-center gap-1.5 mt-1.5 text-micro text-neutral-600 dark:text-zinc-400">
                     <Building2 size={12} className="text-neutral-400 shrink-0" />
-                    <span className="truncate font-medium">Acme Manufacturing Pvt Ltd</span>
+                    <span className="truncate font-medium">{orgName}</span>
                   </div>
                 </div>
               </div>
@@ -173,76 +149,28 @@ export function UserWorkspaceMenu({
               </button>
             </div>
 
-            <div className="mt-3 pt-2.5 border-t border-neutral-200/60 dark:border-zinc-800/60 flex items-center justify-between">
+            <div className="mt-3 pt-2.5 border-t border-neutral-200/60 dark:border-zinc-800/60 flex items-center justify-between gap-2">
+              <Link
+                to="/settings"
+                onClick={() => setIsOpen(false)}
+                className="text-micro font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1.5 transition-colors group"
+              >
+                <Settings size={12} className="shrink-0" />
+                <span>Organization Settings</span>
+                <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+              </Link>
               <Link
                 to="/profile"
                 onClick={() => setIsOpen(false)}
-                className="text-micro font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors group"
+                className="text-micro font-semibold text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-100 flex items-center gap-1 transition-colors"
               >
-                <span>Manage Profile &amp; Settings</span>
-                <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                <User size={12} className="shrink-0" />
+                <span>My Profile</span>
               </Link>
-              <span className="text-[10.5px] font-mono text-neutral-400 dark:text-zinc-500">
-                Primary Workspace
-              </span>
             </div>
           </div>
 
-          {/* Section 2: Demo Persona Switcher (Balanced 2x3 Grid) */}
-          {isDemoMode && (
-            <div className="p-3.5 bg-indigo-50/20 dark:bg-indigo-950/15">
-              <div className="flex items-center justify-between mb-2.5 px-0.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
-                  <span className="text-[10.5px] font-mono font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
-                    Demo Persona Switcher
-                  </span>
-                </div>
-                <span className="text-[10px] text-neutral-400 dark:text-zinc-500">
-                  Instant switch
-                </span>
-              </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                {DEMO_ACCOUNTS.map((account) => {
-                  const isActive = account.email === user?.email;
-                  const AccountIcon = account.icon;
-                  return (
-                    <button
-                      key={account.email}
-                      type="button"
-                      onClick={() => handleSwitch(account)}
-                      disabled={switching}
-                      className={`p-2 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2 ${
-                        isActive
-                          ? "bg-white dark:bg-zinc-800 border-indigo-500 dark:border-indigo-400 shadow-2xs ring-1.5 ring-indigo-500/20"
-                          : "bg-white/80 dark:bg-zinc-850 border-neutral-200/80 dark:border-zinc-750 hover:border-neutral-300 dark:hover:border-zinc-650 hover:bg-white dark:hover:bg-zinc-800"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${account.bgColor}`}>
-                          <AccountIcon size={14} className={account.color} />
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100 block leading-tight truncate">
-                            {account.name.split(" ")[0]}
-                          </span>
-                          <span className="text-[10px] font-mono text-neutral-500 dark:text-zinc-400 block truncate mt-0.5">
-                            {account.role}
-                          </span>
-                        </div>
-                      </div>
-                      {isActive && (
-                        <Check size={14} className="text-indigo-600 dark:text-indigo-400 font-bold shrink-0 ml-1" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Section 3: Workspace Tools (Streamlined Side-by-Side) */}
           <div className="p-2.5 grid grid-cols-2 gap-2 bg-neutral-50/40 dark:bg-zinc-900/40">
             <button
               type="button"

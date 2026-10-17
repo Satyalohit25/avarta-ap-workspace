@@ -19,11 +19,14 @@ import { RecentInvoicesPanel } from "./components/RecentInvoicesPanel";
 import { InvoiceFormDialog } from "./components/InvoiceFormDialog";
 import { InvoiceFormMode } from "./components/InvoiceForm";
 import { InvoiceFormValues } from "./validation";
-
-const INBOUND_EMAIL = "ap-inbox@acme.avarta.dev";
+import { useAuth } from "../../app/AuthContext";
 
 export default function InboxPage() {
+  const { user } = useAuth();
   const { toast } = useToast();
+  const inboundEmail = user?.organizationId
+    ? `ap-inbox@org-${user.organizationId.slice(0, 8).toLowerCase()}.avarta.dev`
+    : "ap-inbox@workspace.avarta.dev";
   const [suppliers, setSuppliers] = useState<SupplierListItem[]>([]);
   const [recentReceived, setRecentReceived] = useState<InvoiceListItem[]>([]);
   const [loadingRecent, setLoadingRecent] = useState(true);
@@ -58,9 +61,9 @@ export default function InboxPage() {
   }, []);
 
   function handleCopyEmail() {
-    navigator.clipboard.writeText(INBOUND_EMAIL);
+    navigator.clipboard.writeText(inboundEmail);
     setCopiedEmail(true);
-    toast.success("Inbound Email Copied", INBOUND_EMAIL);
+    toast.success("Inbound Email Copied", inboundEmail);
     setTimeout(() => setCopiedEmail(false), 2500);
   }
 
@@ -229,7 +232,7 @@ export default function InboxPage() {
             <p className="text-caption text-neutral-500 dark:text-zinc-400 mt-0.5">
               Forward invoices to:{" "}
               <span className="font-mono font-medium text-neutral-800 dark:text-zinc-200 select-all">
-                {INBOUND_EMAIL}
+                {inboundEmail}
               </span>
             </p>
           </div>

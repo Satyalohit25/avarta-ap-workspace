@@ -238,7 +238,7 @@ export async function createInvoice(input: CreateInvoiceInput) {
       const newSup = await prisma.supplier.create({
         data: {
           organizationId: input.organizationId,
-          supplierCode: `SUP-${Math.floor(100 + Math.random() * 900)}`,
+          supplierCode: `SUP-${Date.now().toString(36).toUpperCase()}`,
           displayName: extracted.supplier.name,
           legalName: extracted.supplier.name,
           currency,
@@ -361,8 +361,8 @@ export async function processInvoice(organizationId: string, invoiceId: string, 
   // Capture
   await applyTransition({ invoiceId, event: "CAPTURE_COMPLETE", triggeredBy: userId });
 
-  // Document AI Extraction (Multimodal or Statutory Heuristic)
-  let confidence = mockConfidence(invoice.invoiceNumber);
+  // Document AI Extraction (Multimodal Live AI with BYOK or Statutory Heuristic)
+  let confidence: number | null = invoice.aiConfidence ? Number(invoice.aiConfidence) : null;
   const document = await prisma.document.findFirst({
     where: { invoiceId },
     orderBy: { createdAt: "desc" },
@@ -372,7 +372,7 @@ export async function processInvoice(organizationId: string, invoiceId: string, 
     try {
       const uploadsDir = path.join(process.cwd(), "uploads");
       const filePath = path.join(uploadsDir, document.storageKey);
-      const extracted = await extractInvoiceFromFile(filePath, document.mimeType, document.fileName);
+      const extracted = await extractInvoiceFromFile(filePath, document.mimeType, document.fileName, organizationId);
       confidence = Math.round(extracted.overallConfidence * 100) / 100;
 
       // Match or create supplier dynamically
@@ -394,7 +394,7 @@ export async function processInvoice(organizationId: string, invoiceId: string, 
           const newSup = await prisma.supplier.create({
             data: {
               organizationId,
-              supplierCode: `SUP-${Math.floor(100 + Math.random() * 900)}`,
+              supplierCode: `SUP-${Date.now().toString(36).toUpperCase()}`,
               displayName: extracted.supplier.name,
               legalName: extracted.supplier.name,
               currency: extracted.currency || invoice.currency || "SGD",
@@ -493,12 +493,6 @@ export async function processInvoice(organizationId: string, invoiceId: string, 
   return getInvoice(organizationId, invoiceId);
 }
 
-function mockConfidence(seed: string): number {
-  let hash = 0;
-  for (const char of seed) hash = (hash * 31 + char.charCodeAt(0)) % 1000;
-  return Math.round((60 + (hash % 40)) * 100) / 100; // 60.00–99.99
-}
-
 interface ValidationFailure {
   ruleCode: string;
   ruleName: string;
@@ -519,7 +513,7 @@ async function runValidations(
     currency?: string;
     purchaseOrderId?: string | null;
   },
-  confidence: number
+  confidence: number | null
 ) {
   const failures: ValidationFailure[] = [];
 
@@ -551,11 +545,14 @@ async function runValidations(
     });
   }
 
-  if (confidence < 80) {
+  if (confidence === null || confidence < 80) {
     failures.push({
       ruleCode: "AI_CONFIDENCE",
       ruleName: "AI Confidence",
-      message: `Extraction confidence (${confidence}%) is below the review threshold.`,
+      message:
+        confidence !== null
+          ? `Extraction confidence (${confidence}%) is below the review threshold.`
+          : "No AI extraction confidence recorded. Requires manual human verification.",
       exceptionType: "LOW_AI_CONFIDENCE",
       severity: "MEDIUM",
     });
@@ -641,7 +638,7 @@ export async function retryValidation(organizationId: string, invoiceId: string,
   const invoice = await repo.findInvoiceById(organizationId, invoiceId);
   if (!invoice) throw ApiError.notFound("Invoice not found");
 
-  const confidence = invoice.aiConfidence ? Number(invoice.aiConfidence) : mockConfidence(invoice.invoiceNumber);
+  const confidence = invoice.aiConfidence ? Number(invoice.aiConfidence) : null;
   const failures = await runValidations(organizationId, invoice, confidence);
 
   if (failures.length > 0) {

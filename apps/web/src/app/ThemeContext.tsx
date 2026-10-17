@@ -12,9 +12,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
-    const saved =
-      localStorage.getItem("avarta_theme") ||
-      localStorage.getItem("clearops_theme");
+    const saved = localStorage.getItem("avarta_theme");
     if (saved === "dark" || saved === "light") return saved;
     return "dark"; // Default is dark mode per release specification
   });

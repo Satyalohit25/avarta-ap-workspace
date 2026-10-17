@@ -7,6 +7,13 @@ import { prisma } from "../../config/database";
 import { buildJournalEntry } from "../erp/service";
 import { applyTransition } from "../../workflow/engine";
 
+import {
+  getPaymentGatewayAdapter,
+  PaymentGatewayProvider,
+  PaymentGatewayConfig,
+  PaymentGatewayTestResult,
+} from "../payments/adapter";
+
 export interface IntegrationsSummary {
   byok: {
     provider: string;
@@ -30,6 +37,14 @@ export interface IntegrationsSummary {
     lastSyncAt?: Date | null;
     config?: Record<string, string>;
   };
+  paymentGateway: {
+    provider: string;
+    name: string;
+    status: string;
+    accountName?: string;
+    maskedKey?: string;
+    lastTestedAt?: Date | null;
+  };
 }
 
 export class IntegrationsService {
@@ -37,10 +52,12 @@ export class IntegrationsService {
     const byokRecords = await IntegrationRepository.findByType(organizationId, "BYOK_AI");
     const byodbRecords = await IntegrationRepository.findByType(organizationId, "BYODB");
     const erpRecords = await IntegrationRepository.findByType(organizationId, "ERP");
+    const pgRecords = await IntegrationRepository.findByType(organizationId, "PAYMENT_GATEWAY");
 
     const activeByok = byokRecords.find((r) => r.status === "CONNECTED") || byokRecords[0];
     const activeByodb = byodbRecords.find((r) => r.status === "CONNECTED") || byodbRecords[0];
     const activeErp = erpRecords.find((r) => r.status === "CONNECTED") || erpRecords[0];
+    const activePg = pgRecords.find((r) => r.status === "CONNECTED") || pgRecords[0];
 
     let maskedByokKey: string | undefined;
     if (activeByok?.encryptedConfig) {
@@ -62,7 +79,21 @@ export class IntegrationsService {
       }
     }
 
+    let maskedPgKey: string | undefined;
+    if (activePg?.encryptedConfig) {
+      try {
+        const parsed = JSON.parse(decryptSecret(activePg.encryptedConfig));
+        if (parsed.apiKey) maskedPgKey = maskSecret(parsed.apiKey);
+        else if (parsed.apiSecret) maskedPgKey = maskSecret(parsed.apiSecret);
+      } catch {
+        maskedPgKey = "••••••••";
+      }
+    }
+
     const erpAdapter = getErpAdapter(activeErp?.provider || "csv");
+    const pgAdapter = getPaymentGatewayAdapter(
+      (activePg?.provider as PaymentGatewayProvider) || "MANUAL_BANK_TRANSFER"
+    );
 
     return {
       byok: {
@@ -87,7 +118,45 @@ export class IntegrationsService {
         lastSyncAt: activeErp?.lastSyncAt || new Date(),
         config: (activeErp?.settings?.config as Record<string, string>) || {},
       },
+      paymentGateway: {
+        provider: activePg?.provider || "MANUAL_BANK_TRANSFER",
+        name: pgAdapter.name,
+        status: activePg?.status || "CONNECTED",
+        accountName: (activePg?.settings?.accountName as string) || "Direct Settlement Account",
+        maskedKey: maskedPgKey,
+        lastTestedAt: activePg?.lastTestedAt,
+      },
     };
+  }
+
+  static async testAndSavePaymentGateway(
+    organizationId: string,
+    provider: PaymentGatewayProvider,
+    config: PaymentGatewayConfig,
+    save = true
+  ): Promise<PaymentGatewayTestResult> {
+    const adapter = getPaymentGatewayAdapter(provider);
+    const testResult = await adapter.testConnection(config);
+
+    if (testResult.success && save) {
+      const encrypted = encryptSecret(JSON.stringify(config));
+      await IntegrationRepository.upsert({
+        organizationId,
+        type: "PAYMENT_GATEWAY",
+        provider,
+        encryptedConfig: encrypted,
+        status: "CONNECTED",
+        lastTestedAt: new Date(),
+        settings: {
+          accountName: testResult.accountName,
+          balanceCurrency: testResult.balanceCurrency,
+          availableBalance: testResult.availableBalance,
+          latencyMs: testResult.latencyMs,
+        },
+      });
+    }
+
+    return testResult;
   }
 
   static async testAndSaveByok(

@@ -116,3 +116,30 @@ integrationRoutes.post("/erp/sync-now", async (req: Request, res: Response, next
     next(err);
   }
 });
+
+/**
+ * POST /api/integrations/payment-gateway/test
+ * Tests a Payment Gateway (RazorpayX, Cashfree, Stripe, Manual) and optionally saves it.
+ */
+integrationRoutes.post("/payment-gateway/test", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const organizationId = req.auth!.organizationId;
+    const { provider, config, save } = req.body;
+
+    if (!provider) {
+      throw ApiError.badRequest("Field 'provider' is required (RAZORPAYX, CASHFREE, STRIPE, MANUAL_BANK_TRANSFER).");
+    }
+
+    const result = await IntegrationsService.testAndSavePaymentGateway(
+      organizationId,
+      provider.toUpperCase() as any,
+      config || { provider: provider.toUpperCase() },
+      save !== false
+    );
+
+    return res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+

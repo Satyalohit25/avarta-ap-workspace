@@ -271,10 +271,10 @@ export function ApAgingCashForecastView() {
         <CardHeader>
           <div>
             <h3 className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100">
-              Vendor Aging Breakdown
+              Supplier Aging Breakdown
             </h3>
             <p className="text-caption text-neutral-500">
-              Aged payables organized by vendor partner to assist treasury settlement scheduling
+              Aged payables organized by supplier partner to assist treasury settlement scheduling
             </p>
           </div>
         </CardHeader>
@@ -282,7 +282,7 @@ export function ApAgingCashForecastView() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Vendor</TableHead>
+                <TableHead>Supplier</TableHead>
                 <TableHead className="text-right">Current (0–30D)</TableHead>
                 <TableHead className="text-right">31–60 Days</TableHead>
                 <TableHead className="text-right">61–90 Days</TableHead>
@@ -294,7 +294,7 @@ export function ApAgingCashForecastView() {
               {aging.byVendor.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-neutral-400 font-mono text-body-sm">
-                    No outstanding aged payables detected across vendors.
+                    No outstanding aged payables detected across suppliers.
                   </TableCell>
                 </TableRow>
               ) : (

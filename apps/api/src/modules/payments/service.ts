@@ -82,7 +82,10 @@ export async function executePayment(
   userId?: string,
   details?: { utrNumber?: string; clearingDocumentNumber?: string }
 ) {
-  const payment = await prisma.payment.findFirst({ where: { id: paymentId, organizationId } });
+  const payment = await prisma.payment.findFirst({
+    where: { id: paymentId, organizationId },
+    include: { invoice: { include: { supplier: true } } },
+  });
   if (!payment) throw ApiError.notFound("Payment not found");
   if (payment.status === "PAID") {
     throw ApiError.conflict("Payment has already been executed and is marked as PAID.");
@@ -93,19 +96,55 @@ export async function executePayment(
 
   await applyTransition({ invoiceId: payment.invoiceId, event: "PAYMENT_RUN", triggeredBy: userId });
 
-  // Mock external payment provider — always succeeds in this slice.
+  // Resolve tenant's configured Payment Gateway (BYOPG)
+  const { IntegrationRepository } = await import("../integrations/repository");
+  const { decryptSecret } = await import("../../lib/crypto");
+  const { getPaymentGatewayAdapter } = await import("./adapter");
+
+  const pgRecords = await IntegrationRepository.findByType(organizationId, "PAYMENT_GATEWAY");
+  const activePg = pgRecords.find((r) => r.status === "CONNECTED") || pgRecords[0];
+
+  let config: any = {
+    provider: activePg?.provider || "MANUAL_BANK_TRANSFER",
+  };
+
+  if (activePg?.encryptedConfig) {
+    try {
+      const decrypted = JSON.parse(decryptSecret(activePg.encryptedConfig));
+      config = { ...config, ...decrypted };
+    } catch {
+      // Configuration fallback
+    }
+  }
+
+  const adapter = getPaymentGatewayAdapter(config.provider);
+  const payoutResult = await adapter.initiatePayout(config, {
+    paymentId: payment.id,
+    amount: Number(payment.amount),
+    currency: payment.currency,
+    beneficiaryName: payment.invoice?.supplier?.displayName || "Vendor Payee",
+  });
+
+  if (!payoutResult.success) {
+    await applyTransition({ invoiceId: payment.invoiceId, event: "PAYMENT_FAILURE", triggeredBy: userId });
+    throw ApiError.badRequest(
+      `Payment gateway payout initiation failed: ${payoutResult.errorMessage || "Gateway rejected transaction"}`
+    );
+  }
+
+  // Payment confirmed by Gateway Adapter — proceed with state advance
   await applyTransition({ invoiceId: payment.invoiceId, event: "PAYMENT_SUCCESS", triggeredBy: userId });
 
-  const generatedUtr = details?.utrNumber || `NEFT-AVARTA-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`;
-  const clearingDoc = details?.clearingDocumentNumber || `2533${Math.floor(100000 + Math.random() * 900000)}`;
-  const clearingDate = new Date();
+  const finalUtr = details?.utrNumber || payoutResult.utrNumber || `NEFT-${Date.now().toString().slice(-8)}`;
+  const finalClearingDoc = details?.clearingDocumentNumber || payoutResult.clearingDocumentNumber || `CLR-${Date.now().toString(36).toUpperCase()}`;
+  const clearingDate = payoutResult.executedAt || new Date();
 
-  // Also stamp invoice with clearing document and buyer invoice id per Tata Chemicals standard
+  // Stamp invoice with clearing document and buyer invoice id
   await prisma.invoice.update({
     where: { id: payment.invoiceId },
     data: {
-      erpClearingNumber: clearingDoc,
-      buyerInvoiceId: `2522${Math.floor(100000 + Math.random() * 900000)}`,
+      erpClearingNumber: finalClearingDoc,
+      buyerInvoiceId: `2522${Date.now().toString().slice(-6)}`,
       fiscalYear: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
     },
   });
@@ -115,9 +154,9 @@ export async function executePayment(
     data: {
       status: "PAID",
       processedAt: clearingDate,
-      utrNumber: generatedUtr,
+      utrNumber: finalUtr,
       clearingDate,
-      clearingDocumentNumber: clearingDoc,
+      clearingDocumentNumber: finalClearingDoc,
     },
   });
 }

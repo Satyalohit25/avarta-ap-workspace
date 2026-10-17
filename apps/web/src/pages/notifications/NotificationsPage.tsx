@@ -92,14 +92,21 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   },
 ];
 
+import { useAuth } from "../../app/AuthContext";
+
 export default function NotificationsPage() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
   const [filter, setFilter] = useState<"ALL" | "UNREAD" | "ACTION">("ALL");
 
-  // Routing settings state
-  const [slackWebhook, setSlackWebhook] = useState("https://hooks.slack.com/services/T000/B000/XXXXXX");
-  const [emailDigest, setEmailDigest] = useState("manager@avarta.dev");
+  // Routing settings state — persisted in tenant browser storage
+  const [slackWebhook, setSlackWebhook] = useState(() => {
+    return localStorage.getItem("avarta_notifications_slack") ?? "";
+  });
+  const [emailDigest, setEmailDigest] = useState(() => {
+    return localStorage.getItem("avarta_notifications_email") ?? (user?.email ?? "");
+  });
   const [slaEscalationHours, setSlaEscalationHours] = useState("48");
   const [savedSettings, setSavedSettings] = useState(false);
 
@@ -116,6 +123,8 @@ export default function NotificationsPage() {
 
   function handleSaveChannels(e: React.FormEvent) {
     e.preventDefault();
+    localStorage.setItem("avarta_notifications_slack", slackWebhook);
+    localStorage.setItem("avarta_notifications_email", emailDigest);
     setSavedSettings(true);
     toast.success("Routing Preferences Saved", "Notification channels and SLA triggers updated.");
     setTimeout(() => setSavedSettings(false), 3000);

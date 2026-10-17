@@ -161,6 +161,24 @@ export default function LoginPage() {
               <Button type="submit" disabled={submitting} className="w-full h-10 font-semibold text-body-sm rounded-md">
                 {submitting ? "Signing in..." : "Sign in"}
               </Button>
+
+              {import.meta.env.DEV && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail("admin@avarta.dev");
+                      setPassword("devpassword123");
+                      setEmailError(null);
+                      setPasswordError(null);
+                      setError(null);
+                    }}
+                    className="w-full py-1.5 px-2 rounded-lg border border-dashed border-indigo-300 dark:border-indigo-800/80 bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300 text-micro font-mono flex items-center justify-center gap-1.5 hover:bg-indigo-100/50 dark:hover:bg-indigo-900/30 transition-colors"
+                  >
+                    <span>⚡ Fill Master Dev Credentials (admin@avarta.dev)</span>
+                  </button>
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>

@@ -31,13 +31,58 @@ import {
   Sparkles,
   CreditCard,
 } from "lucide-react";
-import { DEMO_ACCOUNTS } from "../../lib/constants";
-
 import { ByokConfigCard } from "./components/ByokConfigCard";
 import { ByodbConfigCard } from "./components/ByodbConfigCard";
 import { ErpConnectorsCard } from "./components/ErpConnectorsCard";
+import { PaymentGatewayConfigCard } from "./components/PaymentGatewayConfigCard";
 import { BillingPlanCard } from "./components/BillingPlanCard";
 import { TeamManagementCard } from "./components/TeamManagementCard";
+
+interface CanonicalRoleSpec {
+  name: string;
+  role: string;
+  scope: string;
+  color: string;
+  bgColor: string;
+}
+
+const CANONICAL_ROLE_SPECS: CanonicalRoleSpec[] = [
+  {
+    name: "Tenant Administrator",
+    role: "Administrator",
+    scope: "Full tenant administration, BYOK/BYODB sovereignty, tier 3 approvals (> ₹5L)",
+    color: "text-red-700 dark:text-red-300",
+    bgColor: "bg-red-50 dark:bg-red-950/40",
+  },
+  {
+    name: "Finance Manager",
+    role: "Finance Manager",
+    scope: "Complete operational AP supervision, batch payment execution, tier 2 approvals",
+    color: "text-purple-700 dark:text-purple-300",
+    bgColor: "bg-purple-50 dark:bg-purple-950/40",
+  },
+  {
+    name: "Finance Executive",
+    role: "Finance Executive",
+    scope: "Invoice capture triage, variance investigation, supplier master maintenance",
+    color: "text-blue-700 dark:text-blue-300",
+    bgColor: "bg-blue-50 dark:bg-blue-950/40",
+  },
+  {
+    name: "Departmental Approver",
+    role: "Approver",
+    scope: "Line-item cost center review, receipt verification, tier 1 approvals (≤ ₹1L)",
+    color: "text-amber-700 dark:text-amber-300",
+    bgColor: "bg-amber-50 dark:bg-amber-950/40",
+  },
+  {
+    name: "Auditor / Compliance",
+    role: "Read Only",
+    scope: "Read-only ledger visibility, immutable audit log verification, reporting",
+    color: "text-neutral-700 dark:text-zinc-300",
+    bgColor: "bg-neutral-100 dark:bg-zinc-800",
+  },
+];
 
 const CANONICAL_AUDIT_LOGS = [
   {
@@ -111,7 +156,7 @@ const ERP_INTEGRATIONS = [
     lastSync: "3 days ago",
     recordsSynced: "412 Invoices",
     description:
-      "Direct API mapping for bills, vendor profiles, and bank feeds.",
+      "Direct API mapping for bills, supplier profiles, and bank feeds.",
   },
   {
     id: "xero",
@@ -676,6 +721,16 @@ export default function SettingsPage() {
             ),
           },
           {
+            id: "payment-gateway",
+            label: "Payment Gateway (BYOPG)",
+            icon: <CreditCard size={15} />,
+            content: (
+              <div className="space-y-4 pt-2">
+                <PaymentGatewayConfigCard />
+              </div>
+            ),
+          },
+          {
             id: "audit-logs",
             label: "System Audit Log & Security Events",
             icon: <FileCheck2 size={15} />,
@@ -764,50 +819,34 @@ export default function SettingsPage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>User / Identity</TableHead>
-                          <TableHead>Email Address</TableHead>
-                          <TableHead>Role</TableHead>
-                          <TableHead>Authorized Scope</TableHead>
-                          <TableHead className="text-right">Status</TableHead>
+                          <TableHead>Role Title</TableHead>
+                          <TableHead>Canonical Role Key</TableHead>
+                          <TableHead>Authorized Scope & Segregation of Duties</TableHead>
+                          <TableHead className="text-right">Policy Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {DEMO_ACCOUNTS.map((acc) => {
-                          const IconComponent = acc.icon;
-                          return (
-                            <TableRow key={acc.email}>
-                              <TableCell className="text-body-sm">
-                                <div className="flex items-center gap-2.5">
-                                  <div className={`p-1.5 rounded-md ${acc.bgColor} ${acc.color}`}>
-                                    <IconComponent size={14} />
-                                  </div>
-                                  <span className="font-semibold text-neutral-900 dark:text-zinc-100">{acc.name}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="font-mono text-micro text-neutral-600 dark:text-zinc-400">
-                                {acc.email}
-                              </TableCell>
-                              <TableCell>
-                                <span className={`inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full font-semibold ${acc.bgColor} ${acc.color}`}>
-                                  {acc.role}
-                                </span>
-                              </TableCell>
-                              <TableCell className="text-caption text-neutral-600 dark:text-zinc-400">
-                                {acc.role === "Administrator" && "Tenant administration, system settings, Tier 3 (> ₹5L) approvals"}
-                                {acc.role === "Finance Manager" && "Complete operational AP, batch payments execution, Tier 2 approvals"}
-                                {acc.role === "Finance Executive" && "Invoice capture, exception triage, supplier maintenance (No approvals)"}
-                                {acc.role === "Approver" && "Invoice review and Tier 1 (≤ ₹1L) authorization"}
-                                {acc.role === "Read Only" && "Full read-only register visibility and audit trail inspection"}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
-                                  <CheckCircle2 size={11} />
-                                  <span>Active</span>
-                                </span>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
+                        {CANONICAL_ROLE_SPECS.map((spec) => (
+                          <TableRow key={spec.role}>
+                            <TableCell className="text-body-sm">
+                              <span className="font-semibold text-neutral-900 dark:text-zinc-100">{spec.name}</span>
+                            </TableCell>
+                            <TableCell>
+                              <span className={`inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full font-semibold ${spec.bgColor} ${spec.color}`}>
+                                {spec.role}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-caption text-neutral-600 dark:text-zinc-400">
+                              {spec.scope}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
+                                <CheckCircle2 size={11} />
+                                <span>Active Policy</span>
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
                       </TableBody>
                     </Table>
                   </CardContent>

@@ -34,6 +34,7 @@ import {
   Clock,
 } from "lucide-react";
 import { AvartaCrest } from "../../components/brand/AvartaCrest";
+import { useAuth } from "../../app/AuthContext";
 
 interface ArchivedAuditCertificate {
   invoice: InvoiceListItem;
@@ -46,6 +47,7 @@ interface ArchivedAuditCertificate {
 }
 
 export default function ArchivePage() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [invoices, setInvoices] = useState<InvoiceListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,14 +120,14 @@ export default function ArchivePage() {
   }
 
   function handleDownloadAuditPack() {
+    const orgName = user?.organizationName || "Avarta AP Workspace";
+    const orgCode = user?.organizationId ? user.organizationId.slice(0, 8).toUpperCase() : "ORG-DEFAULT";
     const content = `
 ================================================================================
            AVARTA AP WORKSPACE — STATUTORY COMPLIANCE AUDIT PACK
                               "आत्मानं विद्धि"
 ================================================================================
-Organization       : Acme Manufacturing Pvt Ltd (ORG-ACME-IN)
-GSTIN Identifier   : 27AAACA1234F1Z5
-Compliance Mandate : Section 44AA (Income Tax Act) & Rule 56 (CGST Statutory Lock)
+Organization       : ${orgName} (${orgCode})
 Audit Timestamp    : ${new Date().toISOString()}
 Total Records      : ${invoices.length} Verified Archived Invoices
 Total Settled Sum  : ${formatCurrency(totalArchivedAmount, primaryCurrency)}

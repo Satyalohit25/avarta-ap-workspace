@@ -8,10 +8,7 @@ import { Sheet } from "../ui/Sheet";
 export function AppLayout() {
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
-      return (
-        localStorage.getItem("avarta_sidebar_collapsed") === "true" ||
-        localStorage.getItem("clearops_sidebar_collapsed") === "true"
-      );
+      return localStorage.getItem("avarta_sidebar_collapsed") === "true";
     }
     return false;
   });

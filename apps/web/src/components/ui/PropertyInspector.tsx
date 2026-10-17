@@ -10,7 +10,7 @@ export interface PropertyInspectorProps {
 }
 
 export function PropertyInspector({
-  vendorGstin = "27AABCT3518Q1ZV",
+  vendorGstin,
   paymentTerms = "Net 30 Days",
   matchingStatus = "MATCHED",
   linkedPo,
@@ -35,21 +35,27 @@ export function PropertyInspector({
           <span className="font-medium">Vendor GSTIN</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="font-mono text-caption font-semibold text-neutral-900 dark:text-zinc-100">
-            {vendorGstin || "27AABCT3518Q1ZV"}
-          </span>
-          <button
-            type="button"
-            onClick={handleCopyGstin}
-            className="p-1 rounded hover:bg-neutral-200/60 dark:hover:bg-zinc-800 text-neutral-400 hover:text-neutral-700 dark:hover:text-zinc-200 transition-colors"
-            title="Copy GSTIN"
-          >
-            {copied ? (
-              <Check size={12} className="text-emerald-600 dark:text-emerald-400" />
-            ) : (
-              <Copy size={12} />
-            )}
-          </button>
+          {vendorGstin ? (
+            <>
+              <span className="font-mono text-caption font-semibold text-neutral-900 dark:text-zinc-100">
+                {vendorGstin}
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyGstin}
+                className="p-1 rounded hover:bg-neutral-200/60 dark:hover:bg-zinc-800 text-neutral-400 hover:text-neutral-700 dark:hover:text-zinc-200 transition-colors"
+                title="Copy GSTIN"
+              >
+                {copied ? (
+                  <Check size={12} className="text-emerald-600 dark:text-emerald-400" />
+                ) : (
+                  <Copy size={12} />
+                )}
+              </button>
+            </>
+          ) : (
+            <span className="text-micro font-mono text-neutral-400 dark:text-zinc-500">Not provided</span>
+          )}
         </div>
       </div>
 

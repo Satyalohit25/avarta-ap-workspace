@@ -104,35 +104,41 @@ export function ExecutiveDecisionHub({
         </div>
       ) : null}
 
-      {/* ── 2. Workspace View Modes (Segmented Control) ── */}
+      {/* ── 2. Single-Scroll Section Quick Navigation ── */}
       <div className="flex items-center justify-between gap-3 bg-neutral-100/80 dark:bg-zinc-800/60 p-1 rounded-xl border border-neutral-200/70 dark:border-zinc-700/60">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-wrap">
           <button
             type="button"
-            onClick={() => onChangeViewMode("split")}
+            onClick={() => {
+              onChangeViewMode("split");
+              document.getElementById("executive-decision-hub")?.scrollIntoView({ behavior: "smooth" });
+            }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold transition-all cursor-pointer ${
               viewMode === "split"
                 ? "bg-white dark:bg-zinc-900 text-indigo-700 dark:text-indigo-300 shadow-xs border border-neutral-200 dark:border-zinc-700"
                 : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
             }`}
-            title="Side-by-side: Document Scan + Extracted Fields (Shortcut: 1)"
+            title="Jump to Extracted Essentials & Document (Shortcut: 1)"
           >
-            <FileText size={14} className={viewMode === "split" ? "text-indigo-600 dark:text-indigo-400" : "text-neutral-400"} />
-            <span>Split Verification</span>
+            <FileText size={14} className="text-indigo-600 dark:text-indigo-400" />
+            <span>Essentials &amp; Scan</span>
             <kbd className="hidden sm:inline-block font-mono text-[9px] px-1 py-0.2 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 text-neutral-400">1</kbd>
           </button>
 
           <button
             type="button"
-            onClick={() => onChangeViewMode("threeway")}
+            onClick={() => {
+              onChangeViewMode("threeway");
+              document.getElementById("section-matching")?.scrollIntoView({ behavior: "smooth" });
+            }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold transition-all cursor-pointer ${
               viewMode === "threeway"
                 ? "bg-white dark:bg-zinc-900 text-indigo-700 dark:text-indigo-300 shadow-xs border border-neutral-200 dark:border-zinc-700"
                 : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
             }`}
-            title="Full-Width 3-Way Reconciliation View (Shortcut: 2)"
+            title="Jump to 3-Way Reconciliation Table (Shortcut: 2)"
           >
-            <Layers size={14} className={viewMode === "threeway" ? "text-indigo-600 dark:text-indigo-400" : "text-neutral-400"} />
+            <Layers size={14} className="text-emerald-600 dark:text-emerald-400" />
             <span>3-Way Match</span>
             {hasException && (
               <span className="w-2 h-2 rounded-full bg-amber-500" />
@@ -142,22 +148,25 @@ export function ExecutiveDecisionHub({
 
           <button
             type="button"
-            onClick={() => onChangeViewMode("audit")}
+            onClick={() => {
+              onChangeViewMode("audit");
+              document.getElementById("section-audit")?.scrollIntoView({ behavior: "smooth" });
+            }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold transition-all cursor-pointer ${
               viewMode === "audit"
                 ? "bg-white dark:bg-zinc-900 text-indigo-700 dark:text-indigo-300 shadow-xs border border-neutral-200 dark:border-zinc-700"
                 : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
             }`}
-            title="Chronological Audit History & Lifecycle Transitions (Shortcut: 3)"
+            title="Jump to Audit Trail & Transitions (Shortcut: 3)"
           >
-            <History size={14} className={viewMode === "audit" ? "text-indigo-600 dark:text-indigo-400" : "text-neutral-400"} />
+            <History size={14} className="text-purple-600 dark:text-purple-400" />
             <span>Audit Trail</span>
             <kbd className="hidden sm:inline-block font-mono text-[9px] px-1 py-0.2 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 text-neutral-400">3</kbd>
           </button>
         </div>
 
         <div className="hidden md:flex items-center gap-2 pr-2 text-micro text-neutral-500 font-mono">
-          <span>Mode: <strong className="text-neutral-800 dark:text-zinc-200 capitalize">{viewMode}</strong></span>
+          <span>Single-Scroll: <strong className="text-neutral-800 dark:text-zinc-200">Unified Pane</strong></span>
         </div>
       </div>
     </div>

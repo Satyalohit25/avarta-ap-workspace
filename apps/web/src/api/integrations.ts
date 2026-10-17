@@ -23,6 +23,14 @@ export interface IntegrationsStatusData {
     lastSyncAt?: string;
     config?: Record<string, string>;
   };
+  paymentGateway?: {
+    provider: string;
+    name: string;
+    status: string;
+    accountName?: string;
+    maskedKey?: string;
+    lastTestedAt?: string;
+  };
 }
 
 export interface ByokTestResponse {
@@ -100,3 +108,26 @@ export async function triggerErpSync(): Promise<ErpSyncResponse> {
   });
   return res.data;
 }
+
+export interface PaymentGatewayTestResponse {
+  success: boolean;
+  provider: string;
+  message: string;
+  accountName?: string;
+  balanceCurrency?: string;
+  availableBalance?: number;
+  latencyMs: number;
+}
+
+export async function testPaymentGatewayConnection(payload: {
+  provider: "RAZORPAYX" | "CASHFREE" | "STRIPE" | "MANUAL_BANK_TRANSFER";
+  config?: Record<string, string>;
+  save?: boolean;
+}): Promise<PaymentGatewayTestResponse> {
+  const res = await apiRequest<{ data: PaymentGatewayTestResponse }>("/integrations/payment-gateway/test", {
+    method: "POST",
+    body: payload,
+  });
+  return res.data;
+}
+

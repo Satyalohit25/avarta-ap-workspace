@@ -5,6 +5,7 @@ import { Card, CardContent } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
+import { apiRequest, ApiRequestError } from "../../api/client";
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -16,9 +17,14 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!token) {
+      setError("Invalid or missing password reset token. Please request a new recovery link.");
+      return;
+    }
 
     if (newPassword.length < 8) {
       setError("Password must be at least 8 characters long.");
@@ -30,11 +36,21 @@ export default function ResetPasswordPage() {
     }
 
     setSubmitting(true);
-    // Simulate reset completion
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      await apiRequest("/auth/reset-password", {
+        method: "POST",
+        body: { token, newPassword },
+      });
       setSuccess(true);
-    }, 600);
+    } catch (err: unknown) {
+      setError(
+        err instanceof ApiRequestError
+          ? err.message
+          : "Failed to reset password. The recovery link may be expired or invalid."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

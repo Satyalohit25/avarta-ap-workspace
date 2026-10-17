@@ -23,6 +23,10 @@ const PaymentsPage = lazy(() => import("../pages/payments/PaymentsPage"));
 const PurchaseOrdersPage = lazy(
   () => import("../pages/purchase-orders/PurchaseOrdersPage"),
 );
+const ItemsPage = lazy(() => import("../pages/items/ItemsPage"));
+const BankAccountsPage = lazy(
+  () => import("../pages/bank-accounts/BankAccountsPage"),
+);
 const ReportsPage = lazy(() => import("../pages/reports/ReportsPage"));
 const SettingsPage = lazy(() => import("../pages/settings/SettingsPage"));
 const ArchivePage = lazy(() => import("../pages/archive/ArchivePage"));
@@ -145,6 +149,8 @@ export default function App() {
                     path="/purchase-orders"
                     element={<PurchaseOrdersPage />}
                   />
+                  <Route path="/items" element={<ItemsPage />} />
+                  <Route path="/bank-accounts" element={<BankAccountsPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/archive" element={<ArchivePage />} />
                   <Route path="/settings" element={<SettingsPage />} />

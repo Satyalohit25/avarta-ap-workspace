@@ -56,11 +56,9 @@ async function resolveOrganizationId(to: string, from: string, explicitOrgId?: s
   });
   if (supplier) return supplier.organizationId;
 
-  // Demo fallback: default to first available organization
-  const defaultOrg = await prisma.organization.findFirst();
-  if (defaultOrg) return defaultOrg.id;
-
-  throw new Error("Cannot resolve organization for incoming invoice email.");
+  throw new Error(
+    `Cannot resolve destination organization for incoming invoice email (to: "${to}", from: "${from}"). Unrecognized recipient domain or unmapped sender.`
+  );
 }
 
 /**

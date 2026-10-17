@@ -206,7 +206,7 @@ export default function SuppliersPage() {
       });
       toast.success(
         "Supplier Onboarded",
-        `${displayName || legalName} is now registered in the vendor master directory.`,
+        `${displayName || legalName} is now registered in the supplier master directory.`,
       );
       setShowAddModal(false);
       resetAddForm();
@@ -214,7 +214,7 @@ export default function SuppliersPage() {
     } catch (err: unknown) {
       toast.error(
         "Failed to Onboard Supplier",
-        err instanceof Error ? err.message : "Error saving vendor details.",
+        err instanceof Error ? err.message : "Error saving supplier details.",
       );
     } finally {
       setSubmitting(false);
@@ -245,7 +245,7 @@ export default function SuppliersPage() {
     <div className="space-y-5">
       <PageHeader
         title="Suppliers"
-        subtitle="Verified vendor master database, tax compliance, and open balances."
+        subtitle="Verified supplier master database, tax compliance, and open balances."
         action={
           canAddSupplier && (
             <Button onClick={() => setShowAddModal(true)} className="gap-1.5">
@@ -263,7 +263,7 @@ export default function SuppliersPage() {
           <span className="font-mono font-semibold text-neutral-900 dark:text-zinc-100">
             {filteredSuppliers.length}
           </span>{" "}
-          of {suppliers.length} verified vendors
+          of {suppliers.length} verified suppliers
         </div>
 
         <div className="relative w-full sm:w-72">
@@ -271,10 +271,10 @@ export default function SuppliersPage() {
             id="supplier-search-filter"
             name="searchQuery"
             autoComplete="off"
-            aria-label="Search vendor, code, GST"
+            aria-label="Search supplier, code, GST"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search vendor, code, GST..."
+            placeholder="Search supplier, code, GST..."
             leftIcon={<Search size={14} className="text-neutral-400" />}
             rightIcon={
               searchQuery ? (
@@ -306,8 +306,8 @@ export default function SuppliersPage() {
             }
             description={
               searchQuery
-                ? `No verified vendors found matching "${searchQuery}".`
-                : "Add your first verified vendor to get started."
+                ? `No verified suppliers found matching "${searchQuery}".`
+                : "Add your first verified supplier to get started."
             }
             action={
               searchQuery
@@ -473,7 +473,7 @@ export default function SuppliersPage() {
                     Master Data Properties
                   </span>
                   <PropertyInspector
-                    vendorGstin={selectedSupplier.gstNumber || "27AABCT3518Q1ZV"}
+                    vendorGstin={selectedSupplier.gstNumber || null}
                     paymentTerms={`Net ${selectedSupplier.paymentTermsDays ?? 30} Days`}
                     matchingStatus="MATCHED"
                     linkedPo={selectedSupplier.supplierCode}
@@ -844,7 +844,7 @@ export default function SuppliersPage() {
         }}
         size="xl"
         title="Onboard New Supplier"
-        description="Register a verified vendor in the master directory across entity, contact, and banking sections."
+        description="Register a verified supplier in the master directory across entity, contact, and banking sections."
       >
         {/* Section Tabs */}
         <div className="flex gap-1 p-1 bg-neutral-100 dark:bg-zinc-800 rounded-lg mb-5">
@@ -1021,7 +1021,7 @@ export default function SuppliersPage() {
                 value={contactEmail}
                 onChange={(e) => setContactEmail(e.target.value)}
                 type="email"
-                placeholder="ap.billing@vendor.com"
+                placeholder="ap.billing@supplier.com"
               />
               <Input
                 label="Phone / WhatsApp"

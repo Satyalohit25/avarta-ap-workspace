@@ -9,9 +9,10 @@ import {
   Wallet,
   Building2,
   ClipboardList,
+  Package,
+  Landmark,
   BarChart3,
   Archive,
-  Settings,
   PanelLeftClose,
   PanelLeftOpen,
   X,
@@ -33,10 +34,10 @@ interface NavSection {
   items: NavItemDef[];
 }
 
-// Canonical 11-item navigation strictly ordered and grouped by lifecycle per AGENTS.md & Doc 18 §18.2
+// Canonical 12-item navigation grouped per Experience Standard v1.0 §5 & AGENTS.md
 const NAV_SECTIONS: NavSection[] = [
   {
-    title: "Core Workspace",
+    title: "Work",
     items: [
       { to: "/overview", label: "Overview", icon: LayoutGrid },
       { to: "/inbox", label: "Inbox", icon: Inbox, badgeKey: "inbox" },
@@ -57,18 +58,19 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: "Vendors & Procurement",
+    title: "Data",
     items: [
       { to: "/suppliers", label: "Suppliers", icon: Building2 },
       { to: "/purchase-orders", label: "Purchase Orders", icon: ClipboardList },
+      { to: "/items", label: "Items", icon: Package },
+      { to: "/bank-accounts", label: "Bank Accounts", icon: Landmark },
     ],
   },
   {
-    title: "Intelligence & Compliance",
+    title: "Elsewhere",
     items: [
       { to: "/reports", label: "Reports", icon: BarChart3 },
       { to: "/archive", label: "Archive", icon: Archive },
-      { to: "/settings", label: "Settings", icon: Settings },
     ],
   },
 ];

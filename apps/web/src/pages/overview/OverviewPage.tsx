@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Inbox, RefreshCw } from "lucide-react";
-import { DashboardOverview, getDashboardOverview, StreamItem } from "../../api/dashboard";
+import { DashboardOverview, getDashboardOverview } from "../../api/dashboard";
 import { transitionInvoice } from "../../api/invoices";
 import { SkeletonRows } from "../../components/Skeleton";
 import { Button } from "../../components/ui/Button";
@@ -10,52 +10,6 @@ import { APFinancialHorizonStrip } from "./components/APFinancialHorizonStrip";
 import { APWorkstationGrid } from "./components/APWorkstationGrid";
 import { APRecentStreamCard } from "./components/APRecentStreamCard";
 
-const FALLBACK_PIPELINE_FEED: StreamItem[] = [
-  {
-    id: "demo-inv-1",
-    invoiceNumber: "INV-2026-8801",
-    vendor: "Acme Industrial Supplies",
-    channel: "EMAIL",
-    stage: "Pending Approval",
-    statusVariant: "warning",
-    amount: 12450.0,
-    currency: "INR",
-    confidence: 98,
-  },
-  {
-    id: "demo-inv-2",
-    invoiceNumber: "INV-2026-9022",
-    vendor: "Delta Heavy Electricals",
-    channel: "UPLOAD",
-    stage: "Exception Flagged",
-    statusVariant: "error",
-    amount: 48900.0,
-    currency: "INR",
-    confidence: 76,
-  },
-  {
-    id: "demo-inv-3",
-    invoiceNumber: "INV-2026-7409",
-    vendor: "Zenith Fluid Power Ltd",
-    channel: "PORTAL",
-    stage: "Payment Scheduled",
-    statusVariant: "info",
-    amount: 83400.0,
-    currency: "INR",
-    confidence: 96,
-  },
-  {
-    id: "demo-inv-4",
-    invoiceNumber: "INV-2026-6102",
-    vendor: "Apex Precision Tools",
-    channel: "EMAIL",
-    stage: "3-Way Match Verified",
-    statusVariant: "success",
-    amount: 23100.0,
-    currency: "INR",
-    confidence: 99,
-  },
-];
 
 export default function OverviewPage() {
   const navigate = useNavigate();
@@ -112,10 +66,8 @@ export default function OverviewPage() {
     hour12: true,
   });
 
-  const streamItems =
-    data?.recentStream && data.recentStream.length > 0
-      ? data.recentStream
-      : FALLBACK_PIPELINE_FEED;
+  // No demo data — honest start per Experience Standard v1.0 §7
+  const streamItems = data?.recentStream ?? [];
 
   return (
     <div className="space-y-4 pb-0">

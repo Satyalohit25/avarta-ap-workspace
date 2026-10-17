@@ -128,7 +128,7 @@ export function ByodbConfigCard() {
               </span>
             </div>
             <p className="text-caption text-neutral-500 dark:text-zinc-400">
-              Complete data sovereignty. All invoice, vendor, and payment records persist directly in your private database.
+              Complete data sovereignty. All invoice, supplier, and payment records persist directly in your private database.
             </p>
           </button>
         </div>

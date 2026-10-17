@@ -23,4 +23,6 @@ export const env = {
     "APP_ENCRYPTION_KEY",
     isProd ? undefined : "avarta-dev-encryption-key-32chars!!"
   ),
+  masterDevEmail: process.env.MASTER_DEV_EMAIL ?? (isProd ? undefined : "dev@avarta.local"),
+  masterDevPassword: process.env.MASTER_DEV_PASSWORD ?? (isProd ? undefined : "devpassword123"),
 };
