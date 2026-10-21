@@ -40,22 +40,33 @@ export default function VendorInvoiceTrackPage() {
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<VendorTrackData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copiedUtr, setCopiedUtr] = useState(false);
 
   useEffect(() => {
-    // Attempt fetch from public endpoint, fallback to realistic mock
+    if (!token) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
-    fetch(`/api/v1/public/invoices/track/${token ?? "INV-2026-1007"}`)
-      .then((res) => res.json())
-      .then((resData) => {
+    setErrorMessage(null);
+    fetch(`/api/v1/public/invoices/track/${encodeURIComponent(token)}`)
+      .then(async (res) => {
+        const resData = await res.json();
+        if (res.status === 410) {
+          throw new Error(resData?.error || "This tracking link has expired. Please contact accounts payable for a refreshed link.");
+        }
         if (resData?.data) {
           setData(resData.data);
         } else {
-          throw new Error("No data");
+          throw new Error(resData?.error || "Tracking record not found");
         }
       })
-      .catch(() => {
+      .catch((err) => {
         setData(null);
+        setErrorMessage(err.message);
       })
       .finally(() => setLoading(false));
   }, [token]);
@@ -93,9 +104,11 @@ export default function VendorInvoiceTrackPage() {
         ) : !data ? (
           <div className="p-8 rounded-2xl border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-center space-y-2">
             <HelpCircle size={32} className="mx-auto text-neutral-400" />
-            <h2 className="text-h3 font-semibold">Tracking Record Not Found</h2>
+            <h2 className="text-h3 font-semibold">
+              {errorMessage?.includes("expired") ? "Tracking Link Expired" : "Tracking Record Not Found"}
+            </h2>
             <p className="text-caption text-neutral-500">
-              Please check the link provided in your invoice submission email or contact your accounts payable coordinator.
+              {errorMessage || "Please check the link provided in your invoice submission email or contact your accounts payable coordinator."}
             </p>
           </div>
         ) : (
@@ -259,7 +272,7 @@ export default function VendorInvoiceTrackPage() {
                 <CreditCard size={13} className="text-neutral-400" />
                 <span>Payment Mode: Direct Bank Remittance (NEFT / RTGS)</span>
               </div>
-              <span>Tracking Token: #{token?.substring(0, 8) ?? "TOKEN-742"}</span>
+              <span>Tracking Token: #{token ? `${token.substring(0, 8)}...` : "N/A"}</span>
             </div>
           </div>
         )}

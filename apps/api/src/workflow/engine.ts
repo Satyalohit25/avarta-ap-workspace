@@ -148,6 +148,13 @@ export async function applyTransition({ invoiceId, event, triggeredBy, reason, t
           processedAt: new Date(),
         },
       });
+
+      // Extend public tracking token expiration for vendor audit/remittance retention (+90 days)
+      const extendedExpiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+      await tx.invoice.update({
+        where: { id: invoiceId },
+        data: { trackingTokenExpiresAt: extendedExpiresAt },
+      });
     }
 
     await tx.auditLog.create({

@@ -16,6 +16,7 @@ import {
   erpSyncHandler,
   uploadDocumentHandler,
   extractDocumentHandler,
+  regenerateTrackingHandler,
 } from "./controller";
 
 import { enforceInvoiceQuota } from "../billing/middleware";
@@ -71,4 +72,11 @@ invoiceRoutes.post(
   requireIdempotencyKey,
   erpSyncHandler
 );
+
+invoiceRoutes.post(
+  "/:invoiceId/tracking/regenerate",
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
+  regenerateTrackingHandler
+);
+
 

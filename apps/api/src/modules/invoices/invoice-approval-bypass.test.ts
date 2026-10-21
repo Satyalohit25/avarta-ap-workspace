@@ -78,6 +78,8 @@ describe("Approval Enforcement Unification & Bypass Elimination (ACT-P0-J)", () 
         totalAmount: 500000,
         status: "PENDING_APPROVAL",
         workflowState: "WAITING_APPROVAL",
+        dueDate: new Date(),
+        invoiceDate: new Date(),
       },
     });
     highTierInvoiceId = highInv.id;
@@ -110,6 +112,8 @@ describe("Approval Enforcement Unification & Bypass Elimination (ACT-P0-J)", () 
         totalAmount: 50000,
         status: "PENDING_APPROVAL",
         workflowState: "WAITING_APPROVAL",
+        dueDate: new Date(),
+        invoiceDate: new Date(),
       },
     });
     lowTierInvoiceId = lowInv.id;

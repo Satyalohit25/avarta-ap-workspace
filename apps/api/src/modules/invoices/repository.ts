@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../config/database";
+import { generateTrackingToken, hashTrackingToken, encryptTrackingToken } from "../../lib/crypto";
 
 const listInclude = {
   supplier: true,
@@ -86,8 +87,18 @@ export async function createInvoice(
   organizationId: string,
   data: Prisma.InvoiceUncheckedCreateInput
 ) {
+  let trackingFields = {};
+  if (!data.trackingTokenHash) {
+    const rawToken = generateTrackingToken();
+    trackingFields = {
+      trackingTokenHash: hashTrackingToken(rawToken),
+      trackingTokenEncrypted: encryptTrackingToken(rawToken, "v1"),
+      trackingTokenExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    };
+  }
+
   return prisma.invoice.create({
-    data: { ...data, organizationId },
+    data: { ...data, ...trackingFields, organizationId },
     include: listInclude,
   });
 }
@@ -102,3 +113,32 @@ export async function updateInvoice(
     include: listInclude,
   });
 }
+
+/**
+ * Named unscoped lookup for public invoice tracking by SHA-256 token hash.
+ * This is the ONLY unauthenticated lookup permitted on Invoice, protected by
+ * 256-bit token entropy and rate limiting.
+ */
+export async function findInvoiceByPublicTrackingHash(hash: string) {
+  return prisma.invoice.findFirst({
+    where: {
+      trackingTokenHash: hash,
+    },
+    include: {
+      supplier: {
+        select: { displayName: true, legalName: true },
+      },
+      payments: {
+        select: {
+          status: true,
+          scheduledDate: true,
+          processedAt: true,
+          utrNumber: true,
+          clearingDate: true,
+          clearingDocumentNumber: true,
+        },
+      },
+    },
+  });
+}
+

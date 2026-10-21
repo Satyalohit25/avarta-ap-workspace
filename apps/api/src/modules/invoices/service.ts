@@ -11,6 +11,7 @@ import { extractInvoiceFromFile } from "../../ai/extractor";
 import * as repo from "./repository";
 import { toInvoiceDetail, toInvoiceListItem } from "./mapper";
 import { executeInvoiceApproval } from "../approvals/service";
+import { generateTrackingToken, hashTrackingToken, encryptTrackingToken } from "../../lib/crypto";
 
 interface ListParams {
   organizationId: string;
@@ -866,4 +867,34 @@ export async function addDocumentToInvoice(
     invoice: await getInvoice(organizationId, invoiceId),
   };
 }
+
+/**
+ * Regenerates an invoice's public tracking token, updating hash, ciphertext, and expiry.
+ */
+export async function regenerateInvoiceTrackingToken(organizationId: string, invoiceId: string) {
+  const invoice = await repo.findInvoiceById(organizationId, invoiceId);
+  if (!invoice) throw ApiError.notFound("Invoice not found");
+
+  const rawToken = generateTrackingToken();
+  const tokenHash = hashTrackingToken(rawToken);
+  const encryptedToken = encryptTrackingToken(rawToken, "v1");
+  const days = invoice.status === "PAID" ? 90 : 30;
+  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+  await prisma.invoice.update({
+    where: { id: invoiceId },
+    data: {
+      trackingTokenHash: tokenHash,
+      trackingTokenEncrypted: encryptedToken,
+      trackingTokenExpiresAt: expiresAt,
+    },
+  });
+
+  return {
+    trackingToken: rawToken,
+    trackingUrl: `/public/invoices/track/${rawToken}`,
+    expiresAt,
+  };
+}
+
 

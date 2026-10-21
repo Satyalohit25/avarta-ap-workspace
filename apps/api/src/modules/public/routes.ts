@@ -1,50 +1,40 @@
 import crypto from "crypto";
 import { Router, Request, Response } from "express";
 import { prisma } from "../../config/database";
-import { runWithEngineBypass } from "../../config/tenant-guard";
 import { publicTrackRateLimiter } from "../../middleware/rate-limiter";
+import { hashTrackingToken } from "../../lib/crypto";
+import { findInvoiceByPublicTrackingHash } from "../invoices/repository";
 
 export const publicRoutes = Router();
 
 // Public unauthenticated tracking endpoint for vendors with rate limiting
 publicRoutes.get("/invoices/track/:token", publicTrackRateLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
+    // Security headers required by ACT-P0-01
+    res.setHeader("Cache-Control", "no-store, private");
+    res.setHeader("Referrer-Policy", "no-referrer");
+
     const { token } = req.params;
 
-    if (!token || token.length < 4) {
-      res.status(400).json({ error: "Invalid tracking token format" });
+    if (!token || typeof token !== "string" || token.length < 16) {
+      res.status(404).json({ error: "Invoice not found for tracking token" });
       return;
     }
 
-    // Lookup invoice by tracking token or fallback ID prefix within engine bypass context
-    const invoice = await runWithEngineBypass(() =>
-      prisma.invoice.findFirst({
-        where: {
-          OR: [
-            { id: token },
-            { invoiceNumber: token },
-          ],
-        },
-        include: {
-          supplier: {
-            select: { displayName: true, legalName: true },
-          },
-          payments: {
-            select: {
-              status: true,
-              scheduledDate: true,
-              processedAt: true,
-              utrNumber: true,
-              clearingDate: true,
-              clearingDocumentNumber: true,
-            },
-          },
-        },
-      })
-    );
+    // Lookup invoice strictly by SHA-256 hash through named unscoped wrapper
+    const tokenHash = hashTrackingToken(token);
+    const invoice = await findInvoiceByPublicTrackingHash(tokenHash);
 
     if (!invoice) {
       res.status(404).json({ error: "Invoice not found for tracking token" });
+      return;
+    }
+
+    // Expiry check: Return 410 Gone if tracking link has expired
+    if (invoice.trackingTokenExpiresAt && new Date() > new Date(invoice.trackingTokenExpiresAt)) {
+      res.status(410).json({
+        error: "Tracking link expired. Please contact the accounts payable team for a refreshed link.",
+      });
       return;
     }
 

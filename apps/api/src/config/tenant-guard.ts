@@ -84,6 +84,17 @@ export function registerGuardMiddleware(prisma: {
 
       if (guardedActions.includes(params.action)) {
         const where = params.args?.where;
+
+        // Exempt public tracking token hash lookup (unscoped by design, indexed and hashed)
+        if (
+          params.model === "Invoice" &&
+          (params.action === "findFirst" || params.action === "findUnique") &&
+          where &&
+          "trackingTokenHash" in where
+        ) {
+          return next(params);
+        }
+
         const hasOrgId = where && (
           "organizationId" in where ||
           // Support nested filters like { invoice: { organizationId } }

@@ -252,6 +252,10 @@ model Invoice {
   source        InvoiceSource @default(UPLOAD)
   aiConfidence  Decimal?      @db.Decimal(5, 2)
 
+  trackingTokenHash      String?   @unique
+  trackingTokenEncrypted String?
+  trackingTokenExpiresAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

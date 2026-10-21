@@ -223,4 +223,16 @@ export async function auditHandler(req: Request, res: Response, next: NextFuncti
   }
 }
 
+export async function regenerateTrackingHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await invoiceService.regenerateInvoiceTrackingToken(
+      orgId(req),
+      req.params.invoiceId
+    );
+    res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
 

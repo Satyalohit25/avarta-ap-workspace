@@ -60,3 +60,42 @@ export function maskSecret(secret: string): string {
   const end = secret.slice(-4);
   return `${start}••••••••${end}`;
 }
+
+/**
+ * Generates a 32-byte (256-bit) cryptographically secure random tracking token.
+ */
+export function generateTrackingToken(): string {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+/**
+ * Computes SHA-256 hash of a tracking token for secure, timing-safe database lookups.
+ */
+export function hashTrackingToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+/**
+ * Encrypts a tracking token with a key identifier prefix (e.g. "v1:iv:authTag:ciphertext").
+ * Allows key rotation without breaking existing encrypted tokens.
+ */
+export function encryptTrackingToken(plainToken: string, keyId: string = "v1"): string {
+  if (!plainToken) return "";
+  const encrypted = encryptSecret(plainToken);
+  return `${keyId}:${encrypted}`;
+}
+
+/**
+ * Decrypts an encrypted tracking token payload, supporting both versioned ("v1:iv:authTag:ciphertext")
+ * and unversioned payloads.
+ */
+export function decryptTrackingToken(payload: string): string {
+  if (!payload) return "";
+  const parts = payload.split(":");
+  if (parts.length === 4) {
+    const [_keyId, iv, authTag, ciphertext] = parts;
+    return decryptSecret(`${iv}:${authTag}:${ciphertext}`);
+  }
+  return decryptSecret(payload);
+}
+
