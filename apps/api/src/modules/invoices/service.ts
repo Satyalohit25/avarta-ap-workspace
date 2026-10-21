@@ -10,6 +10,7 @@ import { validateGstinChecksum, validateTaxArithmetic } from "./tax-validator";
 import { extractInvoiceFromFile } from "../../ai/extractor";
 import * as repo from "./repository";
 import { toInvoiceDetail, toInvoiceListItem } from "./mapper";
+import { executeInvoiceApproval } from "../approvals/service";
 
 interface ListParams {
   organizationId: string;
@@ -689,20 +690,13 @@ export async function transitionInvoice(
   }
 
   if (action === "APPROVE") {
-    // AGENTS.md Rule 1 & Rule 6: Invoices cannot be approved with open exceptions
-    const openException = await prisma.exception.findFirst({
-      where: {
-        invoiceId,
-        status: { in: ["OPEN", "ASSIGNED", "UNDER_REVIEW"] },
-      },
+    await executeInvoiceApproval({
+      organizationId,
+      invoiceId,
+      userId,
+      userRole,
+      notes: comment,
     });
-    if (openException) {
-      throw ApiError.conflict(
-        `Cannot approve invoice ${invoice.invoiceNumber}: Invoice has an unresolved blocking exception "${openException.type}". Exceptions must be investigated and resolved before approval.`
-      );
-    }
-
-    await applyTransition({ invoiceId, event: "APPROVED", triggeredBy: userId, reason: comment });
   } else if (action === "REJECT") {
     if (!comment) throw ApiError.badRequest("Comment is required for rejection.");
     await applyTransition({ invoiceId, event: "REJECTED", triggeredBy: userId, reason: comment });

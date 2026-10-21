@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../config/database";
 import { ApiError } from "../../lib/errors";
 import { parsePagination, paginationMeta } from "../../lib/pagination";
@@ -48,6 +49,115 @@ export async function listApprovals(params: {
   };
 }
 
+export interface VerifyApprovalAuthorityParams {
+  organizationId: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  totalAmount: number | Prisma.Decimal;
+  currency?: string;
+  userId?: string;
+  userRole?: string;
+}
+
+/**
+ * Shared approval authority enforcement (ACT-P0-J / Day 1).
+ * Note: Keeps existing hardcoded tiers for Day 1 as specified; DB-backed tiers land in Phase 2A.
+ * Enforces amount thresholds, Segregation of Duties (creator !== approver),
+ * and unresolved blocking exceptions inside the caller's transaction.
+ */
+export async function verifyApprovalAuthority(
+  tx: Prisma.TransactionClient,
+  params: VerifyApprovalAuthorityParams
+) {
+  const { organizationId, invoiceId, invoiceNumber, totalAmount, userId, userRole, currency } = params;
+
+  // 1. Enforce amount approval thresholds by role
+  if (userRole) {
+    const amountNum = Number(totalAmount);
+    if (!canRoleApproveAmount(userRole as Role, amountNum)) {
+      const tier = getTierForAmount(amountNum, currency || "INR");
+      throw ApiError.forbidden(
+        `Role "${userRole}" is not authorized to approve invoices of amount ${amountNum}. Required roles: ${tier.allowedRoles.join(", ")}`
+      );
+    }
+  }
+
+  // 2. AICPA SOC 2 Common Criteria: Segregation of Duties (SoD)
+  // An invoice creator/uploader cannot approve their own invoice
+  if (userId) {
+    const creationLog = await tx.auditLog.findFirst({
+      where: {
+        organizationId,
+        entityId: invoiceId,
+        action: { in: ["INVOICE_CREATED", "DOCUMENT_UPLOADED"] },
+      },
+    });
+
+    if (creationLog?.userId && creationLog.userId === userId) {
+      throw ApiError.forbidden(
+        "Segregation of Duties (SoD) violation: The user who created or uploaded this invoice cannot approve it (AICPA SOC 2 Common Criteria)."
+      );
+    }
+  }
+
+  // 3. AGENTS.md Rule 1 & Rule 6: Open exceptions must be resolved before financial approval
+  const openException = await tx.exception.findFirst({
+    where: {
+      invoiceId,
+      status: { in: ["OPEN", "ASSIGNED", "UNDER_REVIEW"] },
+    },
+  });
+  if (openException) {
+    throw ApiError.conflict(
+      `Cannot approve invoice ${invoiceNumber}: Invoice has an unresolved blocking exception "${openException.type}". Exceptions must be resolved before financial approval.`
+    );
+  }
+}
+
+/**
+ * Executes an invoice approval transactionally, unifying /approvals/:id/approve and /invoices/:id/transitions (APPROVE)
+ */
+export async function executeInvoiceApproval({
+  organizationId,
+  invoiceId,
+  userId,
+  userRole,
+  notes,
+}: {
+  organizationId: string;
+  invoiceId: string;
+  userId?: string;
+  userRole?: string;
+  notes?: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const invoice = await tx.invoice.findFirst({
+      where: { id: invoiceId, organizationId },
+    });
+    if (!invoice) throw ApiError.notFound("Invoice not found");
+
+    await verifyApprovalAuthority(tx, {
+      organizationId,
+      invoiceId,
+      invoiceNumber: invoice.invoiceNumber,
+      totalAmount: invoice.totalAmount,
+      currency: invoice.currency,
+      userId,
+      userRole,
+    });
+
+    await applyTransition({
+      invoiceId,
+      event: "APPROVED",
+      triggeredBy: userId,
+      reason: notes,
+      tx,
+    });
+
+    return invoice;
+  });
+}
+
 export async function approveApproval(
   organizationId: string,
   approvalId: string,
@@ -68,54 +178,24 @@ export async function approveApproval(
     );
   }
 
-  // AGENTS.md / Blueprint: Enforce amount approval thresholds by role
-  if (userRole) {
-    const amount = Number(approval.invoice.totalAmount);
-    if (!canRoleApproveAmount(userRole, amount)) {
-      const tier = getTierForAmount(amount);
-      throw ApiError.forbidden(
-        `Role "${userRole}" is not authorized to approve invoices of amount ${amount}. Required roles: ${tier.allowedRoles.join(", ")}`
-      );
-    }
-  }
-
-  // AICPA SOC 2 Common Criteria: Segregation of Duties (SoD)
-  // An invoice creator/uploader cannot approve their own invoice
-  if (userId) {
-    const creationLog = await prisma.auditLog.findFirst({
-      where: {
-        organizationId,
-        entityId: approval.invoiceId,
-        action: "INVOICE_CREATED",
-      },
+  await prisma.$transaction(async (tx) => {
+    await verifyApprovalAuthority(tx, {
+      organizationId,
+      invoiceId: approval.invoiceId,
+      invoiceNumber: approval.invoice.invoiceNumber,
+      totalAmount: approval.invoice.totalAmount,
+      currency: approval.invoice.currency,
+      userId,
+      userRole,
     });
 
-    if (creationLog && creationLog.userId && creationLog.userId === userId) {
-      throw ApiError.forbidden(
-        "Segregation of Duties (SoD) violation: The user who created or uploaded this invoice cannot approve it (AICPA SOC 2 Common Criteria)."
-      );
-    }
-  }
-
-  // AGENTS.md Rule 1 & Rule 6: Open exceptions must be resolved before financial approval
-  const openException = await prisma.exception.findFirst({
-    where: {
+    await applyTransition({
       invoiceId: approval.invoiceId,
-      status: { in: ["OPEN", "ASSIGNED", "UNDER_REVIEW"] },
-    },
-  });
-  if (openException) {
-    throw ApiError.conflict(
-      `Cannot approve invoice ${approval.invoice.invoiceNumber}: Invoice has an unresolved blocking exception "${openException.type}". Exceptions must be resolved before financial approval.`
-    );
-  }
-
-  // AGENTS.md rule 4: applyTransition changes workflow_instances.current_state and invoices.status
-  await applyTransition({
-    invoiceId: approval.invoiceId,
-    event: "APPROVED",
-    triggeredBy: userId,
-    reason: notes,
+      event: "APPROVED",
+      triggeredBy: userId,
+      reason: notes,
+      tx,
+    });
   });
 
   return prisma.approval.findUnique({

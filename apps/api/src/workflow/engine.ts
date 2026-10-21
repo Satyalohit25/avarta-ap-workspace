@@ -6,11 +6,12 @@ import { STATE_TO_INVOICE_STATUS, WorkflowState } from "./states";
 import { runWithEngineBypass } from "../config/tenant-guard";
 import { getAllowedRolesForAmount } from "../modules/approvals/thresholds";
 
-interface ApplyTransitionInput {
+export interface ApplyTransitionInput {
   invoiceId: string;
   event: WorkflowEvent;
   triggeredBy?: string | null;
   reason?: string | null;
+  tx?: Prisma.TransactionClient;
 }
 
 /**
@@ -22,9 +23,9 @@ interface ApplyTransitionInput {
  * Application/controller code must call this function rather than writing
  * to either field directly.
  */
-export async function applyTransition({ invoiceId, event, triggeredBy, reason }: ApplyTransitionInput) {
+export async function applyTransition({ invoiceId, event, triggeredBy, reason, tx: providedTx }: ApplyTransitionInput) {
   return runWithEngineBypass(async () => {
-    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const execute = async (tx: Prisma.TransactionClient) => {
     const instance = await tx.workflowInstance.findUnique({ where: { invoiceId } });
     if (!instance) {
       throw ApiError.notFound("Workflow instance not found for this invoice");
@@ -161,8 +162,13 @@ export async function applyTransition({ invoiceId, event, triggeredBy, reason }:
       },
     });
 
-    return { invoice, workflowInstance: updatedInstance };
-    });
+      return { invoice, workflowInstance: updatedInstance };
+    };
+
+    if (providedTx) {
+      return execute(providedTx);
+    }
+    return prisma.$transaction(execute);
   });
 }
 
