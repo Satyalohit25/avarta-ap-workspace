@@ -15,3 +15,13 @@ To maximize execution efficiency, eliminate tool latency, and ensure pristine AP
 - **Zero Redundant Affordances:** Never display two buttons or controls side-by-side that accomplish the same action (e.g. `Audit History` and `View Audit Trail`). Every screen state must present a single, unambiguous forward action.
 - **No Speculative Compliance Fluff:** Exclude synthetic regulatory banners (e.g. fake SOC2 Type II badges or legal disclaimers) that AP operators and Finance Managers do not care about. Keep interfaces focused on operational truth: invoice data, matching variances, approvals, and settlement receipts.
 - **Terminal State Discipline:** When an entity reaches a terminal state (`SYNCED`, `REJECTED`, `ARCHIVED`), do not render pseudo-primary forward actions. The state banner and metadata convey completion.
+
+## 4. Canonical Workspace Skills Stack
+For execution craft, always activate the workspace's domain-specific skills:
+- **`ui-design-engineering`**: Design tokens (`tokens.ts`), anti-template design craft, Inter typography, tabular nums, 4px grid, WCAG 2.2 AA, and canonical UI primitives (`apps/web/src/components/ui/`).
+- **`ap-workflow-engineering`**: 6-file backend module convention, Workflow Engine state machine, multi-tenant isolation (`organization_id`), and financial precision.
+- **`security-and-hardening`**: Threat modeling (STRIDE), OWASP Top 10 prevention, anti-IDOR checks, idempotency keys, and zero-trust data boundaries.
+- **`codebase-architecture`**: Deep module boundaries, layer locality, the deletion test, and CODEMAP synchronization.
+- **`playwright`**: Headless E2E verification, seeded personas, accessible role locators, and instant visual proof.
+
+
