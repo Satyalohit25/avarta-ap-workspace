@@ -26,6 +26,7 @@ invoiceRoutes.use(requireAuth);
 
 invoiceRoutes.post(
   "/extract",
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
   upload.single("file"),
   extractDocumentHandler
 );

@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { requireAuth } from "../../middleware/auth";
+import { requireRole } from "../../middleware/permissions";
 import { IntegrationsService } from "./service";
 import { ApiError } from "../../lib/errors";
 
@@ -11,7 +12,7 @@ integrationRoutes.use(requireAuth);
  * GET /api/integrations/status
  * Returns current configuration status for BYOK, BYODB, and ERP
  */
-integrationRoutes.get("/status", async (req: Request, res: Response, next: NextFunction) => {
+integrationRoutes.get("/status", requireRole("ADMINISTRATOR", "FINANCE_MANAGER"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const organizationId = req.auth!.organizationId;
     const summary = await IntegrationsService.getSummary(organizationId);
@@ -25,7 +26,7 @@ integrationRoutes.get("/status", async (req: Request, res: Response, next: NextF
  * POST /api/integrations/byok/test
  * Tests an AI key (Gemini, OpenAI, Textract) and optionally encrypts & saves it.
  */
-integrationRoutes.post("/byok/test", async (req: Request, res: Response, next: NextFunction) => {
+integrationRoutes.post("/byok/test", requireRole("ADMINISTRATOR"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const organizationId = req.auth!.organizationId;
     const { provider, apiKey, save } = req.body;
@@ -51,7 +52,7 @@ integrationRoutes.post("/byok/test", async (req: Request, res: Response, next: N
  * POST /api/integrations/byodb/test
  * Tests a PostgreSQL connection string (latency, db name, table count) and optionally saves it.
  */
-integrationRoutes.post("/byodb/test", async (req: Request, res: Response, next: NextFunction) => {
+integrationRoutes.post("/byodb/test", requireRole("ADMINISTRATOR"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const organizationId = req.auth!.organizationId;
     const { connectionUrl, save } = req.body;
@@ -76,7 +77,7 @@ integrationRoutes.post("/byodb/test", async (req: Request, res: Response, next: 
  * POST /api/integrations/erp/test
  * Tests an ERP adapter connection (Tally, QuickBooks, Xero, CSV) and optionally saves it.
  */
-integrationRoutes.post("/erp/test", async (req: Request, res: Response, next: NextFunction) => {
+integrationRoutes.post("/erp/test", requireRole("ADMINISTRATOR"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const organizationId = req.auth!.organizationId;
     const { provider, config, save } = req.body;
@@ -102,7 +103,7 @@ integrationRoutes.post("/erp/test", async (req: Request, res: Response, next: Ne
  * POST /api/integrations/erp/sync-now
  * Dispatches all eligible invoices to the configured ERP
  */
-integrationRoutes.post("/erp/sync-now", async (req: Request, res: Response, next: NextFunction) => {
+integrationRoutes.post("/erp/sync-now", requireRole("ADMINISTRATOR"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const organizationId = req.auth!.organizationId;
     const userId = req.auth!.userId;
@@ -121,7 +122,7 @@ integrationRoutes.post("/erp/sync-now", async (req: Request, res: Response, next
  * POST /api/integrations/payment-gateway/test
  * Tests a Payment Gateway (RazorpayX, Cashfree, Stripe, Manual) and optionally saves it.
  */
-integrationRoutes.post("/payment-gateway/test", async (req: Request, res: Response, next: NextFunction) => {
+integrationRoutes.post("/payment-gateway/test", requireRole("ADMINISTRATOR"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const organizationId = req.auth!.organizationId;
     const { provider, config, save } = req.body;
