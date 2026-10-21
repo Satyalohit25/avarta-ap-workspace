@@ -30,7 +30,8 @@ apps/web/*_verified.png
 apps/web/e2e/*.cjs
 **/*.timestamp-*.mjs
 **/*.log
-audit/
+/audit/
+docs/audit/
 audit-output/
 audit-screenshots/
 pm-audit-output/
