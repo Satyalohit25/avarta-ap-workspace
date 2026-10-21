@@ -14,6 +14,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from ".
 import { formatCurrency } from "../../../lib/formatters";
 import { apiRequest } from "../../../api/client";
 import { OperationalReportDataset, ThroughputDataPoint } from "../helpers/reportsData";
+import { tokens } from "../../../design-system/tokens";
 
 interface OperationalReportViewProps {
   timeRange: string;
@@ -226,9 +227,9 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                   >
                     <defs>
                       <linearGradient id="processed-gradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#6366f1" stopOpacity="0.35" />
-                        <stop offset="60%" stopColor="#6366f1" stopOpacity="0.08" />
-                        <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
+                        <stop offset="0%" stopColor={tokens.color.primary} stopOpacity="0.35" />
+                        <stop offset="60%" stopColor={tokens.color.primary} stopOpacity="0.08" />
+                        <stop offset="100%" stopColor={tokens.color.primary} stopOpacity="0.0" />
                       </linearGradient>
                       <linearGradient id="grid-fade" x1="0" y1="0" x2="1" y2="0">
                         <stop offset="0%" stopColor="currentColor" stopOpacity="0.05" />
@@ -265,7 +266,7 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                     <path
                       d={exceptionLinePath}
                       fill="none"
-                      stroke="#f59e0b"
+                      stroke={tokens.color.warning}
                       strokeWidth="1.75"
                       strokeDasharray="4 3"
                       strokeLinecap="round"
@@ -275,7 +276,7 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                     <path
                       d={processedLinePath}
                       fill="none"
-                      stroke="#6366f1"
+                      stroke={tokens.color.primary}
                       strokeWidth="2.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"

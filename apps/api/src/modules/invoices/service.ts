@@ -109,16 +109,17 @@ export async function updateInvoice(input: UpdateInvoiceInput) {
   const existing = await repo.findInvoiceById(input.organizationId, input.invoiceId);
   if (!existing) throw ApiError.notFound("Invoice not found");
 
+  const terminalStatuses = ["PAID", "ARCHIVED", "SYNCED", "REJECTED"];
+  const terminalWorkflowStates = ["PAID", "ARCHIVED", "ERP_SYNC"];
   if (
-    existing.status === "PAID" ||
-    existing.status === "ARCHIVED" ||
-    existing.workflowState === "PAID" ||
-    existing.workflowState === "ARCHIVED"
+    terminalStatuses.includes(existing.status) ||
+    terminalWorkflowStates.includes(existing.workflowState as string)
   ) {
     throw ApiError.badRequest(
-      `Invoices in "${existing.status}" status are immutable and cannot be edited.`
+      `Invoices in terminal status "${existing.status}" are immutable and cannot be edited.`
     );
   }
+
 
   const updateData: Record<string, unknown> = {};
   if (input.supplierId !== undefined) updateData.supplierId = input.supplierId || null;
@@ -668,7 +669,8 @@ export async function transitionInvoice(
     | "SUBMIT_APPROVAL"
     | "HOLD_REQUEST_CORRECTION",
   userId?: string,
-  comment?: string
+  comment?: string,
+  userRole?: string
 ) {
   if (action === "RETRY_VALIDATION") {
     return retryValidation(organizationId, invoiceId, userId);
@@ -677,7 +679,29 @@ export async function transitionInvoice(
   const invoice = await repo.findInvoiceById(organizationId, invoiceId);
   if (!invoice) throw ApiError.notFound("Invoice not found");
 
+  if (action === "APPROVE" || action === "REJECT") {
+    // AGENTS.md / Blueprint: Enforce approval authority on server
+    if (userRole && !["ADMINISTRATOR", "FINANCE_MANAGER", "APPROVER"].includes(userRole)) {
+      throw ApiError.forbidden(
+        `Role "${userRole}" is not authorized to approve or reject invoices. Required roles: APPROVER, FINANCE_MANAGER, or ADMINISTRATOR.`
+      );
+    }
+  }
+
   if (action === "APPROVE") {
+    // AGENTS.md Rule 1 & Rule 6: Invoices cannot be approved with open exceptions
+    const openException = await prisma.exception.findFirst({
+      where: {
+        invoiceId,
+        status: { in: ["OPEN", "ASSIGNED", "UNDER_REVIEW"] },
+      },
+    });
+    if (openException) {
+      throw ApiError.conflict(
+        `Cannot approve invoice ${invoice.invoiceNumber}: Invoice has an unresolved blocking exception "${openException.type}". Exceptions must be investigated and resolved before approval.`
+      );
+    }
+
     await applyTransition({ invoiceId, event: "APPROVED", triggeredBy: userId, reason: comment });
   } else if (action === "REJECT") {
     if (!comment) throw ApiError.badRequest("Comment is required for rejection.");

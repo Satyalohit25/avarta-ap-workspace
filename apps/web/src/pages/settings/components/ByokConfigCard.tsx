@@ -121,10 +121,11 @@ export function ByokConfigCard() {
       <CardContent className="p-5 space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <label className="text-caption font-semibold text-neutral-800 dark:text-zinc-200">
+            <label htmlFor="byok-provider-select" className="text-caption font-semibold text-neutral-800 dark:text-zinc-200">
               AI / OCR Provider
             </label>
             <Select
+              id="byok-provider-select"
               value={provider}
               onChange={(e) => setProvider(e.target.value as "GEMINI" | "OPENAI" | "TEXTRACT")}
               options={[
@@ -137,7 +138,7 @@ export function ByokConfigCard() {
 
           <div className="md:col-span-2 space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-caption font-semibold text-neutral-800 dark:text-zinc-200">
+              <label htmlFor="byok-api-key-input" className="text-caption font-semibold text-neutral-800 dark:text-zinc-200">
                 API Secret Key
               </label>
               {maskedKey && (
@@ -148,6 +149,7 @@ export function ByokConfigCard() {
             </div>
             <div className="relative">
               <Input
+                id="byok-api-key-input"
                 type={showKey ? "text" : "password"}
                 placeholder={maskedKey ? "Enter new key to replace existing..." : "Paste your API key here (e.g. AIzaSy... or sk-proj-...)"}
                 value={apiKey}

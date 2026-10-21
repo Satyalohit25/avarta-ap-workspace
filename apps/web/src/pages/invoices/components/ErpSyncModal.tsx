@@ -328,7 +328,7 @@ export function ErpSyncModal({
           <>
             {/* ERP Target Selector */}
             <div className="space-y-1.5">
-              <label className="text-label text-neutral-700 dark:text-zinc-300 block">
+              <label htmlFor="erp-select-input" className="text-label text-neutral-700 dark:text-zinc-300 block">
                 Destination Accounting / ERP Gateway
               </label>
               <Select

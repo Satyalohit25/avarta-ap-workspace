@@ -169,35 +169,38 @@ export function TeamManagementCard() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
-              <label className="text-micro font-medium text-neutral-600 dark:text-zinc-300">Full Name</label>
+              <label htmlFor="team-member-name" className="text-micro font-medium text-neutral-600 dark:text-zinc-300">Full Name</label>
               <input
+                id="team-member-name"
                 type="text"
                 required
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="e.g. Rohini Sen"
-                className="w-full px-3 py-1.5 rounded-lg border border-neutral-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-caption text-neutral-900 dark:text-zinc-100"
+                className="w-full px-3 py-1.5 rounded-lg border border-neutral-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-caption text-neutral-900 dark:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-micro font-medium text-neutral-600 dark:text-zinc-300">Corporate Email</label>
+              <label htmlFor="team-member-email" className="text-micro font-medium text-neutral-600 dark:text-zinc-300">Corporate Email</label>
               <input
+                id="team-member-email"
                 type="email"
                 required
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
                 placeholder="rohini@company.com"
-                className="w-full px-3 py-1.5 rounded-lg border border-neutral-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-caption text-neutral-900 dark:text-zinc-100"
+                className="w-full px-3 py-1.5 rounded-lg border border-neutral-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-caption text-neutral-900 dark:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-micro font-medium text-neutral-600 dark:text-zinc-300">Assigned Role</label>
+              <label htmlFor="team-member-role" className="text-micro font-medium text-neutral-600 dark:text-zinc-300">Assigned Role</label>
               <select
+                id="team-member-role"
                 value={newRole}
                 onChange={(e) => setNewRole(e.target.value as TeamMember["role"])}
-                className="w-full px-3 py-1.5 rounded-lg border border-neutral-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-caption text-neutral-900 dark:text-zinc-100"
+                className="w-full px-3 py-1.5 rounded-lg border border-neutral-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-caption text-neutral-900 dark:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 <option value="FINANCE_EXECUTIVE">Finance Executive (Ingestion & Match)</option>
                 <option value="APPROVER">Approver (Invoice Sign-off)</option>

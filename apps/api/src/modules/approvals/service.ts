@@ -97,6 +97,19 @@ export async function approveApproval(
     }
   }
 
+  // AGENTS.md Rule 1 & Rule 6: Open exceptions must be resolved before financial approval
+  const openException = await prisma.exception.findFirst({
+    where: {
+      invoiceId: approval.invoiceId,
+      status: { in: ["OPEN", "ASSIGNED", "UNDER_REVIEW"] },
+    },
+  });
+  if (openException) {
+    throw ApiError.conflict(
+      `Cannot approve invoice ${approval.invoice.invoiceNumber}: Invoice has an unresolved blocking exception "${openException.type}". Exceptions must be resolved before financial approval.`
+    );
+  }
+
   // AGENTS.md rule 4: applyTransition changes workflow_instances.current_state and invoices.status
   await applyTransition({
     invoiceId: approval.invoiceId,

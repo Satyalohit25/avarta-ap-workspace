@@ -18,6 +18,7 @@ import {
   BarChart3,
   ShieldAlert,
   PackageCheck,
+  Download,
 } from "lucide-react";
 import {
   createPurchaseOrder,
@@ -30,6 +31,8 @@ import {
 } from "../../api/purchaseOrders";
 import { listSuppliers, SupplierListItem } from "../../api/suppliers";
 import { getPoEnrichment } from "./poEnrichment";
+import { GrnIntakeModal } from "./components/GrnIntakeModal";
+import { exportToCsv } from "../../lib/exportCsv";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SkeletonRows } from "../../components/Skeleton";
 import { EmptyState } from "../../components/EmptyState";
@@ -87,6 +90,7 @@ export default function PurchaseOrdersPage() {
   const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
   const [selectedPoDetail, setSelectedPoDetail] = useState<PurchaseOrderDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [showGrnModal, setShowGrnModal] = useState(false);
 
   // Create Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -144,6 +148,35 @@ export default function PurchaseOrdersPage() {
         "Status update failed",
         err instanceof Error ? err.message : "Could not toggle receiving status."
       );
+    }
+  }
+
+  function handleExportCsv() {
+    exportToCsv(
+      `Purchase_Orders_${new Date().toISOString().slice(0, 10)}`,
+      [
+        { header: "PO Number", key: "poNumber" },
+        { header: "Vendor", key: "vendor" },
+        { header: "Status", key: "status" },
+        { header: "Total Amount", key: (r) => r.totalAmount },
+        { header: "Utilized Amount", key: (r) => r.utilizedAmount },
+        { header: "Remaining Amount", key: (r) => r.remainingAmount },
+        { header: "Matching Status", key: "matchingStatus" },
+        { header: "Issue Date", key: (r) => formatDate(r.issueDate) },
+      ],
+      filteredOrders
+    );
+    toast.success(
+      "CSV Export Completed",
+      `${filteredOrders.length} purchase orders exported safely with formula injection defense.`
+    );
+  }
+
+  async function handleGrnSuccess() {
+    toast.success("GRN Recorded", "Goods Receipt Note has been posted and reconciled with Purchase Order.");
+    if (selectedPoId) {
+      const res = await getPurchaseOrder(selectedPoId);
+      setSelectedPoDetail(res.data);
     }
   }
 
@@ -445,10 +478,16 @@ export default function PurchaseOrdersPage() {
         title="Purchase Orders"
         subtitle="Manage committed purchase orders, 2-way/3-way invoice matching tolerances, and drawdown balances."
         action={
-          <Button onClick={() => setShowCreateModal(true)} className="gap-1.5">
-            <Plus size={15} />
-            <span>Create Purchase Order</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleExportCsv} className="gap-1.5">
+              <Download size={14} />
+              <span>Export CSV</span>
+            </Button>
+            <Button onClick={() => setShowCreateModal(true)} className="gap-1.5">
+              <Plus size={15} />
+              <span>Create Purchase Order</span>
+            </Button>
+          </div>
         }
       />
 
@@ -916,45 +955,117 @@ export default function PurchaseOrdersPage() {
                   <PackageCheck size={13} className="text-indigo-600 dark:text-indigo-400" />
                   <span>Goods Receipts &amp; Dock Intake (GRN)</span>
                 </span>
-                <span className="text-micro font-mono text-neutral-400">
-                  3-Way Reconciliation Layer
-                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowGrnModal(true)}
+                  className="gap-1 h-7 text-caption"
+                >
+                  <Plus size={12} />
+                  <span>Record Goods Receipt</span>
+                </Button>
               </div>
 
-              <div className="p-4 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-3">
-                <div className="flex items-center justify-between border-b border-neutral-100 dark:border-zinc-800 pb-2">
-                  <div>
-                    <span className="font-mono font-bold text-body-sm text-neutral-900 dark:text-zinc-100">
-                      GRN-5000000882
-                    </span>
-                    <span className="text-micro text-neutral-400 font-mono ml-2">
-                      Received 18 Dec 2024
-                    </span>
-                  </div>
-                  <span className="text-micro font-mono bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded border border-amber-200/60 dark:border-amber-800/60 font-medium">
-                    Subject to Quality Inspection
-                  </span>
+              {!selectedPoDetail.goodsReceipts || selectedPoDetail.goodsReceipts.length === 0 ? (
+                <div className="p-4 rounded-xl border border-dashed border-neutral-200 dark:border-zinc-800 bg-neutral-50/50 dark:bg-zinc-900/50 text-center space-y-2">
+                  <p className="text-caption text-neutral-500 dark:text-zinc-400">
+                    No physical Goods Receipt Notes (GRN) recorded for this purchase order yet.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowGrnModal(true)}
+                    className="gap-1.5 text-caption font-semibold"
+                  >
+                    <Plus size={13} />
+                    <span>Record First GRN Intake</span>
+                  </Button>
                 </div>
+              ) : (
+                <div className="space-y-3">
+                  {selectedPoDetail.goodsReceipts.map((grn) => {
+                    const netQty = grn.lines.reduce(
+                      (acc, l) => acc + (Number(l.receivedQuantity) || 0),
+                      0
+                    );
+                    return (
+                      <div
+                        key={grn.id}
+                        className="p-4 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-3 shadow-2xs"
+                      >
+                        <div className="flex items-center justify-between border-b border-neutral-100 dark:border-zinc-800 pb-2">
+                          <div>
+                            <span className="font-mono font-bold text-body-sm text-neutral-900 dark:text-zinc-100">
+                              {grn.grnNumber}
+                            </span>
+                            <span className="text-micro text-neutral-400 font-mono ml-2">
+                              {formatDate(grn.receiptDate)}
+                            </span>
+                            {grn.vendorDeliveryNote && (
+                              <span className="text-micro text-neutral-500 font-mono block mt-0.5">
+                                Delivery Note: {grn.vendorDeliveryNote}
+                              </span>
+                            )}
+                          </div>
+                          <span
+                            className={`text-micro font-mono px-2 py-0.5 rounded border font-medium ${
+                              grn.status === "ACCEPTED"
+                                ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200/60"
+                                : grn.status === "RETURNED"
+                                ? "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200/60"
+                                : "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200/60"
+                            }`}
+                          >
+                            {grn.status.replace(/_/g, " ")}
+                          </span>
+                        </div>
 
-                <div className="space-y-2 text-caption font-mono">
-                  <div className="flex items-center justify-between text-neutral-700 dark:text-zinc-300 p-2 rounded-lg bg-neutral-50 dark:bg-zinc-800/50">
-                    <span className="truncate max-w-[200px]">100 PCE • Industrial Fasteners 10mm</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+100.00 PCE Accepted</span>
-                  </div>
-                  {/* Negative quantity for returned/rejected goods per Tata Chemicals Slide 8 */}
-                  <div className="flex items-center justify-between text-red-700 dark:text-red-300 p-2 rounded-lg bg-red-50/50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-900/40">
-                    <div className="space-y-0.5 truncate max-w-[240px]">
-                      <span className="block truncate font-medium">Quality Defect Return (Damaged Sacks)</span>
-                      <span className="text-[10px] text-red-500 font-sans block">Inspection comment: Negative quantity deduction</span>
-                    </div>
-                    <span className="font-bold text-red-600 dark:text-red-400 shrink-0">-10.00 PCE Returned</span>
-                  </div>
-                  <div className="flex items-center justify-between pt-1 border-t border-neutral-100 dark:border-zinc-800 font-bold text-neutral-900 dark:text-zinc-100 text-micro">
-                    <span>Net Billable Received Qty:</span>
-                    <span className="text-indigo-600 dark:text-indigo-400 font-semibold">90.00 PCE</span>
-                  </div>
+                        {grn.comments && (
+                          <p className="text-micro text-neutral-600 dark:text-zinc-400 italic">
+                            Inspection Note: {grn.comments}
+                          </p>
+                        )}
+
+                        <div className="space-y-1.5 text-caption font-mono">
+                          {grn.lines.map((l) => (
+                            <div
+                              key={l.id}
+                              className={`flex items-center justify-between p-2 rounded-lg ${
+                                Number(l.receivedQuantity) < 0
+                                  ? "bg-rose-50/50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-200/50"
+                                  : "bg-neutral-50 dark:bg-zinc-800/50 text-neutral-700 dark:text-zinc-300"
+                              }`}
+                            >
+                              <span className="truncate max-w-[200px] font-sans">
+                                {l.description}
+                              </span>
+                              <span
+                                className={`font-semibold ${
+                                  Number(l.receivedQuantity) < 0
+                                    ? "text-rose-600 dark:text-rose-400 font-bold"
+                                    : "text-emerald-600 dark:text-emerald-400"
+                                }`}
+                              >
+                                {Number(l.receivedQuantity) > 0
+                                  ? `+${l.receivedQuantity}`
+                                  : l.receivedQuantity}{" "}
+                                {l.unitOfMeasure} ({l.status})
+                              </span>
+                            </div>
+                          ))}
+
+                          <div className="flex items-center justify-between pt-1 border-t border-neutral-100 dark:border-zinc-800 font-bold text-neutral-900 dark:text-zinc-100 text-micro">
+                            <span>Net Billable Received Qty:</span>
+                            <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
+                              {netQty.toFixed(2)} Units
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Linked Invoices Section */}
@@ -1179,6 +1290,16 @@ export default function PurchaseOrdersPage() {
           </div>
         </form>
       </Dialog>
+
+      {/* Physical GRN Intake Modal (Tata Chemicals 3-Way Reconciliation) */}
+      {showGrnModal && selectedPoDetail && (
+        <GrnIntakeModal
+          isOpen={showGrnModal}
+          onClose={() => setShowGrnModal(false)}
+          po={selectedPoDetail}
+          onSuccess={handleGrnSuccess}
+        />
+      )}
     </div>
   );
 }

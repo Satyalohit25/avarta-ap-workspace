@@ -120,11 +120,14 @@ export function AIExtractedDetailsCard({
   const sgstNum = Math.round((taxNum - cgstNum) * 100) / 100;
 
   const confidenceScore = aiConfidence != null ? Number(aiConfidence) : 95;
+  const isTerminalState = ["SYNCED", "REJECTED", "ARCHIVED", "PAID"].includes(status?.toUpperCase() || "");
 
   function handleStartEdit(key: string, currentVal: string) {
+    if (isTerminalState) return;
     setEditingField(key);
     setEditDraftValue(currentVal);
   }
+
 
   function handleSaveEdit(key: string) {
     if (editDraftValue.trim() && editDraftValue !== fieldValues[key]) {
@@ -319,7 +322,7 @@ export function AIExtractedDetailsCard({
                 </span>
               )}
 
-              {!readOnly && (
+              {!readOnly && !isTerminalState && (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -332,6 +335,7 @@ export function AIExtractedDetailsCard({
                   <Edit2 size={12} />
                 </button>
               )}
+
             </div>
           )}
         </div>
@@ -350,16 +354,23 @@ export function AIExtractedDetailsCard({
         description="Statutory fields, tax breakdown & audit checklist"
         action={
           <div className="flex items-center gap-2">
-            <span
-              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-micro font-mono font-medium ${
-                confidenceScore >= 95
-                  ? "bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-700"
-                  : "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
-              }`}
-            >
-              <ShieldCheck size={12} className="text-emerald-600 dark:text-emerald-400" />
-              <span>Overall AI Score: {confidenceScore}%</span>
-            </span>
+            {isTerminalState ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-micro font-mono font-medium bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400 border border-neutral-300 dark:border-zinc-700">
+                <Shield size={12} className="text-neutral-500" />
+                <span>Read-Only ({status})</span>
+              </span>
+            ) : (
+              <span
+                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-micro font-mono font-medium ${
+                  confidenceScore >= 95
+                    ? "bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-700"
+                    : "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                }`}
+              >
+                <ShieldCheck size={12} className="text-emerald-600 dark:text-emerald-400" />
+                <span>Overall AI Score: {confidenceScore}%</span>
+              </span>
+            )}
           </div>
         }
       />
@@ -382,7 +393,7 @@ export function AIExtractedDetailsCard({
                 </p>
               </div>
             </div>
-            {onLinkPO && (
+            {!isTerminalState && onLinkPO && (
               <Button
                 variant="outline"
                 size="sm"
@@ -394,6 +405,7 @@ export function AIExtractedDetailsCard({
               </Button>
             )}
           </div>
+
         ) : (
           <div className="px-4 py-2 bg-neutral-50/80 dark:bg-zinc-800/50 border-b border-neutral-200/80 dark:border-zinc-800 flex items-center justify-between text-caption text-neutral-600 dark:text-zinc-300">
             <div className="flex items-center gap-1.5">

@@ -10,7 +10,9 @@ import {
   Clock,
   ChevronRight,
   Info,
+  FileText,
 } from "lucide-react";
+
 import { formatCurrency, formatCompactCurrency } from "../../../lib/formatters";
 import { DashboardOverview, BlockerGroup, BlockerInvoiceItem } from "../../../api/dashboard";
 import { Button } from "../../../components/ui/Button";
@@ -161,14 +163,14 @@ export function APWorkstationGrid({
     (stageMap["SCHEDULED"]?.totalAmount || 0) + (stageMap["APPROVED"]?.totalAmount || 0);
 
   const exceptionStageCount = stageMap["EXCEPTION"]?.count ?? 0;
-  const pendingSignOffCount = Math.max(0, (stageMap["PENDING_APPROVAL"]?.count ?? 0) - releasedCount);
+  const pendingSignOffCount = stageMap["PENDING_APPROVAL"]?.count ?? 0;
 
   /**
    * Reconciled explanation:
    * Blocked = exceptions in queue + approvals awaiting sign-off.
    * The funnel shows exception STAGE count (may include items not yet in the queue).
    */
-  const currentBlockedAmount = Math.max(0, (data?.totalBlockedAmount ?? 630700) - releasedAmount);
+  const currentBlockedAmount = Math.max(0, data?.totalBlockedAmount ?? 0);
 
   const linearPipeline = [
     {
@@ -202,7 +204,7 @@ export function APWorkstationGrid({
       key: "PENDING_APPROVAL",
       label: "3. Pending Sign-off",
       count: pendingSignOffCount,
-      amount: Math.max(0, rawPendingAmount - releasedAmount),
+      amount: rawPendingAmount,
       path: "/approvals",
       isBranch: false,
       isAlert: pendingSignOffCount > 0,
@@ -212,15 +214,15 @@ export function APWorkstationGrid({
       label: "4. Scheduled for Pay",
       count:
         (stageMap["SCHEDULED"]?.count ?? 0) +
-        (stageMap["APPROVED"]?.count ?? 0) +
-        releasedCount,
-      amount: rawScheduledAmount + releasedAmount,
+        (stageMap["APPROVED"]?.count ?? 0),
+      amount: rawScheduledAmount,
       path: "/payments",
       isBranch: false,
       isAlert: false,
     },
     {
       key: "PAID",
+
       label: "5. Settled & Synced",
       count: (stageMap["PAID"]?.count ?? 0) + (stageMap["SYNCED"]?.count ?? 0),
       amount:
@@ -409,44 +411,38 @@ export function APWorkstationGrid({
 
                       {inv.type === "approval" ? (
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {releasedInvoices?.[inv.id] ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200/80 dark:border-emerald-800/80">
-                              <Check size={11} className="text-emerald-600" />
-                              <span>Ready to Pay</span>
-                            </span>
-                          ) : (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => handleAuthorize(inv, e)}
-                                className="h-6 text-[10px] px-2 font-semibold text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 gap-1 cursor-pointer shadow-2xs"
-                                title="Authorize and move to Ready to Pay"
-                              >
-                                <Zap size={11} className="text-emerald-600" />
-                                <span>Release</span>
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant={isPinged ? "secondary" : "outline"}
-                                onClick={(e) => handlePing(inv, e)}
-                                className="h-6 text-[10px] px-1.5 font-medium gap-1"
-                                title="Ping approver"
-                              >
-                                {isPinged ? (
-                                  <>
-                                    <Check size={11} className="text-emerald-600" />
-                                    <span>Pinged</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Bell size={11} className="text-amber-600" />
-                                    <span>Ping</span>
-                                  </>
-                                )}
-                              </Button>
-                            </>
-                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/approvals?invoiceId=${inv.id}`);
+                            }}
+                            className="h-6 text-[10px] px-2 font-semibold text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800/80 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 gap-1 cursor-pointer shadow-2xs"
+                            title="Inspect line items, PO match, and approve in Approvals"
+                          >
+                            <FileText size={11} className="text-indigo-600 dark:text-indigo-400" />
+                            <span>Review</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={isPinged ? "secondary" : "outline"}
+                            onClick={(e) => handlePing(inv, e)}
+                            className="h-6 text-[10px] px-1.5 font-medium gap-1"
+                            title="Ping approver"
+                          >
+                            {isPinged ? (
+                              <>
+                                <Check size={11} className="text-emerald-600" />
+                                <span>Pinged</span>
+                              </>
+                            ) : (
+                              <>
+                                <Bell size={11} className="text-amber-600" />
+                                <span>Ping</span>
+                              </>
+                            )}
+                          </Button>
                         </div>
                       ) : (
                         // Ghost "Resolve →" button — appears on hover so not every row shouts the same CTA

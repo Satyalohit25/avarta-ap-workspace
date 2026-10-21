@@ -184,7 +184,8 @@ export async function transitionHandler(req: Request, res: Response, next: NextF
       req.params.invoiceId,
       body.action,
       req.auth?.userId,
-      body.comment
+      body.comment,
+      req.auth?.role
     );
     res.json({ data: invoice });
   } catch (err) {

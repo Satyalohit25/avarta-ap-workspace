@@ -16,12 +16,41 @@ export async function signupHandler(req: Request, res: Response, next: NextFunct
 export async function loginHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const body = loginSchema.parse(req.body);
-    const result = await authService.login(body.email, body.password);
+    const clientIp =
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+      req.ip ||
+      req.socket.remoteAddress ||
+      "127.0.0.1";
+    const result = await authService.login(body.email, body.password, clientIp);
     res.json(result);
   } catch (err) {
     next(err);
   }
 }
+
+export async function refreshHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { refreshToken } = req.body;
+    const result = await authService.rotateRefreshToken(refreshToken);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function logoutHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.auth) throw ApiError.unauthorized();
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    const refreshToken = req.body?.refreshToken;
+    const result = await authService.logout(token, req.auth.userId, refreshToken);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 
 export async function meHandler(req: Request, res: Response, next: NextFunction) {
   try {

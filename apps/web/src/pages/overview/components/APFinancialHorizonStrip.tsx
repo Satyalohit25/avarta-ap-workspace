@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "../../../lib/formatters";
 import { DashboardOverview } from "../../../api/dashboard";
 import { ArrowUpRight, TrendingDown, TrendingUp, Minus, AlertCircle } from "lucide-react";
+import { tokens } from "../../../design-system/tokens";
 
 interface APFinancialHorizonStripProps {
   data: DashboardOverview | null;
@@ -237,7 +238,7 @@ export function APFinancialHorizonStrip({
             </span>
             <TrendPill trend={hero.trend} />
           </div>
-          <Sparkline points={hero.sparkPoints} color="#4F46E5" />
+          <Sparkline points={hero.sparkPoints} color={tokens.color.primary} />
         </div>
       </button>
 
@@ -277,10 +278,10 @@ export function APFinancialHorizonStrip({
                 points={item.sparkPoints}
                 color={
                   item.trend.direction === "positive"
-                    ? "#16A34A"
+                    ? tokens.color.success
                     : item.trend.direction === "negative"
-                    ? "#DC2626"
-                    : "#6B7280"
+                    ? tokens.color.error
+                    : tokens.color.neutral
                 }
               />
             </div>

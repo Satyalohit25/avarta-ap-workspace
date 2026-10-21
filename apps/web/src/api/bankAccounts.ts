@@ -121,28 +121,47 @@ const INITIAL_BANK_ACCOUNTS: BankAccount[] = [
   },
 ];
 
-function getStoredBankAccounts(): BankAccount[] {
-  if (typeof window === "undefined") return INITIAL_BANK_ACCOUNTS;
+function getOrgStorageKey(): string {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const rawUser = localStorage.getItem("avarta_user");
+    if (rawUser) {
+      const parsed = JSON.parse(rawUser);
+      if (parsed.organizationId) {
+        return `avarta_bank_accounts_${parsed.organizationId}`;
+      }
+    }
+  } catch {}
+  return "avarta_bank_accounts_default";
+}
+
+function getStoredBankAccounts(): BankAccount[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const key = getOrgStorageKey();
+    const raw = localStorage.getItem(key);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_BANK_ACCOUNTS));
-      return INITIAL_BANK_ACCOUNTS;
+      const rawUser = localStorage.getItem("avarta_user");
+      const isDemoOrg = !rawUser || rawUser.includes("demo") || rawUser.includes("dev-org");
+      const seed = isDemoOrg ? INITIAL_BANK_ACCOUNTS : [];
+      localStorage.setItem(key, JSON.stringify(seed));
+      return seed;
     }
     return JSON.parse(raw);
   } catch {
-    return INITIAL_BANK_ACCOUNTS;
+    return [];
   }
 }
 
 function saveBankAccounts(accounts: BankAccount[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+    const key = getOrgStorageKey();
+    localStorage.setItem(key, JSON.stringify(accounts));
   } catch (err) {
     console.warn("Failed to persist bank accounts:", err);
   }
 }
+
 
 export async function listBankAccounts(params: {
   search?: string;

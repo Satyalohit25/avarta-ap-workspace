@@ -25,4 +25,6 @@ export const env = {
   ),
   masterDevEmail: process.env.MASTER_DEV_EMAIL ?? (isProd ? undefined : "dev@avarta.local"),
   masterDevPassword: process.env.MASTER_DEV_PASSWORD ?? (isProd ? undefined : "devpassword123"),
+  nodeEnv: process.env.NODE_ENV ?? "development",
 };
+

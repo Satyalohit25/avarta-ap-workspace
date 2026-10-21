@@ -102,28 +102,47 @@ const INITIAL_ITEMS: Item[] = [
   },
 ];
 
-function getStoredItems(): Item[] {
-  if (typeof window === "undefined") return INITIAL_ITEMS;
+function getOrgStorageKey(): string {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const rawUser = localStorage.getItem("avarta_user");
+    if (rawUser) {
+      const parsed = JSON.parse(rawUser);
+      if (parsed.organizationId) {
+        return `avarta_items_catalogue_${parsed.organizationId}`;
+      }
+    }
+  } catch {}
+  return "avarta_items_catalogue_default";
+}
+
+function getStoredItems(): Item[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const key = getOrgStorageKey();
+    const raw = localStorage.getItem(key);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_ITEMS));
-      return INITIAL_ITEMS;
+      const rawUser = localStorage.getItem("avarta_user");
+      const isDemoOrg = !rawUser || rawUser.includes("demo") || rawUser.includes("dev-org");
+      const seed = isDemoOrg ? INITIAL_ITEMS : [];
+      localStorage.setItem(key, JSON.stringify(seed));
+      return seed;
     }
     return JSON.parse(raw);
   } catch {
-    return INITIAL_ITEMS;
+    return [];
   }
 }
 
 function saveItems(items: Item[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    const key = getOrgStorageKey();
+    localStorage.setItem(key, JSON.stringify(items));
   } catch (err) {
     console.warn("Failed to persist items:", err);
   }
 }
+
 
 export async function listItems(params: {
   search?: string;

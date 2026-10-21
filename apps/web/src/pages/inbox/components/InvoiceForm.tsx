@@ -28,6 +28,7 @@ import { formatCurrency, formatDate } from "../../../lib/formatters";
 import { InvoiceFormValues, invoiceFormSchema, InvoiceLineValues } from "../validation";
 import { extractInvoiceDocument } from "../../../api/invoices";
 import { generateGroundTruthBoxes } from "../../../lib/ocrGroundTruth";
+import { tokens } from "../../../design-system/tokens";
 
 export type InvoiceFormMode = "create" | "review";
 
@@ -818,7 +819,7 @@ export function InvoiceForm({
                               height={b.height * 1000}
                               rx="4"
                               fill="rgba(79, 70, 229, 0.22)"
-                              stroke="#4F46E5"
+                              stroke={tokens.color.primary}
                               strokeWidth="2.5"
                             />
                             <rect
@@ -939,7 +940,7 @@ export function InvoiceForm({
         /* Create Mode: Clean File Upload Zone */
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-label">
-            <label className="text-neutral-700 dark:text-zinc-300 font-medium">
+            <label htmlFor="inbox-source-document-file" className="text-neutral-700 dark:text-zinc-300 font-medium">
               Source Document <span className="text-neutral-400 font-normal">(Optional)</span>
             </label>
             <span className="text-micro text-neutral-500 dark:text-zinc-400 font-mono">
@@ -960,6 +961,7 @@ export function InvoiceForm({
               }`}
             >
               <input
+                id="inbox-source-document-file"
                 ref={fileInputRef}
                 type="file"
                 accept=".pdf,.png,.jpg,.jpeg"
@@ -1029,7 +1031,7 @@ export function InvoiceForm({
                               height={b.height * 1000}
                               rx="4"
                               fill="rgba(79, 70, 229, 0.22)"
-                              stroke="#4F46E5"
+                              stroke={tokens.color.primary}
                               strokeWidth="2.5"
                             />
                             <rect
@@ -1216,12 +1218,12 @@ export function InvoiceForm({
       {/* Itemized Line Items Table */}
       <div className="space-y-2.5 pt-2 border-t border-neutral-200/80 dark:border-zinc-800/80">
         <div className="flex items-center justify-between">
-          <label className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100 flex items-center gap-1.5">
+          <h4 className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100 flex items-center gap-1.5">
             <span>Itemized Invoice Lines</span>
             <span className="text-micro font-mono bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400 px-2 py-0.5 rounded-full font-medium">
               {lines.length} {lines.length === 1 ? "line" : "lines"}
             </span>
-          </label>
+          </h4>
         </div>
 
         <div className="rounded-lg border border-neutral-200 dark:border-zinc-800 overflow-hidden shadow-2xs">

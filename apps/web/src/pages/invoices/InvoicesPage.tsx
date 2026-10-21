@@ -38,6 +38,7 @@ import { Pagination } from "../../components/ui/Pagination";
 import { useToast } from "../../components/ui/ToastContext";
 import { FilterTokenBar, FilterToken } from "../../components/ui/FilterTokenBar";
 import { formatCurrency, formatDate } from "../../lib/formatters";
+import { exportToCsv } from "../../lib/exportCsv";
 
 type SortField = "invoiceNumber" | "vendor" | "amount" | "dueDate" | "invoiceDate";
 type SortOrder = "asc" | "desc";
@@ -316,30 +317,26 @@ export default function InvoicesPage() {
 
     if (listToExport.length === 0) return;
 
-    const headers = ["Invoice Number", "Vendor", "Invoice Date", "Due Date", "Amount", "Currency", "Status", "Exceptions"];
-    const rows = listToExport.map((i) => [
-      i.invoiceNumber,
-      `"${i.supplier?.name ?? "Unknown"}"`,
-      i.invoiceDate ?? "",
-      i.dueDate ?? "",
-      i.totalAmount,
-      i.currency,
-      i.status,
-      i.openExceptionCount,
-    ]);
-
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Avarta_Invoices_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportToCsv<InvoiceListItem>(
+      `Avarta_Invoices_${new Date().toISOString().slice(0, 10)}`,
+      [
+        { header: "Invoice Number", key: (inv) => inv.invoiceNumber || "N/A" },
+        { header: "Vendor", key: (inv) => inv.supplier?.name || "Unknown" },
+        { header: "GSTIN", key: (inv) => inv.supplier?.gstin || "" },
+        { header: "Invoice Date", key: (inv) => (inv.invoiceDate ? formatDate(inv.invoiceDate) : "") },
+        { header: "Due Date", key: (inv) => (inv.dueDate ? formatDate(inv.dueDate) : "") },
+        { header: "Amount", key: (inv) => inv.totalAmount },
+        { header: "Currency", key: (inv) => inv.currency || "INR" },
+        { header: "Status", key: (inv) => inv.status },
+        { header: "AI Confidence (%)", key: (inv) => inv.aiConfidence ?? "" },
+        { header: "Exceptions", key: (inv) => inv.openExceptionCount },
+      ],
+      listToExport
+    );
 
     toast.success(
       "CSV Export Downloaded",
-      `Exported ${listToExport.length} invoice${listToExport.length === 1 ? "" : "s"} successfully.`,
+      `Exported ${listToExport.length} invoice${listToExport.length === 1 ? "" : "s"} with formula injection protection.`,
     );
   }
 

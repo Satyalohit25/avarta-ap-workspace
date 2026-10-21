@@ -187,9 +187,9 @@ export function PaymentGatewayConfigCard() {
       <CardContent className="space-y-6 pt-2">
         {/* Gateway Selection Tabs */}
         <div>
-          <label className="block text-body-sm font-semibold text-neutral-900 dark:text-zinc-100 mb-2">
+          <h4 className="block text-body-sm font-semibold text-neutral-900 dark:text-zinc-100 mb-2">
             Select Payment Provider (Bring Your Own Gateway)
-          </label>
+          </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             {GATEWAY_OPTIONS.map((option) => {
               const isSelected = selectedProvider === option.id;
@@ -255,11 +255,12 @@ export function PaymentGatewayConfigCard() {
             />
 
             <div className="space-y-1.5">
-              <label className="block text-caption font-medium text-neutral-700 dark:text-zinc-300">
+              <label htmlFor="gateway-secret-input" className="block text-caption font-medium text-neutral-700 dark:text-zinc-300">
                 {currentOption.secretLabel}
               </label>
               <div className="relative">
                 <input
+                  id="gateway-secret-input"
                   type={showSecret ? "text" : "password"}
                   placeholder={maskedKey ? "•••••••••••••••• (Encrypted at rest)" : "Enter secret key"}
                   value={apiSecret}

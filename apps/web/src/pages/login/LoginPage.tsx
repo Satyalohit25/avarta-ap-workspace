@@ -8,6 +8,7 @@ import { Input } from "../../components/ui/Input";
 import { Alert } from "../../components/ui/Alert";
 import { Button } from "../../components/ui/Button";
 import { AvartaCrest } from "../../components/brand/AvartaCrest";
+import { sanitizeReturnTo } from "../../lib/sanitizeReturnTo";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -48,7 +49,10 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await login(trimmedEmail, password);
-      navigate("/overview");
+      const params = new URLSearchParams(window.location.search);
+      const returnToParam = params.get("returnTo");
+      const safeTarget = sanitizeReturnTo(returnToParam);
+      navigate(safeTarget, { replace: true });
     } catch (err) {
       setError(
         err instanceof ApiRequestError
@@ -59,6 +63,7 @@ export default function LoginPage() {
       setSubmitting(false);
     }
   }
+
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-background text-foreground px-4 py-12 sm:py-16 pb-28 md:pb-16 select-none overflow-x-hidden overflow-y-auto">

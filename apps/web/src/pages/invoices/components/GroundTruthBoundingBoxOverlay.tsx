@@ -12,6 +12,7 @@ import {
   ConfidenceBand,
   getConfidenceColors,
 } from "../../../lib/ocrGroundTruth";
+import { tokens } from "../../../design-system/tokens";
 
 export interface GroundTruthToolbarProps {
   isEnabled: boolean;
@@ -287,7 +288,7 @@ export function GroundTruthSvgOverlay({
                 height={rh}
                 rx="6"
                 fill={isHighlighted ? "rgba(79, 70, 229, 0.22)" : colors.bg}
-                stroke={isHighlighted ? "#4F46E5" : colors.border}
+                stroke={isHighlighted ? tokens.color.primary : colors.border}
                 strokeWidth={isHighlighted ? 4 : 2}
                 strokeDasharray={isHighlighted ? "none" : box.confidenceBand === "LOW" ? "6,4" : "none"}
               />
@@ -300,13 +301,13 @@ export function GroundTruthSvgOverlay({
                   width={Math.min(rw - 8, isHighlighted ? 180 : 80)}
                   height="18"
                   rx="4"
-                  fill={isHighlighted ? "#4F46E5" : "#1E293B"}
+                  fill={isHighlighted ? tokens.color.primary : tokens.color.slate[800]}
                   opacity="0.95"
                 />
                 <text
                   x="6"
                   y="1"
-                  fill="#FFFFFF"
+                  fill={tokens.color.surface}
                   fontSize="11"
                   fontFamily="Inter, monospace"
                   fontWeight="600"

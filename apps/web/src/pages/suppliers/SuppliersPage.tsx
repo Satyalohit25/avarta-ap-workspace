@@ -50,7 +50,9 @@ import {
   Layers,
   Tag,
   AlertTriangle,
+  Download,
 } from "lucide-react";
+import { exportToCsv } from "../../lib/exportCsv";
 
 export default function SuppliersPage() {
   const navigate = useNavigate();
@@ -241,18 +243,54 @@ export default function SuppliersPage() {
     return filteredSuppliers.slice(start, start + pageSize);
   }, [filteredSuppliers, safePage, pageSize]);
 
+  function handleExportCsv() {
+    if (filteredSuppliers.length === 0) return;
+
+    exportToCsv<SupplierListItem>(
+      `suppliers-master-export-${new Date().toISOString().split("T")[0]}`,
+      [
+        { header: "Supplier Code", key: (s) => s.supplierCode },
+        { header: "Display Name", key: (s) => s.displayName },
+        { header: "Legal Name", key: (s) => s.legalName || "" },
+        { header: "GST Number", key: (s) => s.gstNumber || "" },
+        { header: "PAN Number", key: (s) => s.panNumber || "" },
+        { header: "MSME Type", key: (s) => s.msmeStatus || "Non-MSME" },
+        { header: "Country", key: (s) => s.country },
+        { header: "Currency", key: (s) => s.currency },
+        { header: "Payment Terms (Days)", key: (s) => s.paymentTermsDays },
+        { header: "Open Invoices", key: (s) => s.openInvoiceCount },
+        { header: "Outstanding Balance", key: (s) => s.outstandingBalance },
+        { header: "Status", key: (s) => s.status },
+      ],
+      filteredSuppliers
+    );
+
+    toast.success("CSV Exported", `Exported ${filteredSuppliers.length} suppliers with formula injection protection.`);
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
         title="Suppliers"
         subtitle="Verified supplier master database, tax compliance, and open balances."
         action={
-          canAddSupplier && (
-            <Button onClick={() => setShowAddModal(true)} className="gap-1.5">
-              <Plus size={15} />
-              <span>Add Verified Supplier</span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleExportCsv}
+              disabled={filteredSuppliers.length === 0}
+              className="gap-2"
+            >
+              <Download size={14} />
+              <span>Export CSV</span>
             </Button>
-          )
+            {canAddSupplier && (
+              <Button onClick={() => setShowAddModal(true)} className="gap-1.5">
+                <Plus size={15} />
+                <span>Add Verified Supplier</span>
+              </Button>
+            )}
+          </div>
         }
       />
 

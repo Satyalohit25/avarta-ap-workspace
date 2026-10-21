@@ -1,11 +1,12 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { ThemeProvider } from "./ThemeContext";
 import { ToastProvider } from "../components/ui/ToastContext";
 import { AppLayout } from "../components/layout/AppLayout";
 import { SkeletonRows } from "../components/Skeleton";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+
 
 // Lazy-loaded routes for code splitting & bundle optimization
 const LoginPage = lazy(() => import("../pages/login/LoginPage"));
@@ -92,10 +93,14 @@ function PageFallback() {
 
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
+  const location = useLocation();
   useRoutePrefetch();
 
   if (loading) return <PageFallback />;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) {
+    const returnTo = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?returnTo=${returnTo}`} replace />;
+  }
 
   return <AppLayout />;
 }
@@ -121,8 +126,9 @@ export default function App() {
                   element={<ForgotPasswordPage />}
                 />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
-                <Route path="/invite/accept" element={<AcceptInvitePage />} />
+                <Route path="/invite/accept" element={<Navigate to="/accept-invite" replace />} />
                 <Route path="/accept-invite" element={<AcceptInvitePage />} />
+
                 <Route
                   path="/track/:token"
                   element={<VendorInvoiceTrackPage />}

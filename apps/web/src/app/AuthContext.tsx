@@ -45,10 +45,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(newUser);
   }
 
-  function logout() {
-    apiLogout();
+  async function logout() {
+    await apiLogout();
     setUser(null);
   }
+
 
   function setPersonaRole(role: "Administrator" | "Finance Manager" | "Finance Executive" | "Approver" | "Read Only") {
     setUser((prev) => (prev ? { ...prev, role } : null));

@@ -270,9 +270,9 @@ export default function ProfilePage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-label text-neutral-700 dark:text-zinc-300 block mb-1">
+                    <span className="text-label text-neutral-700 dark:text-zinc-300 block mb-1">
                       Assigned System Role
-                    </label>
+                    </span>
                     <div className="h-9 flex items-center px-3 rounded-md border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-800/40 text-body-sm font-semibold text-indigo-700 dark:text-indigo-300">
                       {user?.role
                         ? user.role
@@ -284,9 +284,9 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <label className="text-label text-neutral-700 dark:text-zinc-300 block mb-1">
+                    <span className="text-label text-neutral-700 dark:text-zinc-300 block mb-1">
                       Tenant Organization
-                    </label>
+                    </span>
                     <div className="h-9 flex items-center px-3 rounded-md border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-800/40 text-body-sm font-medium text-neutral-900 dark:text-zinc-100">
                       {user?.organizationName
                         ? `${user.organizationName} (${user.organizationId.slice(0, 8).toUpperCase()})`

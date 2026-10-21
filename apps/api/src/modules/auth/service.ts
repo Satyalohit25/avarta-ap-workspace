@@ -2,21 +2,56 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { prisma } from "../../config/database";
 import { ApiError } from "../../lib/errors";
-import { signAccessToken } from "../../lib/jwt";
+import {
+  signAccessToken,
+  revokeTokenAsync,
+  revokeAllUserTokensAsync,
+  revokeToken,
+  revokeAllUserTokens,
+} from "../../lib/jwt";
 import { env } from "../../config/env";
 
-export async function login(email: string, password: string) {
+export function computeLockoutHash(email: string, clientIp: string): string {
   const cleanEmail = email.toLowerCase().trim();
+  const cleanIp = (clientIp || "127.0.0.1").trim();
+  return crypto.createHash("sha256").update(`${cleanEmail}:${cleanIp}`).digest("hex");
+}
+
+export async function login(email: string, password: string, clientIp = "127.0.0.1") {
+  const cleanEmail = email.toLowerCase().trim();
+  const identifierHash = computeLockoutHash(cleanEmail, clientIp);
+
+  // Check persistent DB login lockout keyed by Account + Client IP (Anti-DOS, Anti-Brute-Force)
+  try {
+    const lockout = await prisma.loginLockout.findUnique({
+      where: { identifierHash },
+    });
+    if (lockout && lockout.lockedUntil && lockout.lockedUntil.getTime() > Date.now()) {
+      const remainingMin = Math.ceil((lockout.lockedUntil.getTime() - Date.now()) / 60000);
+      throw ApiError.tooManyRequests(
+        `Too many failed login attempts from this network. Please wait ${remainingMin} minute(s) or reset your password.`
+      );
+    }
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    // If DB check fails, continue
+  }
 
   // Support Master Dev Credentials for development/testing
   const isMasterDev =
     env.masterDevEmail &&
     env.masterDevPassword &&
-    (cleanEmail === env.masterDevEmail.toLowerCase().trim() || cleanEmail === "admin@avarta.dev" || cleanEmail === "dev@avarta.local") &&
+    (cleanEmail === env.masterDevEmail.toLowerCase().trim() ||
+      cleanEmail === "admin@avarta.dev" ||
+      cleanEmail === "dev@avarta.local") &&
     password === env.masterDevPassword;
 
   if (isMasterDev) {
-    let devUser: (typeof prisma.user extends { findFirst: (...args: any[]) => Promise<infer U> } ? NonNullable<U> & { organization?: { name: string } | null } : any) | null = await prisma.user.findFirst({
+    let devUser:
+      | (typeof prisma.user extends { findFirst: (...args: any[]) => Promise<infer U> }
+          ? NonNullable<U> & { organization?: { name: string } | null }
+          : any)
+      | null = await prisma.user.findFirst({
       where: { role: "ADMINISTRATOR", status: "ACTIVE" },
       include: { organization: true },
     });
@@ -50,6 +85,7 @@ export async function login(email: string, password: string) {
           passwordHash: defaultHash,
           role: "ADMINISTRATOR",
           status: "ACTIVE",
+          tokenVersion: 0,
         },
         include: { organization: true },
       });
@@ -59,7 +95,19 @@ export async function login(email: string, password: string) {
       userId: devUser.id,
       organizationId: devUser.organizationId,
       role: devUser.role,
+      tokenVersion: devUser.tokenVersion ?? 0,
     });
+
+    const rawRefreshToken = crypto.randomBytes(40).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(rawRefreshToken).digest("hex");
+    await prisma.refreshToken.create({
+      data: {
+        userId: devUser.id,
+        organizationId: devUser.organizationId,
+        tokenHash,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    }).catch(() => {});
 
     return {
       user: {
@@ -71,6 +119,7 @@ export async function login(email: string, password: string) {
         organizationName: (devUser as any).organization?.name,
       },
       accessToken,
+      refreshToken: rawRefreshToken,
       expiresIn: env.jwtExpiresIn,
     };
   }
@@ -88,15 +137,75 @@ export async function login(email: string, password: string) {
     },
     include: { organization: true },
   });
-  if (!user) throw ApiError.unauthorized("Invalid email or password");
+
+  const recordFailedAttempt = async () => {
+    try {
+      const existing = await prisma.loginLockout.findUnique({
+        where: { identifierHash },
+      });
+      const attempts = (existing?.failedAttempts || 0) + 1;
+      let lockedUntil: Date | null = null;
+      if (attempts >= 5) {
+        lockedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes lockout
+      }
+      await prisma.loginLockout.upsert({
+        where: { identifierHash },
+        create: {
+          identifierHash,
+          failedAttempts: attempts,
+          lockedUntil,
+        },
+        update: {
+          failedAttempts: attempts,
+          lockedUntil,
+        },
+      });
+
+      if (attempts >= 5) {
+        throw ApiError.tooManyRequests(
+          "Too many failed login attempts from this network. Please wait 15 minutes or reset your password."
+        );
+      }
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+    }
+  };
+
+  if (!user) {
+    // Constant-time dummy hash compare to prevent timing side-channel attacks
+    await bcrypt.compare(password, "$2a$10$abcdefghijklmnopqrstuuNOPQRSTUVWXYZabcdefghijklmnopqr");
+    await recordFailedAttempt();
+    throw ApiError.unauthorized("Invalid email or password");
+  }
 
   const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) throw ApiError.unauthorized("Invalid email or password");
+  if (!valid) {
+    await recordFailedAttempt();
+    throw ApiError.unauthorized("Invalid email or password");
+  }
+
+  // Clear failed attempts upon successful login
+  await prisma.loginLockout.deleteMany({
+    where: { identifierHash },
+  }).catch(() => {});
 
   const accessToken = signAccessToken({
     userId: user.id,
     organizationId: user.organizationId,
     role: user.role,
+    tokenVersion: user.tokenVersion ?? 0,
+  });
+
+  // Issue persistent refresh token (7 days TTL)
+  const rawRefreshToken = crypto.randomBytes(40).toString("hex");
+  const refreshTokenHash = crypto.createHash("sha256").update(rawRefreshToken).digest("hex");
+  await prisma.refreshToken.create({
+    data: {
+      userId: user.id,
+      organizationId: user.organizationId,
+      tokenHash: refreshTokenHash,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
   });
 
   return {
@@ -109,8 +218,89 @@ export async function login(email: string, password: string) {
       organizationName: user.organization?.name,
     },
     accessToken,
+    refreshToken: rawRefreshToken,
     expiresIn: env.jwtExpiresIn,
   };
+}
+
+export async function rotateRefreshToken(rawRefreshToken: string) {
+  if (!rawRefreshToken) {
+    throw ApiError.badRequest("Refresh token is required");
+  }
+  const tokenHash = crypto.createHash("sha256").update(rawRefreshToken).digest("hex");
+  const record = await prisma.refreshToken.findUnique({
+    where: { tokenHash },
+    include: { user: { include: { organization: true } } },
+  });
+
+  if (!record || record.revokedAt || record.expiresAt.getTime() < Date.now()) {
+    throw ApiError.unauthorized("Refresh token is invalid, expired, or has been revoked.");
+  }
+  if (record.user.status !== "ACTIVE") {
+    throw ApiError.unauthorized("User account is inactive or disabled");
+  }
+
+  // Revoke the old refresh token (Strict rotation policy)
+  await prisma.refreshToken.update({
+    where: { id: record.id },
+    data: { revokedAt: new Date() },
+  });
+
+  // Issue brand-new refresh token
+  const newRawRefreshToken = crypto.randomBytes(40).toString("hex");
+  const newTokenHash = crypto.createHash("sha256").update(newRawRefreshToken).digest("hex");
+  await prisma.refreshToken.create({
+    data: {
+      userId: record.userId,
+      organizationId: record.organizationId,
+      tokenHash: newTokenHash,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  const newAccessToken = signAccessToken({
+    userId: record.userId,
+    organizationId: record.organizationId,
+    role: record.user.role,
+    tokenVersion: record.user.tokenVersion ?? 0,
+  });
+
+  return {
+    accessToken: newAccessToken,
+    refreshToken: newRawRefreshToken,
+    expiresIn: env.jwtExpiresIn,
+  };
+}
+
+export async function logout(accessToken: string, userId: string, refreshToken?: string) {
+  // Revoke access token in DB and cache
+  if (accessToken) {
+    await revokeTokenAsync(accessToken);
+  }
+
+  // Revoke refresh token in DB if provided
+  if (refreshToken) {
+    const tokenHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
+    await prisma.refreshToken.updateMany({
+      where: { tokenHash, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (user) {
+    await prisma.auditLog.create({
+      data: {
+        organizationId: user.organizationId,
+        userId: user.id,
+        action: "USER_LOGOUT",
+        entityType: "User",
+        entityId: user.id,
+        result: "SUCCESS",
+      },
+    });
+  }
+  return { success: true, message: "Logged out successfully" };
 }
 
 export async function getCurrentUser(userId: string) {
@@ -161,40 +351,26 @@ export async function inviteTeamMember(
   const tempPassword = `Inv_${Math.random().toString(36).slice(-8)}!`;
   const passwordHash = await bcrypt.hash(tempPassword, 10);
 
-  const user = await prisma.user.create({
+  const newUser = await prisma.user.create({
     data: {
       organizationId,
       email: cleanEmail,
       fullName: input.fullName.trim(),
-      role: input.role,
       passwordHash,
+      role: input.role,
       status: "ACTIVE",
-    },
-    select: {
-      id: true,
-      email: true,
-      fullName: true,
-      role: true,
-      status: true,
-      createdAt: true,
-    },
-  });
-
-  // Log to audit log
-  await prisma.auditLog.create({
-    data: {
-      organizationId,
-      action: "USER_INVITED",
-      entityType: "User",
-      entityId: user.id,
-      afterData: { email: user.email, role: user.role },
-      result: "SUCCESS",
+      tokenVersion: 0,
     },
   });
 
   return {
-    user,
-    invitationUrl: `https://app.avarta.dev/invite/accept?email=${encodeURIComponent(cleanEmail)}`,
+    id: newUser.id,
+    email: newUser.email,
+    fullName: newUser.fullName,
+    role: newUser.role,
+    status: newUser.status,
+    temporaryPassword: tempPassword,
+    message: "Team member invitation created. Temporary credentials generated.",
   };
 }
 
@@ -203,16 +379,20 @@ export async function deactivateTeamMember(organizationId: string, userId: strin
     throw ApiError.badRequest("You cannot deactivate your own account.");
   }
 
-  const user = await prisma.user.findFirst({
+  const target = await prisma.user.findFirst({
     where: { id: userId, organizationId },
   });
-  if (!user) throw ApiError.notFound("User not found in organization");
+  if (!target) {
+    throw ApiError.notFound("User not found in this organization.");
+  }
 
   const updated = await prisma.user.update({
     where: { id: userId },
-    data: { status: "DEACTIVATED" },
-    select: { id: true, email: true, status: true },
+    data: { status: "DEACTIVATED", tokenVersion: { increment: 1 } },
   });
+
+  // Invalidate all tokens for deactivated user
+  await revokeAllUserTokensAsync(userId);
 
   await prisma.auditLog.create({
     data: {
@@ -239,6 +419,8 @@ export async function requestPasswordReset(email: string) {
 
   // Security best practice: constant-time-like generic message to prevent account enumeration
   if (!user) {
+    // Constant-time dummy hash compare to prevent timing side-channel attacks
+    await bcrypt.compare("dummy_password_timing_pad", "$2a$10$abcdefghijklmnopqrstuuNOPQRSTUVWXYZabcdefghijklmnopqr");
     return {
       success: true,
       message: "If an active account exists for this email, password recovery instructions have been dispatched.",
@@ -262,9 +444,14 @@ export async function requestPasswordReset(email: string) {
     },
   });
 
+  // STRICTLY GATED on non-production environment: Never leak reset tokens to console in production
+  if (env.nodeEnv !== "production") {
+    console.info(`[DEV/TEST] Password recovery token for ${cleanEmail}: ${resetToken}`);
+  }
+
+  // Never return resetToken in API response body to prevent user enumeration
   return {
     success: true,
-    resetToken,
     message: "If an active account exists for this email, password recovery instructions have been dispatched.",
   };
 }
@@ -286,10 +473,17 @@ export async function resetPassword(token: string, newPassword: string) {
   const passwordHash = await bcrypt.hash(newPassword, 10);
   const user = await prisma.user.update({
     where: { id: record.userId },
-    data: { passwordHash },
+    data: {
+      passwordHash,
+      tokenVersion: { increment: 1 }, // Invalidate all previously issued tokens across all instances
+    },
   });
 
   resetTokenStore.delete(token);
+
+  // Revoke all existing sessions and refresh tokens on password change
+  await revokeAllUserTokensAsync(user.id);
+  revokeAllUserTokens(user.id);
 
   await prisma.auditLog.create({
     data: {
@@ -348,6 +542,7 @@ export async function signup(data: {
       passwordHash,
       role: "ADMINISTRATOR",
       status: "ACTIVE",
+      tokenVersion: 0,
     },
     include: { organization: true },
   });
@@ -375,6 +570,18 @@ export async function signup(data: {
     userId: user.id,
     organizationId: organization.id,
     role: user.role,
+    tokenVersion: 0,
+  });
+
+  const rawRefreshToken = crypto.randomBytes(40).toString("hex");
+  const refreshTokenHash = crypto.createHash("sha256").update(rawRefreshToken).digest("hex");
+  await prisma.refreshToken.create({
+    data: {
+      userId: user.id,
+      organizationId: organization.id,
+      tokenHash: refreshTokenHash,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
   });
 
   return {
@@ -387,8 +594,7 @@ export async function signup(data: {
       organizationName: organization.name,
     },
     accessToken,
+    refreshToken: rawRefreshToken,
     expiresIn: env.jwtExpiresIn,
   };
 }
-
-

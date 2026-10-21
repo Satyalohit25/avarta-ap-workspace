@@ -136,7 +136,7 @@ export function ByodbConfigCard() {
           <div className="space-y-4 pt-2">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-caption font-semibold text-neutral-800 dark:text-zinc-200">
+                <label htmlFor="byodb-connection-url-input" className="text-caption font-semibold text-neutral-800 dark:text-zinc-200">
                   PostgreSQL Connection String URL
                 </label>
                 {maskedUrl && (
@@ -147,6 +147,7 @@ export function ByodbConfigCard() {
               </div>
               <div className="relative">
                 <Input
+                  id="byodb-connection-url-input"
                   type={showUrl ? "text" : "password"}
                   placeholder={
                     maskedUrl

@@ -1,3 +1,5 @@
+import { tokens } from "../design-system/tokens";
+
 export type ConfidenceBand = "HIGH" | "MEDIUM" | "LOW";
 
 export interface GroundTruthBox {
@@ -25,24 +27,24 @@ export function getConfidenceColors(band: ConfidenceBand) {
   switch (band) {
     case "HIGH":
       return {
-        border: "#10B981", // Emerald-500
-        bg: "rgba(16, 185, 129, 0.12)",
+        border: tokens.color.success, // #16A34A
+        bg: "rgba(22, 163, 74, 0.12)",
         text: "text-emerald-700 dark:text-emerald-300",
         badgeBg: "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300",
         dot: "bg-emerald-500",
       };
     case "MEDIUM":
       return {
-        border: "#F59E0B", // Amber-500
-        bg: "rgba(245, 158, 11, 0.14)",
+        border: tokens.color.warning, // #D97706
+        bg: "rgba(217, 119, 6, 0.14)",
         text: "text-amber-700 dark:text-amber-300",
         badgeBg: "bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300",
         dot: "bg-amber-500",
       };
     case "LOW":
       return {
-        border: "#EF4444", // Rose-500
-        bg: "rgba(239, 68, 68, 0.16)",
+        border: tokens.color.error, // #DC2626
+        bg: "rgba(220, 38, 38, 0.16)",
         text: "text-rose-700 dark:text-rose-300",
         badgeBg: "bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300",
         dot: "bg-rose-500",

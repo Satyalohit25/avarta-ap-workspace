@@ -1,11 +1,11 @@
 import { NextFunction, Request, Response } from "express";
 import { ApiError } from "../lib/errors";
-import { verifyAccessToken } from "../lib/jwt";
+import { verifyAccessTokenAsync } from "../lib/jwt";
 
 // Doc 14 §14.45: the server never accepts organizationId from the client
 // as authority — it is always derived here, from the verified token, and
 // every downstream repository query must use req.auth.organizationId.
-export function requireAuth(req: Request, _res: Response, next: NextFunction) {
+export async function requireAuth(req: Request, _res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   const token = header?.startsWith("Bearer ")
     ? header.slice("Bearer ".length)
@@ -17,9 +17,10 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
     return next(ApiError.unauthorized());
   }
   try {
-    req.auth = verifyAccessToken(token);
+    req.auth = await verifyAccessTokenAsync(token);
     next();
-  } catch {
-    next(ApiError.unauthorized("Invalid or expired token"));
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Invalid or expired token";
+    next(ApiError.unauthorized(message));
   }
 }

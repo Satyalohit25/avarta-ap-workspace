@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Inbox, RefreshCw } from "lucide-react";
 import { DashboardOverview, getDashboardOverview } from "../../api/dashboard";
-import { transitionInvoice } from "../../api/invoices";
 import { SkeletonRows } from "../../components/Skeleton";
 import { Button } from "../../components/ui/Button";
 import { useToast } from "../../components/ui/ToastContext";
@@ -21,29 +20,8 @@ export default function OverviewPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
-  const [releasedInvoices, setReleasedInvoices] = useState<Record<string, boolean>>({});
-  const [releasedCount, setReleasedCount] = useState<number>(0);
-  const [releasedAmount, setReleasedAmount] = useState<number>(0);
   const [tourOpen, setTourOpen] = useState(false);
 
-  const handleAuthorizeRelease = async (invoiceId: string, amount: number) => {
-    try {
-      await transitionInvoice(invoiceId, "APPROVE", "Authorized and released via Overview Mission Control");
-      setReleasedInvoices((prev) => ({ ...prev, [invoiceId]: true }));
-      setReleasedCount((prev) => prev + 1);
-      setReleasedAmount((prev) => prev + amount);
-      toast.success(
-        "Invoice Approved & Released",
-        "Disbursable release authorized. Moved to Scheduled Payments."
-      );
-      getDashboardOverview().then((res) => setData(res.data)).catch(() => {});
-    } catch (err: unknown) {
-      toast.error(
-        "Authorization Failed",
-        err instanceof Error ? err.message : "Failed to authorize invoice release."
-      );
-    }
-  };
 
   const fetchDashboard = useCallback((isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -138,24 +116,17 @@ export default function OverviewPage() {
       ) : (
         <>
           {/* ── Band 1: Financial Horizon & Top Metric Anchors ── */}
-          <APFinancialHorizonStrip
-            data={data}
-            releasedAmount={releasedAmount}
-            releasedCount={releasedCount}
-          />
+          <APFinancialHorizonStrip data={data} />
 
           {/* ── Band 2: Dual-Panel Operational Workstation ── */}
           <APWorkstationGrid
             data={data}
             onInspectInvoice={(id) => navigate(`/invoices/${id}`)}
-            releasedInvoices={releasedInvoices}
-            releasedCount={releasedCount}
-            releasedAmount={releasedAmount}
-            onAuthorizeRelease={handleAuthorizeRelease}
           />
 
           {/* ── Band 3: Real-Time Ingestion & Activity Stream ── */}
           <APRecentStreamCard items={streamItems} />
+
         </>
       )}
 

@@ -678,12 +678,12 @@ Avarta AP Workspace Maker-Checker Governance Protocol (Section 44AA / Rule 56).
 
             {/* 2. Settlement Rail Selector — Visual Cards */}
             <div className="space-y-1.5">
-              <label className="text-label text-neutral-700 dark:text-zinc-300 font-medium flex items-center gap-1.5">
+              <h4 className="text-label text-neutral-700 dark:text-zinc-300 font-medium flex items-center gap-1.5">
                 <Zap size={14} className="text-amber-500" />
                 <span>Banking Settlement Rail</span>
-              </label>
+              </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div role="radiogroup" aria-label="Banking Settlement Rail" className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {relevantRails.map((rail) => {
                   const isSelected = rail.id === selectedRailId;
                   return (

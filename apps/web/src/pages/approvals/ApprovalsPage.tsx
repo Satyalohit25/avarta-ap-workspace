@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "../../app/AuthContext";
 import { listApprovals, approveApproval, rejectApproval, ApprovalRow } from "../../api/approvals";
 import { getInvoice, InvoiceListItem } from "../../api/invoices";
 import { SkeletonRows } from "../../components/Skeleton";
@@ -88,6 +89,14 @@ function computeSlaBadge(row: ApprovalRow): { label: string; urgency: UrgencySev
 
 export default function ApprovalsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const targetInvoiceId = searchParams.get("invoiceId");
+  const { user } = useAuth();
+  const canApprove =
+    user?.role === "ADMINISTRATOR" ||
+    user?.role === "FINANCE_MANAGER" ||
+    user?.role === "APPROVER";
+
   const [rows, setRows] = useState<ApprovalRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedApproval, setSelectedApproval] = useState<ApprovalRow | null>(null);
@@ -112,6 +121,18 @@ export default function ApprovalsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  // Deep-linking: auto-select matching invoice row if invoiceId query param is present
+  useEffect(() => {
+    if (targetInvoiceId && rows.length > 0 && !selectedApproval) {
+      const match = rows.find(
+        (r) => r.invoiceId === targetInvoiceId || r.id === targetInvoiceId
+      );
+      if (match) {
+        setSelectedApproval(match);
+      }
+    }
+  }, [targetInvoiceId, rows, selectedApproval]);
 
   // Fetch full line items and matching evidence when an approval is selected
   useEffect(() => {
@@ -677,10 +698,16 @@ export default function ApprovalsPage() {
             ) : (
               /* 6. Action Bar */
               <div className="space-y-2 pt-2 border-t border-neutral-200 dark:border-zinc-800">
+                {!canApprove && (
+                  <Alert type="warning" className="text-caption">
+                    Read-Only Mode: Your role ({user?.role?.replace("_", " ") || "Viewer"}) does not have approval authority. Approving or rejecting invoices requires Approver, Finance Manager, or Administrator privileges.
+                  </Alert>
+                )}
+
                 <Button
                   className="w-full h-11 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-body-sm shadow-sm"
                   onClick={() => handleApprove(selectedApproval.id)}
-                  disabled={actionPending}
+                  disabled={actionPending || !canApprove}
                 >
                   <CheckSquare size={16} />
                   <span>{actionPending ? "Approving..." : "Approve for Payment Scheduling"}</span>
@@ -691,7 +718,7 @@ export default function ApprovalsPage() {
                     variant="destructive"
                     className="flex-1 gap-1.5 h-10 font-semibold"
                     onClick={() => setShowRejectForm(true)}
-                    disabled={actionPending}
+                    disabled={actionPending || !canApprove}
                   >
                     <XCircle size={15} />
                     <span>Reject</span>

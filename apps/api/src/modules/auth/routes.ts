@@ -1,7 +1,9 @@
 import { Router } from "express";
 import {
   loginHandler,
+  logoutHandler,
   signupHandler,
+  refreshHandler,
   meHandler,
   listTeamHandler,
   inviteTeamHandler,
@@ -18,6 +20,8 @@ export const authRoutes = Router();
 
 authRoutes.post("/signup", authRateLimiter, signupHandler);
 authRoutes.post("/login", authRateLimiter, loginHandler);
+authRoutes.post("/refresh", authRateLimiter, refreshHandler);
+authRoutes.post("/logout", requireAuth, logoutHandler);
 authRoutes.get("/me", requireAuth, meHandler);
 
 // Team management endpoints
