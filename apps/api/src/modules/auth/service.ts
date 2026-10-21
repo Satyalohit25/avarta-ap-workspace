@@ -37,13 +37,12 @@ export async function login(email: string, password: string, clientIp = "127.0.0
     // If DB check fails, continue
   }
 
-  // Support Master Dev Credentials for development/testing
+  // Support Master Dev Credentials strictly for development
   const isMasterDev =
-    env.masterDevEmail &&
-    env.masterDevPassword &&
-    (cleanEmail === env.masterDevEmail.toLowerCase().trim() ||
-      cleanEmail === "admin@avarta.dev" ||
-      cleanEmail === "dev@avarta.local") &&
+    env.nodeEnv === "development" &&
+    Boolean(env.masterDevEmail) &&
+    Boolean(env.masterDevPassword) &&
+    cleanEmail === env.masterDevEmail.toLowerCase().trim() &&
     password === env.masterDevPassword;
 
   if (isMasterDev) {

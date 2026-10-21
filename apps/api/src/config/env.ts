@@ -8,6 +8,19 @@ function required(name: string, fallback?: string): string {
   return value;
 }
 
+export function validateEnvironment(): void {
+  const nodeEnv = process.env.NODE_ENV;
+  if (nodeEnv === "production") {
+    if (process.env.MASTER_DEV_PASSWORD || process.env.MASTER_DEV_EMAIL) {
+      throw new Error(
+        "FATAL SECURITY VIOLATION: MASTER_DEV_PASSWORD or MASTER_DEV_EMAIL cannot be configured in production environment."
+      );
+    }
+  }
+}
+
+validateEnvironment();
+
 const isProd = process.env.NODE_ENV === "production";
 
 export const env = {
@@ -23,8 +36,19 @@ export const env = {
     "APP_ENCRYPTION_KEY",
     isProd ? undefined : "avarta-dev-encryption-key-32chars!!"
   ),
-  masterDevEmail: process.env.MASTER_DEV_EMAIL ?? (isProd ? undefined : "dev@avarta.local"),
-  masterDevPassword: process.env.MASTER_DEV_PASSWORD ?? (isProd ? undefined : "devpassword123"),
-  nodeEnv: process.env.NODE_ENV ?? "development",
+  get masterDevEmail(): string | undefined {
+    return process.env.NODE_ENV === "development"
+      ? (process.env.MASTER_DEV_EMAIL ?? "dev@avarta.local")
+      : undefined;
+  },
+  get masterDevPassword(): string | undefined {
+    return process.env.NODE_ENV === "development"
+      ? (process.env.MASTER_DEV_PASSWORD ?? "devpassword123")
+      : undefined;
+  },
+  get nodeEnv(): string | undefined {
+    return process.env.NODE_ENV;
+  },
 };
+
 
