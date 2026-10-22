@@ -93,7 +93,15 @@ describe("Integrations & Invoice Extraction RBAC Protection (ACT-P0-11 & Extract
     expect(res.body.error).toContain("You do not have permission");
   });
 
-  it("blocks READ_ONLY and APPROVER from GET /status with 403 Forbidden", async () => {
+  it("blocks non-ADMINISTRATOR (FINANCE_MANAGER, FINANCE_EXECUTIVE, READ_ONLY, APPROVER) from GET /status with 403 Forbidden", async () => {
+    const resFM = await dispatch(appIntegrations, "GET", "/test/status", "FINANCE_MANAGER");
+    expect(resFM.status).toBe(403);
+    expect(resFM.body.error).toContain("You do not have permission");
+
+    const resFE = await dispatch(appIntegrations, "GET", "/test/status", "FINANCE_EXECUTIVE");
+    expect(resFE.status).toBe(403);
+    expect(resFE.body.error).toContain("You do not have permission");
+
     const res = await dispatch(appIntegrations, "GET", "/test/status", "READ_ONLY");
     expect(res.status).toBe(403);
     expect(res.body.error).toContain("You do not have permission");

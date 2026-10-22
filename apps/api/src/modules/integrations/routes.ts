@@ -12,7 +12,7 @@ integrationRoutes.use(requireAuth);
  * GET /api/integrations/status
  * Returns current configuration status for BYOK, BYODB, and ERP
  */
-integrationRoutes.get("/status", requireRole("ADMINISTRATOR", "FINANCE_MANAGER"), async (req: Request, res: Response, next: NextFunction) => {
+integrationRoutes.get("/status", requireRole("ADMINISTRATOR"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const organizationId = req.auth!.organizationId;
     const summary = await IntegrationsService.getSummary(organizationId);

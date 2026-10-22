@@ -16,6 +16,7 @@ import { Tabs } from "../../components/ui/Tabs";
 import { Alert } from "../../components/ui/Alert";
 import { PageHeader } from "../../components/layout/PageHeader";
 import { useToast } from "../../components/ui/ToastContext";
+import { useAuth } from "../../app/AuthContext";
 import {
   ShieldCheck,
   ArrowRight,
@@ -137,9 +138,13 @@ const CANONICAL_AUDIT_LOGS = [
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isAdmin = user?.role?.toUpperCase() === "ADMINISTRATOR";
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const defaultTab = tabParam === "users" || tabParam === "team" ? "users" : (tabParam || "org");
+  const integrationTabIds = ["byok", "byodb", "erp-sync", "payment-gateway"];
+  const sanitizedTabParam = (!isAdmin && integrationTabIds.includes(tabParam || "")) ? "org" : tabParam;
+  const defaultTab = sanitizedTabParam === "users" || sanitizedTabParam === "team" ? "users" : (sanitizedTabParam || "org");
   const [saved, setSaved] = useState(false);
   const [showAddRuleModal, setShowAddRuleModal] = useState(false);
 
@@ -645,46 +650,50 @@ export default function SettingsPage() {
               </div>
             ),
           },
-          {
-            id: "byok",
-            label: "AI & Storage Keys (BYOK)",
-            icon: <KeyRound size={15} />,
-            content: (
-              <div className="space-y-4 pt-2">
-                <ByokConfigCard />
-              </div>
-            ),
-          },
-          {
-            id: "byodb",
-            label: "Database Sovereignty (BYODB)",
-            icon: <HardDrive size={15} />,
-            content: (
-              <div className="space-y-4 pt-2">
-                <ByodbConfigCard />
-              </div>
-            ),
-          },
-          {
-            id: "erp-sync",
-            label: "ERP & Accounting Integrations",
-            icon: <Database size={15} />,
-            content: (
-              <div className="space-y-4 pt-2">
-                <ErpConnectorsCard />
-              </div>
-            ),
-          },
-          {
-            id: "payment-gateway",
-            label: "Payment Gateway (BYOPG)",
-            icon: <CreditCard size={15} />,
-            content: (
-              <div className="space-y-4 pt-2">
-                <PaymentGatewayConfigCard />
-              </div>
-            ),
-          },
+          ...(isAdmin
+            ? [
+                {
+                  id: "byok",
+                  label: "AI & Storage Keys (BYOK)",
+                  icon: <KeyRound size={15} />,
+                  content: (
+                    <div className="space-y-4 pt-2">
+                      <ByokConfigCard />
+                    </div>
+                  ),
+                },
+                {
+                  id: "byodb",
+                  label: "Database Sovereignty (BYODB)",
+                  icon: <HardDrive size={15} />,
+                  content: (
+                    <div className="space-y-4 pt-2">
+                      <ByodbConfigCard />
+                    </div>
+                  ),
+                },
+                {
+                  id: "erp-sync",
+                  label: "ERP & Accounting Integrations",
+                  icon: <Database size={15} />,
+                  content: (
+                    <div className="space-y-4 pt-2">
+                      <ErpConnectorsCard />
+                    </div>
+                  ),
+                },
+                {
+                  id: "payment-gateway",
+                  label: "Payment Gateway (BYOPG)",
+                  icon: <CreditCard size={15} />,
+                  content: (
+                    <div className="space-y-4 pt-2">
+                      <PaymentGatewayConfigCard />
+                    </div>
+                  ),
+                },
+              ]
+            : []),
           {
             id: "audit-logs",
             label: "System Audit Log & Security Events",
