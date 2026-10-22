@@ -202,6 +202,14 @@ export async function login(email: string, password: string, clientIp = "127.0.0
     },
   });
 
+  const activeAdminCount = await prisma.user.count({
+    where: {
+      organizationId: user.organizationId,
+      role: "ADMINISTRATOR",
+      status: "ACTIVE",
+    },
+  });
+
   return {
     user: {
       id: user.id,
@@ -210,6 +218,8 @@ export async function login(email: string, password: string, clientIp = "127.0.0
       organizationId: user.organizationId,
       role: user.role,
       organizationName: user.organization?.name,
+      activeAdminCount,
+      isSoloAdmin: user.role === "ADMINISTRATOR" && activeAdminCount === 1,
     },
     accessToken,
     refreshToken: rawRefreshToken,
@@ -302,12 +312,21 @@ export async function getCurrentUser(userId: string) {
   if (!user || user.status !== "ACTIVE") {
     throw ApiError.unauthorized("User account is inactive or disabled");
   }
+  const activeAdminCount = await prisma.user.count({
+    where: {
+      organizationId: user.organizationId,
+      role: "ADMINISTRATOR",
+      status: "ACTIVE",
+    },
+  });
   return {
     id: user.id,
     name: user.fullName,
     email: user.email,
     organizationId: user.organizationId,
     role: user.role,
+    activeAdminCount,
+    isSoloAdmin: user.role === "ADMINISTRATOR" && activeAdminCount === 1,
   };
 }
 

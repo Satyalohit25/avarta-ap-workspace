@@ -45,6 +45,7 @@ import { Sheet } from "../../components/ui/Sheet";
 import { Alert } from "../../components/ui/Alert";
 import { Breadcrumbs } from "../../components/ui/Breadcrumbs";
 import { useToast } from "../../components/ui/ToastContext";
+import { useAuth } from "../../app/AuthContext";
 import { formatCurrency, formatDate } from "../../lib/formatters";
 import {
   getInvoiceWorkflowContext,
@@ -445,6 +446,7 @@ export default function InvoiceDetailPage() {
   const { invoiceId } = useParams<{ invoiceId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [invoice, setInvoice] = useState<InvoiceDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionPending, setActionPending] = useState(false);
@@ -1627,7 +1629,9 @@ export default function InvoiceDetailPage() {
           )
         }
       >
-        {confirmDialog.action === "APPROVE" && (
+        {confirmDialog.action === "APPROVE" &&
+          (user?.role?.toUpperCase() === "ADMINISTRATOR" || user?.role === "Administrator") &&
+          Boolean(user?.isSoloAdmin) && (
           <div className="pt-3 border-t border-neutral-100 dark:border-zinc-800 space-y-3">
             <label className="flex items-start gap-2.5 cursor-pointer text-body-sm text-neutral-800 dark:text-zinc-200">
               <input

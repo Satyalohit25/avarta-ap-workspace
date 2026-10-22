@@ -7,6 +7,8 @@ export interface CurrentUser {
   organizationId: string;
   role: string;
   organizationName?: string;
+  activeAdminCount?: number;
+  isSoloAdmin?: boolean;
 }
 
 export interface SignupPayload {
