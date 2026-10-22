@@ -31,7 +31,7 @@ export default function ForbiddenPage() {
         <div className="flex items-center justify-between text-caption">
           <span className="font-medium text-neutral-800 dark:text-zinc-200">Tenant Administrator</span>
           <a
-            href="mailto:admin@avarta.dev?subject=Access%20Request%20for%20Avarta%20AP"
+            href="mailto:admin@company.com?subject=Access%20Request%20for%20Avarta%20AP"
             className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1"
           >
             <Mail size={13} />

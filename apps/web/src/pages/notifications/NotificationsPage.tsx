@@ -39,7 +39,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     id: "notif-1",
     type: "APPROVAL_REQUEST",
     title: "Executive Sign-off Required (Tier 2)",
-    message: "Invoice INV-2026-1007 from Tata Steel (INR 3,54,000.00) requires Finance Manager authorization.",
+    message: "Invoice INV-2026-0042 from Tata Steel (INR 3,54,000.00) requires Finance Manager authorization.",
     timestamp: "12 mins ago",
     read: false,
     actionUrl: "/approvals",

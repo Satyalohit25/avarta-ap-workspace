@@ -14,7 +14,7 @@ export interface DemoAccountConfig {
 
 export const DEMO_ACCOUNTS: DemoAccountConfig[] = [
   {
-    email: "admin@avarta.dev",
+    email: "admin@company.com",
     password: "password123",
     name: "Asha Administrator",
     role: "Administrator",

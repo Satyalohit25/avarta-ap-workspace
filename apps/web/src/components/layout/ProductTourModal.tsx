@@ -368,7 +368,7 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
                   Governs system approval threshold rules, manages user permissions, monitors immutable audit logs, and registers verified vendors.
                 </p>
                 <div className="text-[11px] font-mono text-neutral-500 dark:text-zinc-400">
-                  Account: <span className="font-semibold text-neutral-800 dark:text-zinc-200">admin@avarta.dev</span>
+                  Account: <span className="font-semibold text-neutral-800 dark:text-zinc-200">admin@company.com</span>
                 </div>
               </div>
             </div>
