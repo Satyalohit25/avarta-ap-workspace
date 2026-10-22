@@ -57,6 +57,8 @@ export interface VerifyApprovalAuthorityParams {
   currency?: string;
   userId?: string;
   userRole?: string;
+  overrideSoloAdmin?: boolean;
+  overrideReason?: string;
 }
 
 /**
@@ -69,7 +71,17 @@ export async function verifyApprovalAuthority(
   tx: Prisma.TransactionClient,
   params: VerifyApprovalAuthorityParams
 ) {
-  const { organizationId, invoiceId, invoiceNumber, totalAmount, userId, userRole, currency } = params;
+  const {
+    organizationId,
+    invoiceId,
+    invoiceNumber,
+    totalAmount,
+    userId,
+    userRole,
+    currency,
+    overrideSoloAdmin,
+    overrideReason,
+  } = params;
 
   // 1. Enforce amount approval thresholds by role
   if (userRole) {
@@ -83,7 +95,7 @@ export async function verifyApprovalAuthority(
   }
 
   // 2. AICPA SOC 2 Common Criteria: Segregation of Duties (SoD)
-  // An invoice creator/uploader cannot approve their own invoice
+  // An invoice creator/uploader cannot approve their own invoice unless solo-admin override conditions are met
   if (userId) {
     const creationLog = await tx.auditLog.findFirst({
       where: {
@@ -94,9 +106,59 @@ export async function verifyApprovalAuthority(
     });
 
     if (creationLog?.userId && creationLog.userId === userId) {
-      throw ApiError.forbidden(
-        "Segregation of Duties (SoD) violation: The user who created or uploaded this invoice cannot approve it (AICPA SOC 2 Common Criteria)."
-      );
+      if (overrideSoloAdmin) {
+        if (userRole !== "ADMINISTRATOR") {
+          throw ApiError.forbidden(
+            "Only an Administrator can override Segregation of Duties."
+          );
+        }
+
+        if (!overrideReason || overrideReason.trim().length < 10) {
+          throw ApiError.badRequest(
+            "A justification reason of at least 10 characters is required to override Segregation of Duties."
+          );
+        }
+
+        const activeAdminCount = await tx.user.count({
+          where: {
+            organizationId,
+            role: "ADMINISTRATOR",
+            status: "ACTIVE",
+          },
+        });
+
+        if (activeAdminCount > 1) {
+          throw ApiError.forbidden(
+            `Segregation of Duties override is only permitted for single-administrator organizations (organization has ${activeAdminCount} active administrators).`
+          );
+        }
+
+        // Write audit log in the same transaction using real columns (beforeData, afterData)
+        await tx.auditLog.create({
+          data: {
+            organizationId,
+            userId,
+            action: "APPROVAL_SOD_OVERRIDE",
+            entityType: "INVOICE",
+            entityId: invoiceId,
+            beforeData: {
+              sodEnforced: true,
+              creatorId: creationLog.userId,
+            },
+            afterData: {
+              sodOverridden: true,
+              overrideReason: overrideReason.trim(),
+              activeAdminCount,
+              role: userRole,
+            },
+            result: "SUCCESS",
+          },
+        });
+      } else {
+        throw ApiError.forbidden(
+          "Segregation of Duties (SoD) violation: The user who created or uploaded this invoice cannot approve it (AICPA SOC 2 Common Criteria)."
+        );
+      }
     }
   }
 
@@ -123,12 +185,16 @@ export async function executeInvoiceApproval({
   userId,
   userRole,
   notes,
+  overrideSoloAdmin,
+  overrideReason,
 }: {
   organizationId: string;
   invoiceId: string;
   userId?: string;
   userRole?: string;
   notes?: string;
+  overrideSoloAdmin?: boolean;
+  overrideReason?: string;
 }) {
   return prisma.$transaction(async (tx) => {
     // Acquire pessimistic row lock on Invoice table with verified casing
@@ -164,6 +230,8 @@ export async function executeInvoiceApproval({
       currency: lockedInvoice.currency,
       userId,
       userRole,
+      overrideSoloAdmin,
+      overrideReason,
     });
 
     await applyTransition({
@@ -235,6 +303,8 @@ export async function approveApproval(
   userId?: string,
   userRole?: Role,
   notes?: string,
+  overrideSoloAdmin?: boolean,
+  overrideReason?: string,
 ) {
   const approval = await prisma.approval.findFirst({
     where: { id: approvalId },
@@ -255,6 +325,8 @@ export async function approveApproval(
     userId,
     userRole,
     notes,
+    overrideSoloAdmin,
+    overrideReason,
   });
 
   return prisma.approval.findUnique({

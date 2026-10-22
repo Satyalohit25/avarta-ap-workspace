@@ -20,7 +20,9 @@ export async function approveHandler(req: Request, res: Response, next: NextFunc
       req.params.approvalId,
       req.auth.userId,
       req.auth.role as Role,
-      req.body?.notes
+      req.body?.notes ?? req.body?.comment,
+      req.body?.overrideSoloAdmin,
+      req.body?.overrideReason
     );
     res.json({ data: result });
   } catch (err) {

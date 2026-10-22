@@ -465,6 +465,8 @@ export default function InvoiceDetailPage() {
     description: string;
     action: string;
     comment?: string;
+    overrideSoloAdmin?: boolean;
+    overrideReason?: string;
   }>({ isOpen: false, title: "", description: "", action: "" });
 
   const [dynamicAuditEvents, setDynamicAuditEvents] = useState<TimelineEvent[]>(
@@ -808,6 +810,11 @@ export default function InvoiceDetailPage() {
         invoiceId,
         confirmDialog.action,
         confirmDialog.comment,
+        undefined,
+        {
+          overrideSoloAdmin: confirmDialog.overrideSoloAdmin,
+          overrideReason: confirmDialog.overrideReason || confirmDialog.comment,
+        }
       );
       if (confirmDialog.action === "APPROVE") {
         toast.success(
@@ -1599,7 +1606,57 @@ export default function InvoiceDetailPage() {
         onConfirm={handleConfirmAction}
         variant={confirmDialog.action === "REJECT" ? "destructive" : "primary"}
         isPending={actionPending}
-      />
+        confirmDisabled={
+          Boolean(
+            confirmDialog.overrideSoloAdmin &&
+            (!confirmDialog.overrideReason || confirmDialog.overrideReason.trim().length < 10)
+          )
+        }
+      >
+        {confirmDialog.action === "APPROVE" && (
+          <div className="pt-3 border-t border-neutral-100 dark:border-zinc-800 space-y-3">
+            <label className="flex items-start gap-2.5 cursor-pointer text-body-sm text-neutral-800 dark:text-zinc-200">
+              <input
+                type="checkbox"
+                checked={confirmDialog.overrideSoloAdmin || false}
+                onChange={(e) =>
+                  setConfirmDialog((prev) => ({
+                    ...prev,
+                    overrideSoloAdmin: e.target.checked,
+                  }))
+                }
+                className="mt-0.5 rounded border-neutral-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500"
+              />
+              <div>
+                <span className="font-semibold block">Solo Administrator Override</span>
+                <span className="text-caption text-neutral-500 dark:text-zinc-400 block">
+                  Check this only if you are the sole administrator in the organization approving an invoice you created/uploaded.
+                </span>
+              </div>
+            </label>
+
+            {confirmDialog.overrideSoloAdmin && (
+              <div className="space-y-1.5 pl-6">
+                <label className="text-caption font-medium text-neutral-700 dark:text-zinc-300">
+                  Override Justification (10+ characters) *
+                </label>
+                <textarea
+                  value={confirmDialog.overrideReason || ""}
+                  onChange={(e) =>
+                    setConfirmDialog((prev) => ({
+                      ...prev,
+                      overrideReason: e.target.value,
+                    }))
+                  }
+                  placeholder="Enter business justification for single-admin self-approval..."
+                  rows={2}
+                  className="w-full text-body-sm rounded-lg border border-neutral-300 dark:border-zinc-700 p-2.5 bg-white dark:bg-zinc-800 text-neutral-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </Dialog>
 
       {/* Enterprise Audit History Slide-Out Drawer */}
       <Sheet

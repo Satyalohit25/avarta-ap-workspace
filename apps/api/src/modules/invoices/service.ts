@@ -672,7 +672,9 @@ export async function transitionInvoice(
     | "HOLD_REQUEST_CORRECTION",
   userId?: string,
   comment?: string,
-  userRole?: string
+  userRole?: string,
+  overrideSoloAdmin?: boolean,
+  overrideReason?: string
 ) {
   if (action === "RETRY_VALIDATION") {
     return retryValidation(organizationId, invoiceId, userId);
@@ -697,6 +699,8 @@ export async function transitionInvoice(
       userId,
       userRole,
       notes: comment,
+      overrideSoloAdmin,
+      overrideReason,
     });
   } else if (action === "REJECT") {
     if (!comment) throw ApiError.badRequest("Comment is required for rejection.");

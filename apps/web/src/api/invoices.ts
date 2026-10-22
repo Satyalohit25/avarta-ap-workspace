@@ -215,12 +215,23 @@ export function processInvoice(id: string, idempotencyKey?: string) {
   });
 }
 
-export function transitionInvoice(id: string, action: string, comment?: string, idempotencyKey?: string) {
+export function transitionInvoice(
+  id: string,
+  action: string,
+  comment?: string,
+  idempotencyKey?: string,
+  options?: { overrideSoloAdmin?: boolean; overrideReason?: string }
+) {
   const key = idempotencyKey || `idemp-trans-${id}-${action.toLowerCase()}-${Date.now()}`;
   return apiRequest<{ data: InvoiceListItem }>(`/invoices/${id}/transitions`, {
     method: "POST",
     headers: { "Idempotency-Key": key },
-    body: { action, comment },
+    body: {
+      action,
+      comment,
+      overrideSoloAdmin: options?.overrideSoloAdmin,
+      overrideReason: options?.overrideReason,
+    },
   });
 }
 

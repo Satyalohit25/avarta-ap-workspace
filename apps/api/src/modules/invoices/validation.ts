@@ -73,6 +73,8 @@ export const transitionSchema = z
       "HOLD_REQUEST_CORRECTION",
     ]),
     comment: z.string().optional(),
+    overrideSoloAdmin: z.boolean().optional(),
+    overrideReason: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.action === "REJECT" && (!data.comment || data.comment.trim().length === 0)) {
