@@ -620,7 +620,7 @@ export function InvoiceForm({
       description: l.description.trim() || `Line Item #${idx + 1}`,
       quantity: Number(l.quantity) || 1,
       unitPrice: Number(l.unitPrice) || 0,
-      taxRate: Number(l.taxRate) || taxConfig.defaultRate,
+      taxRate: typeof l.taxRate === "number" ? l.taxRate : (Number(l.taxRate) || taxConfig.defaultRate),
       taxAmount: ((Number(l.quantity) || 1) * (Number(l.unitPrice) || 0) * (Number(l.taxRate) || 0)) / 100,
       lineAmount: (Number(l.quantity) || 1) * (Number(l.unitPrice) || 0),
     }));

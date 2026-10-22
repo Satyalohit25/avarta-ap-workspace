@@ -22,8 +22,8 @@ test.describe('Avarta Brand & Identity Verification', () => {
     await page.waitForURL(/\/overview/);
 
     // Verify Avarta wordmark and subtitle in sidebar
-    await expect(page.locator('aside')).toContainText('Avarta');
-    await expect(page.locator('aside')).toContainText(/Accounts Payable Workspace/i);
+    await expect(page.locator('aside').first()).toContainText('Avarta');
+    await expect(page.locator('aside').first()).toContainText(/Accounts Payable Workspace/i);
   });
 
   test('verifies invoice detail page has consolidated audit drawer and no bottom duplicate card', async ({ page }) => {

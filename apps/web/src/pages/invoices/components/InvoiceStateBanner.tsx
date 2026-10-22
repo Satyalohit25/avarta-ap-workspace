@@ -140,7 +140,7 @@ export function InvoiceStateBanner({
             type="button"
             onClick={() => setIsExpanded((prev) => !prev)}
             className="inline-flex items-center gap-1 text-micro text-neutral-500 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200 px-2 py-1 rounded hover:bg-neutral-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-            aria-label={isExpanded ? "Collapse full funnel" : "View full workflow funnel"}
+            aria-label={isExpanded ? "Hide workflow details" : "View workflow details"}
           >
             <span>{isExpanded ? "Collapse Funnel" : "Full Funnel"}</span>
             {isExpanded ? <ChevronUp size={12} strokeWidth={2} /> : <ChevronDown size={12} strokeWidth={2} />}

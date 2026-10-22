@@ -12,6 +12,14 @@ export async function loginAs(
   page: Page,
   account: { email: string; password: string } = SEEDED_ACCOUNTS.manager
 ) {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem(
+        "avarta_cookie_consent_v1",
+        JSON.stringify({ essential: true, analytics: false, timestamp: Date.now() })
+      );
+    } catch {}
+  });
   await page.goto("/login");
   await page.fill('input[type="email"]', account.email);
   await page.fill('input[type="password"]', account.password);

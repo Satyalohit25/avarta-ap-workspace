@@ -18,12 +18,12 @@ test.describe("Authentication Flow & Login UI", () => {
 
   test("authenticates successfully with seeded manager account", async ({ page }) => {
     await loginAs(page, SEEDED_ACCOUNTS.manager);
-    await expect(page.locator("header").first()).toContainText("FINANCE_MANAGER");
+    await expect(page.locator("header").first()).toContainText(/Finance Manager|FINANCE_MANAGER/);
   });
 
   test("authenticates successfully with seeded admin account", async ({ page }) => {
     await loginAs(page, SEEDED_ACCOUNTS.admin);
-    await expect(page.locator("header").first()).toContainText("ADMINISTRATOR");
+    await expect(page.locator("header").first()).toContainText(/Administrator|ADMINISTRATOR/);
   });
 
   test("displays error message on invalid credentials", async ({ page }) => {
@@ -40,7 +40,7 @@ test.describe("Authentication Flow & Login UI", () => {
     await loginAs(page, SEEDED_ACCOUNTS.manager);
     await page.locator('button[aria-haspopup="true"]').first().click();
     await page.click("text=Sign out");
-    await page.waitForURL("**/login");
-    await expect(page).toHaveURL(/\/login$/);
+    await page.waitForURL("**/login*");
+    await expect(page).toHaveURL(/\/login(\?.*)?$/);
   });
 });

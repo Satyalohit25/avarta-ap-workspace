@@ -14,6 +14,23 @@ test.describe("Invoice Lifecycle & Processing Workflow", () => {
     await page.getByRole("button", { name: /Quick manual entry/i }).click();
     const testInvNum = `INV-${Date.now().toString().slice(-6)}`;
     await page.fill("#shared-invoice-number", testInvNum);
+    const supplierTrigger = page.locator("#shared-invoice-supplier");
+    if (await supplierTrigger.isVisible()) {
+      await supplierTrigger.click();
+      await page.getByRole("option").nth(1).click();
+    }
+    const lineDesc = page.locator('input[placeholder*="Item description"]').first();
+    if (await lineDesc.isVisible()) {
+      await lineDesc.fill("Standard Services");
+    }
+    const lineRate = page.locator('input[aria-label*="unit price"]').first();
+    if (await lineRate.isVisible()) {
+      await lineRate.fill("1000");
+    }
+    const amountInput = page.getByLabel("Amount printed on invoice");
+    if (await amountInput.isVisible()) {
+      await amountInput.fill("1000");
+    }
     await page.click('button[type="submit"]');
 
     // Should see the invoice in Recent Invoices list
@@ -78,6 +95,23 @@ test.describe("Invoice Lifecycle & Processing Workflow", () => {
     await page.getByRole("button", { name: /Quick manual entry/i }).click();
     const testInvNum = `INV-${Date.now().toString().slice(-6)}`;
     await page.fill("#shared-invoice-number", testInvNum);
+    const supplierTrigger = page.locator("#shared-invoice-supplier");
+    if (await supplierTrigger.isVisible()) {
+      await supplierTrigger.click();
+      await page.getByRole("option").nth(1).click();
+    }
+    const lineDesc = page.locator('input[placeholder*="Item description"]').first();
+    if (await lineDesc.isVisible()) {
+      await lineDesc.fill("Standard Services");
+    }
+    const lineRate = page.locator('input[aria-label*="unit price"]').first();
+    if (await lineRate.isVisible()) {
+      await lineRate.fill("1000");
+    }
+    const amountInput = page.getByLabel("Amount printed on invoice");
+    if (await amountInput.isVisible()) {
+      await amountInput.fill("1000");
+    }
     await page.click('button[type="submit"]');
 
     await expect(page.getByText(testInvNum, { exact: true }).first()).toBeVisible({ timeout: 10000 });

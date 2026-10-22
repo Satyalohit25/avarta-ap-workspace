@@ -6,7 +6,7 @@ test.describe("Layout, Global Search & Theme System", () => {
     await loginAs(page);
   });
 
-  test("renders canonical 11-item sidebar navigation in correct order", async ({ page }) => {
+  test("renders canonical 12-item sidebar navigation in correct order", async ({ page }) => {
     const expectedItems = [
       "Overview",
       "Inbox",
@@ -16,6 +16,8 @@ test.describe("Layout, Global Search & Theme System", () => {
       "Payments",
       "Suppliers",
       "Purchase Orders",
+      "Items",
+      "Bank Accounts",
       "Reports",
       "Archive",
     ];
@@ -40,11 +42,17 @@ test.describe("Layout, Global Search & Theme System", () => {
     const themeButton = page.locator('button[aria-label="Toggle Theme"]');
 
     await expect(themeButton).toBeVisible();
-    await themeButton.click();
-
-    await expect(htmlElement).toHaveClass(/dark/);
+    const isDarkInitially = await htmlElement.evaluate((el) => el.classList.contains("dark"));
 
     await themeButton.click();
-    await expect(htmlElement).not.toHaveClass(/dark/);
+    if (isDarkInitially) {
+      await expect(htmlElement).not.toHaveClass(/dark/);
+      await themeButton.click();
+      await expect(htmlElement).toHaveClass(/dark/);
+    } else {
+      await expect(htmlElement).toHaveClass(/dark/);
+      await themeButton.click();
+      await expect(htmlElement).not.toHaveClass(/dark/);
+    }
   });
 });
