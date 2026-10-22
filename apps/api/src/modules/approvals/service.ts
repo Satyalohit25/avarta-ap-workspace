@@ -138,7 +138,7 @@ export async function verifyApprovalAuthority(
           data: {
             organizationId,
             userId,
-            action: "APPROVAL_SOD_OVERRIDE",
+            action: "SOD_OVERRIDE_SELF_APPROVAL",
             entityType: "INVOICE",
             entityId: invoiceId,
             beforeData: {

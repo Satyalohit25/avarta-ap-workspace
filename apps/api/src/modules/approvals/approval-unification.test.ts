@@ -3,6 +3,7 @@ import { prisma } from "../../config/database";
 import { transitionInvoice } from "../invoices/service";
 import { approveApproval } from "./service";
 import { Role } from "../../middleware/permissions";
+import { DEFAULT_INR_TIERS } from "./thresholds";
 
 describe("Unified Approval Authority & Solo-Admin Override Matrix (Day 1.5 Items 2 & 3)", () => {
   const orgId = "org-unification-matrix";
@@ -217,9 +218,11 @@ describe("Unified Approval Authority & Solo-Admin Override Matrix (Day 1.5 Items
   ];
 
   describe.each(endpoints)("Endpoint: $name", ({ execute }) => {
-    it("1. Blocks APPROVER attempting an amount above their tier limit (₹600,000 > ₹500,000)", async () => {
+    it("1. Blocks APPROVER attempting an amount above Tier 1 limit", async () => {
+      const tier1Limit = DEFAULT_INR_TIERS[0].maxAmount!; // 100,000
+      const amountAboveTier1 = tier1Limit + 25_000; // 125,000 (Tier 2)
       const { invoice, approval } = await createInvoiceAndApprovalFixture({
-        amount: 600_000,
+        amount: amountAboveTier1,
       });
 
       await expect(
@@ -229,7 +232,24 @@ describe("Unified Approval Authority & Solo-Admin Override Matrix (Day 1.5 Items
           userId: approverUserId,
           role: "APPROVER",
         })
-      ).rejects.toThrow(/Role "APPROVER" is not authorized to approve invoices of amount 600000/i);
+      ).rejects.toThrow(new RegExp(`Role "APPROVER" is not authorized to approve invoices of amount ${amountAboveTier1}`, "i"));
+    });
+
+    it("1b. Blocks FINANCE_MANAGER attempting an amount above Tier 2 limit", async () => {
+      const tier2Limit = DEFAULT_INR_TIERS[1].maxAmount!; // 500,000
+      const amountAboveTier2 = tier2Limit + 50_000; // 550,000 (Tier 3)
+      const { invoice, approval } = await createInvoiceAndApprovalFixture({
+        amount: amountAboveTier2,
+      });
+
+      await expect(
+        execute({
+          invoiceId: invoice.id,
+          approvalId: approval.id,
+          userId: financeManagerId,
+          role: "FINANCE_MANAGER",
+        })
+      ).rejects.toThrow(new RegExp(`Role "FINANCE_MANAGER" is not authorized to approve invoices of amount ${amountAboveTier2}`, "i"));
     });
 
     it("2. Blocks creator self-approval under Segregation of Duties (SoD)", async () => {
@@ -280,7 +300,7 @@ describe("Unified Approval Authority & Solo-Admin Override Matrix (Day 1.5 Items
         where: {
           organizationId: orgId,
           entityId: invoice.id,
-          action: "APPROVAL_SOD_OVERRIDE",
+          action: "SOD_OVERRIDE_SELF_APPROVAL",
         },
       });
 
@@ -371,21 +391,52 @@ describe("Unified Approval Authority & Solo-Admin Override Matrix (Day 1.5 Items
       ).rejects.toThrow(/not authorized to approve/i);
     });
 
-    it("8. Allows valid approval within tier without SoD conflict", async () => {
-      const { invoice, approval } = await createInvoiceAndApprovalFixture({
-        amount: 50_000,
+    it("8. Allows valid approval within tier without SoD conflict (covers APPROVER at Tier 1, FINANCE_MANAGER at Tier 2, and ADMINISTRATOR at Tier 3)", async () => {
+      // 8a. APPROVER approving within Tier 1
+      const tier1Amount = DEFAULT_INR_TIERS[0].maxAmount! - 20_000; // ₹80,000
+      const fixtureTier1 = await createInvoiceAndApprovalFixture({
+        amount: tier1Amount,
       });
+      const res1 = await execute({
+        invoiceId: fixtureTier1.invoice.id,
+        approvalId: fixtureTier1.approval.id,
+        userId: approverUserId,
+        role: "APPROVER",
+      });
+      expect(res1).toBeDefined();
+      const updated1 = await prisma.invoice.findUnique({ where: { id: fixtureTier1.invoice.id } });
+      expect(updated1?.workflowState).toBe("SCHEDULED");
 
-      const res = await execute({
-        invoiceId: invoice.id,
-        approvalId: approval.id,
+      // 8b. FINANCE_MANAGER approving at Tier 2
+      const tier2Amount = DEFAULT_INR_TIERS[1].maxAmount! - 50_000; // ₹450,000
+      const fixtureTier2 = await createInvoiceAndApprovalFixture({
+        amount: tier2Amount,
+      });
+      const res2 = await execute({
+        invoiceId: fixtureTier2.invoice.id,
+        approvalId: fixtureTier2.approval.id,
         userId: financeManagerId,
         role: "FINANCE_MANAGER",
       });
+      expect(res2).toBeDefined();
+      const updated2 = await prisma.invoice.findUnique({ where: { id: fixtureTier2.invoice.id } });
+      expect(updated2?.workflowState).toBe("SCHEDULED");
 
-      expect(res).toBeDefined();
-      const updated = await prisma.invoice.findUnique({ where: { id: invoice.id } });
-      expect(updated?.workflowState).toBe("SCHEDULED");
+      // 8c. ADMINISTRATOR approving at Tier 3
+      const tier3Amount = (DEFAULT_INR_TIERS[2].minAmount || 500_001) + 100_000; // ₹600,000
+      const fixtureTier3 = await createInvoiceAndApprovalFixture({
+        amount: tier3Amount,
+        creatorId: financeManagerId, // Non-admin creator so admin has no SoD conflict
+      });
+      const res3 = await execute({
+        invoiceId: fixtureTier3.invoice.id,
+        approvalId: fixtureTier3.approval.id,
+        userId: secondAdminId,
+        role: "ADMINISTRATOR",
+      });
+      expect(res3).toBeDefined();
+      const updated3 = await prisma.invoice.findUnique({ where: { id: fixtureTier3.invoice.id } });
+      expect(updated3?.workflowState).toBe("SCHEDULED");
     });
   });
 });
