@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import express, { Request, Response, NextFunction } from "express";
+import http from "http";
 import { integrationRoutes } from "./routes";
 import { invoiceRoutes } from "../invoices/routes";
 import { signAccessToken } from "../../lib/jwt";
@@ -28,7 +29,7 @@ function dispatch(app: express.Express, method: string, path: string, role: stri
       const port = addr.port;
       const payload = body ? JSON.stringify(body) : undefined;
       
-      const req = require("http").request(
+      const req = http.request(
         {
           hostname: "127.0.0.1",
           port,

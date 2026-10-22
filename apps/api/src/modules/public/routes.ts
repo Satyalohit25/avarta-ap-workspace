@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import { Router, Request, Response } from "express";
-import { prisma } from "../../config/database";
 import { publicTrackRateLimiter } from "../../middleware/rate-limiter";
 import { hashTrackingToken } from "../../lib/crypto";
 import { findInvoiceByPublicTrackingHash } from "../invoices/repository";

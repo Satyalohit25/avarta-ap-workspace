@@ -1,7 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { prisma } from "../../config/database";
 import { transitionInvoice } from "./service";
-import { applyTransition } from "../../workflow/engine";
 
 describe("Approval Enforcement Unification & Bypass Elimination (ACT-P0-J)", () => {
   const orgId = "org-test-approval-bypass";

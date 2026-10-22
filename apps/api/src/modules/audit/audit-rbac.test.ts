@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import express, { Request, Response, NextFunction } from "express";
+import http from "http";
 import { auditRoutes } from "./routes";
 import { signAccessToken } from "../../lib/jwt";
 
@@ -24,7 +25,7 @@ function dispatch(app: express.Express, role: string): Promise<{ status: number;
     const server = app.listen(0, () => {
       const addr = server.address() as any;
       const port = addr.port;
-      const req = require("http").request(
+      const req = http.request(
         {
           hostname: "127.0.0.1",
           port,

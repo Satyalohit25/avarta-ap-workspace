@@ -1,3 +1,4 @@
+import { Prisma, ExceptionType } from "@prisma/client";
 import { prisma } from "../../config/database";
 import { ApiError } from "../../lib/errors";
 import { parsePagination, paginationMeta } from "../../lib/pagination";
@@ -113,13 +114,13 @@ export async function resolveException(
 export async function createException(params: {
   organizationId: string;
   invoiceId: string;
-  type: any;
+  type: ExceptionType;
   severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   title: string;
   description: string;
-  tx?: any;
+  tx?: Prisma.TransactionClient;
 }) {
-  const runner = async (client: any) => {
+  const runner = async (client: Prisma.TransactionClient | typeof prisma) => {
     await client.$queryRawUnsafe(
       `SELECT "id" FROM "Invoice" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE`,
       params.invoiceId,

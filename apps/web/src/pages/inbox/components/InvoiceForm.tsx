@@ -13,8 +13,6 @@ import {
   Plus,
   Eye,
   EyeOff,
-  Link2,
-  FileSpreadsheet,
   RotateCcw,
   ShieldCheck,
   AlertCircle,
@@ -24,7 +22,7 @@ import { listPurchaseOrders, PurchaseOrderItem } from "../../../api/purchaseOrde
 import { Input } from "../../../components/ui/Input";
 import { Select } from "../../../components/ui/Select";
 import { Button } from "../../../components/ui/Button";
-import { formatCurrency, formatDate } from "../../../lib/formatters";
+import { formatCurrency } from "../../../lib/formatters";
 import { InvoiceFormValues, invoiceFormSchema, InvoiceLineValues } from "../validation";
 import { extractInvoiceDocument } from "../../../api/invoices";
 import { generateGroundTruthBoxes } from "../../../lib/ocrGroundTruth";

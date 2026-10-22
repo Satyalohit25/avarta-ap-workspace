@@ -15,9 +15,6 @@ import {
   FileSpreadsheet,
   FileCode,
   ChevronDown,
-  Layers,
-  ArrowRight,
-  FileText,
 } from "lucide-react";
 import {
   InvoiceListItem,
@@ -45,7 +42,6 @@ import { BadgeKey } from "../../components/ui/BadgeKey";
 import { TimelineEvent } from "../../components/ui/Timeline";
 import { Dialog } from "../../components/ui/Dialog";
 import { Sheet } from "../../components/ui/Sheet";
-import { Tabs } from "../../components/ui/Tabs";
 import { Alert } from "../../components/ui/Alert";
 import { Breadcrumbs } from "../../components/ui/Breadcrumbs";
 import { useToast } from "../../components/ui/ToastContext";

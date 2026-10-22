@@ -3,6 +3,7 @@ import { requireAuth } from "../../middleware/auth";
 import { requireRole } from "../../middleware/permissions";
 import { IntegrationsService } from "./service";
 import { ApiError } from "../../lib/errors";
+import { PaymentGatewayProvider } from "../payments/adapter";
 
 export const integrationRoutes = Router();
 
@@ -133,8 +134,8 @@ integrationRoutes.post("/payment-gateway/test", requireRole("ADMINISTRATOR"), as
 
     const result = await IntegrationsService.testAndSavePaymentGateway(
       organizationId,
-      provider.toUpperCase() as any,
-      config || { provider: provider.toUpperCase() },
+      provider.toUpperCase() as PaymentGatewayProvider,
+      config || { provider: provider.toUpperCase() as PaymentGatewayProvider },
       save !== false
     );
 

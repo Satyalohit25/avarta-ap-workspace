@@ -2,7 +2,6 @@ import { describe, expect, it, beforeEach } from "vitest";
 import { prisma } from "../../config/database";
 import { executeInvoiceApproval, executeInvoiceRejection } from "./service";
 import { createException } from "../exceptions/service";
-import { applyTransition } from "../../workflow/engine";
 
 describe("Pessimistic Row Locking & Concurrency Protection (Day 1.5 Item 4)", () => {
   const orgId = "org-concurrency-test";

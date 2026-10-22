@@ -1,12 +1,12 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import express, { Request, Response, NextFunction } from "express";
+import http from "http";
 import { prisma } from "../../config/database";
 import { publicRoutes } from "./routes";
 import { invoiceRoutes } from "../invoices/routes";
 import { signAccessToken } from "../../lib/jwt";
 import { hashTrackingToken, generateTrackingToken, encryptTrackingToken } from "../../lib/crypto";
 import { findInvoiceByPublicTrackingHash } from "../invoices/repository";
-import { applyTransition } from "../../workflow/engine";
 
 function createTestApp() {
   const app = express();
@@ -26,7 +26,7 @@ function dispatch(app: express.Express, method: string, path: string, headers: R
       const port = addr.port;
       const payload = body ? JSON.stringify(body) : undefined;
 
-      const req = require("http").request(
+      const req = http.request(
         {
           hostname: "127.0.0.1",
           port,

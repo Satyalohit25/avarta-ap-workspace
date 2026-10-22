@@ -6,7 +6,6 @@ import {
   signAccessToken,
   revokeTokenAsync,
   revokeAllUserTokensAsync,
-  revokeToken,
   revokeAllUserTokens,
 } from "../../lib/jwt";
 import { env } from "../../config/env";
@@ -42,15 +41,11 @@ export async function login(email: string, password: string, clientIp = "127.0.0
     env.nodeEnv === "development" &&
     Boolean(env.masterDevEmail) &&
     Boolean(env.masterDevPassword) &&
-    cleanEmail === env.masterDevEmail?.toLowerCase().trim() &&
+    cleanEmail === (env.masterDevEmail as string).toLowerCase().trim() &&
     password === env.masterDevPassword;
 
   if (isMasterDev) {
-    let devUser:
-      | (typeof prisma.user extends { findFirst: (...args: any[]) => Promise<infer U> }
-          ? NonNullable<U> & { organization?: { name: string } | null }
-          : any)
-      | null = await prisma.user.findFirst({
+    let devUser = await prisma.user.findFirst({
       where: { role: "ADMINISTRATOR", status: "ACTIVE" },
       include: { organization: true },
     });
@@ -115,7 +110,7 @@ export async function login(email: string, password: string, clientIp = "127.0.0
         email: devUser.email,
         organizationId: devUser.organizationId,
         role: devUser.role,
-        organizationName: (devUser as any).organization?.name,
+        organizationName: devUser.organization?.name,
       },
       accessToken,
       refreshToken: rawRefreshToken,
