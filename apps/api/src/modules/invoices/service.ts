@@ -932,7 +932,7 @@ export async function regenerateInvoiceTrackingToken(
     data: {
       organizationId,
       userId: userId || null,
-      action: "TRACKING_TOKEN_REGENERATED",
+      action: "TRACKING_LINK_REGENERATED",
       entityType: "INVOICE",
       entityId: invoiceId,
       afterData: {

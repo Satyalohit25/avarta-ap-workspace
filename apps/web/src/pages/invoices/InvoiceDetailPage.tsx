@@ -1188,48 +1188,49 @@ export default function InvoiceDetailPage() {
           {/* Header Action Suite: Vendor Portal, Audit Drawer, and Workflow CTA */}
           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
             {/* Vendor Self-Service Portal Launcher & Link Copy */}
-            <div className="flex items-center rounded-lg border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs overflow-hidden h-9">
-              <a
-                href={trackingInfo?.trackingUrl || `/track/${invoice.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-medium text-neutral-700 dark:text-zinc-300 hover:bg-neutral-50 dark:hover:bg-zinc-800 transition-colors border-r border-neutral-200 dark:border-zinc-800 h-full"
-                title="Launch vendor tracking view in new tab"
-              >
-                <ExternalLink
-                  size={13}
-                  className="text-indigo-600 dark:text-indigo-400"
-                />
-                <span>Vendor Portal</span>
-              </a>
-              <button
-                type="button"
-                onClick={() => {
-                  const url = trackingInfo?.trackingUrl || `${window.location.origin}/track/${invoice.id}`;
-                  void navigator.clipboard?.writeText(url);
-                  setCopiedPortalLink(true);
-                  toast.success(
-                    "Link copied to clipboard",
-                    "Public vendor tracking URL is ready to share.",
-                  );
-                  setTimeout(() => setCopiedPortalLink(false), 2000);
-                }}
-                className="px-2.5 py-1.5 text-caption font-medium text-neutral-600 dark:text-zinc-400 hover:bg-neutral-50 dark:hover:bg-zinc-800 transition-colors h-full"
-                title="Copy public tracking link"
-              >
-                {copiedPortalLink ? (
-                  <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
-                    <Check size={12} strokeWidth={3} />
-                    <span>Copied!</span>
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <Copy size={12} />
-                    <span>Copy Link</span>
-                  </span>
-                )}
-              </button>
-            </div>
+            {trackingInfo?.trackingUrl ? (
+              <div className="flex items-center rounded-lg border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs overflow-hidden h-9">
+                <a
+                  href={trackingInfo.trackingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-medium text-neutral-700 dark:text-zinc-300 hover:bg-neutral-50 dark:hover:bg-zinc-800 transition-colors border-r border-neutral-200 dark:border-zinc-800 h-full"
+                  title="Launch vendor tracking view in new tab"
+                >
+                  <ExternalLink
+                    size={13}
+                    className="text-indigo-600 dark:text-indigo-400"
+                  />
+                  <span>Vendor Portal</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(trackingInfo.trackingUrl);
+                    setCopiedPortalLink(true);
+                    toast.success(
+                      "Link copied to clipboard",
+                      "Public vendor tracking URL is ready to share.",
+                    );
+                    setTimeout(() => setCopiedPortalLink(false), 2000);
+                  }}
+                  className="px-2.5 py-1.5 text-caption font-medium text-neutral-600 dark:text-zinc-400 hover:bg-neutral-50 dark:hover:bg-zinc-800 transition-colors h-full"
+                  title="Copy public tracking link"
+                >
+                  {copiedPortalLink ? (
+                    <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <Check size={12} strokeWidth={3} />
+                      <span>Copied!</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      <Copy size={12} />
+                      <span>Copy Link</span>
+                    </span>
+                  )}
+                </button>
+              </div>
+            ) : null}
 
             {/* Enterprise Audit Log Slide-Out Sheet Trigger */}
             <Button

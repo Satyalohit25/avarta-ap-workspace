@@ -218,7 +218,7 @@ describe("Public Invoice Tracking Hardening (ACT-P0-01)", () => {
       where: {
         organizationId: orgId,
         entityId: invoiceId,
-        action: "TRACKING_TOKEN_REGENERATED",
+        action: "TRACKING_LINK_REGENERATED",
       },
     });
     expect(auditLog).toBeDefined();
@@ -262,6 +262,18 @@ describe("Public Invoice Tracking Hardening (ACT-P0-01)", () => {
     const diffDaysPaid = Math.round((expPaid - Date.now()) / (24 * 60 * 60 * 1000));
     expect(diffDaysPaid).toBeGreaterThanOrEqual(269);
     expect(diffDaysPaid).toBeLessThanOrEqual(271);
+
+    // Assert that audit log records TRACKING_LINK_REGENERATED
+    const auditRow = await prisma.auditLog.findFirst({
+      where: {
+        organizationId: orgId,
+        entityId: invoiceId,
+        action: "TRACKING_LINK_REGENERATED",
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    expect(auditRow).not.toBeNull();
+    expect(auditRow?.action).toBe("TRACKING_LINK_REGENERATED");
   });
 
   it("Item 5f: tenant-guard exemption applies ONLY to exact { trackingTokenHash } in tracking context; any other query throws", async () => {

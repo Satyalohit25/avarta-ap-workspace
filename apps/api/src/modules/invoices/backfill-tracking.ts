@@ -23,6 +23,7 @@ export async function backfillInvoiceTrackingTokens(): Promise<BackfillTrackingR
     select: {
       id: true,
       status: true,
+      createdAt: true,
     },
   });
 
@@ -32,9 +33,9 @@ export async function backfillInvoiceTrackingTokens(): Promise<BackfillTrackingR
     const tokenHash = hashTrackingToken(rawToken);
     const encryptedToken = encryptTrackingToken(rawToken, "v1");
 
-    // Standard retention: 90 days, or 270 days if already PAID
+    // Standard retention: 90 days from invoice creation, or 270 days if already PAID
     const days = inv.status === "PAID" ? 270 : 90;
-    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(inv.createdAt.getTime() + days * 24 * 60 * 60 * 1000);
 
     await prisma.invoice.update({
       where: { id: inv.id },
@@ -56,23 +57,23 @@ export async function backfillInvoiceTrackingTokens(): Promise<BackfillTrackingR
     select: {
       id: true,
       status: true,
+      createdAt: true,
       trackingTokenExpiresAt: true,
     },
   });
 
   let recomputedCount = 0;
-  const now = Date.now();
 
   for (const inv of existingInvoices) {
     const isPaid = inv.status === "PAID";
     const targetDays = isPaid ? 270 : 90;
-    const minThresholdDays = isPaid ? 250 : 75; // Tolerance buffer to prevent re-updating on idempotent runs
 
     const currentExpiryTime = inv.trackingTokenExpiresAt ? inv.trackingTokenExpiresAt.getTime() : 0;
-    const thresholdTime = now + minThresholdDays * 24 * 60 * 60 * 1000;
+    const expectedExpiryTime = inv.createdAt.getTime() + targetDays * 24 * 60 * 60 * 1000;
 
-    if (currentExpiryTime < thresholdTime) {
-      const newExpiresAt = new Date(now + targetDays * 24 * 60 * 60 * 1000);
+    // Tolerance buffer of 1 day to prevent re-updating on idempotent runs
+    if (Math.abs(currentExpiryTime - expectedExpiryTime) > 24 * 60 * 60 * 1000) {
+      const newExpiresAt = new Date(expectedExpiryTime);
       await prisma.invoice.update({
         where: { id: inv.id },
         data: {

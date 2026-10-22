@@ -47,8 +47,8 @@ export function InvoiceActionBar({
   const navigate = useNavigate();
 
   function handleCopyTrackingLink() {
-    const url = trackingUrl || `${window.location.origin}/track/${encodeURIComponent(invoiceNumber)}`;
-    navigator.clipboard.writeText(url);
+    if (!trackingUrl) return;
+    navigator.clipboard.writeText(trackingUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 3000);
   }
@@ -188,14 +188,25 @@ export function InvoiceActionBar({
             <div className="absolute right-0 bottom-full mb-2 w-52 py-1 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-neutral-200 dark:border-zinc-700 z-50 text-caption animate-in fade-in zoom-in-95 duration-100">
               <button
                 type="button"
+                disabled={!trackingUrl}
                 onClick={() => {
                   handleCopyTrackingLink();
                   setShowMoreMenu(false);
                 }}
-                className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-300 transition-colors"
+                className={`w-full text-left px-3 py-2 flex items-center gap-2 text-neutral-700 dark:text-zinc-300 transition-colors ${
+                  trackingUrl
+                    ? "hover:bg-neutral-100 dark:hover:bg-zinc-700 cursor-pointer"
+                    : "opacity-50 cursor-not-allowed"
+                }`}
               >
                 <Link2 size={14} className="text-neutral-400" />
-                <span>{copiedLink ? "Link Copied!" : "Copy Vendor Link"}</span>
+                <span>
+                  {copiedLink
+                    ? "Link Copied!"
+                    : trackingUrl
+                      ? "Copy Vendor Link"
+                      : "Tracking Link Unavailable"}
+                </span>
               </button>
 
               <button
