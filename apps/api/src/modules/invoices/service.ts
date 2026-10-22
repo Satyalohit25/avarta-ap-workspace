@@ -11,6 +11,7 @@ import { extractInvoiceFromFile } from "../../ai/extractor";
 import * as repo from "./repository";
 import { toInvoiceDetail, toInvoiceListItem } from "./mapper";
 import { executeInvoiceApproval, executeInvoiceRejection } from "../approvals/service";
+import { createException } from "../exceptions/service";
 import { generateTrackingToken, hashTrackingToken, encryptTrackingToken, decryptTrackingToken } from "../../lib/crypto";
 import { env } from "../../config/env";
 
@@ -714,16 +715,13 @@ export async function transitionInvoice(
   } else if (action === "RUN_MATCHING" || action === "SUBMIT_APPROVAL") {
     await runThreeWayMatching({ organizationId, invoiceId, userId });
   } else if (action === "HOLD_REQUEST_CORRECTION") {
-    await prisma.exception.create({
-      data: {
-        organizationId,
-        invoiceId,
-        type: "MANUAL_REVIEW",
-        severity: "MEDIUM",
-        title: "Invoice Placed On Hold / Correction Requested",
-        description: comment || "Reviewer requested invoice hold and vendor clarification.",
-        status: "OPEN",
-      },
+    await createException({
+      organizationId,
+      invoiceId,
+      type: "MANUAL_REVIEW",
+      severity: "MEDIUM",
+      title: "Invoice Placed On Hold / Correction Requested",
+      description: comment || "Reviewer requested invoice hold and vendor clarification.",
     });
   }
 

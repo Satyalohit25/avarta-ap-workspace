@@ -121,11 +121,26 @@ export async function createException(params: {
   tx?: Prisma.TransactionClient;
 }) {
   const runner = async (client: Prisma.TransactionClient | typeof prisma) => {
-    await client.$queryRawUnsafe(
-      `SELECT "id" FROM "Invoice" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE`,
+    const lockedRows = await client.$queryRawUnsafe<Array<{ id: string; workflowState: string }>>(
+      `SELECT "id", "workflowState" FROM "Invoice" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE`,
       params.invoiceId,
       params.organizationId
     );
+    if (!lockedRows || lockedRows.length === 0) {
+      throw ApiError.notFound("Invoice not found");
+    }
+    const locked = lockedRows[0];
+    if (
+      locked.workflowState === "SCHEDULED" ||
+      locked.workflowState === "PROCESSING_PAYMENT" ||
+      locked.workflowState === "PAID" ||
+      locked.workflowState === "ERP_SYNC" ||
+      locked.workflowState === "ARCHIVED"
+    ) {
+      throw ApiError.conflict(
+        `Cannot create exception or place invoice on hold: invoice is already in state "${locked.workflowState}".`
+      );
+    }
 
     return client.exception.create({
       data: {
