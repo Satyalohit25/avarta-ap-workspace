@@ -1,11 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
+import { execSync } from "child_process";
 
-describe("Item 12: Bundle Hygiene and Source Scans", () => {
-  const webDistDir = path.resolve(__dirname, "../../../../web/dist");
+describe("Item 12: Bundle Hygiene, Build Verification, and Source Scans", () => {
+  const repoRoot = path.resolve(__dirname, "../../../../../");
+  const webDir = path.resolve(__dirname, "../../../../web");
+  const webDistDir = path.resolve(webDir, "dist");
   const apiSrcDir = path.resolve(__dirname, "../../");
-  const webSrcDir = path.resolve(__dirname, "../../../../web/src");
+  const webSrcDir = path.resolve(webDir, "src");
 
   function getAllFiles(dir: string, fileList: string[] = []): string[] {
     if (!fs.existsSync(dir)) return fileList;
@@ -32,8 +35,32 @@ describe("Item 12: Bundle Hygiene and Source Scans", () => {
     return matches;
   }
 
+  beforeAll(() => {
+    // If dist is absent or explicitly requested via BUILD_IN_TEST, trigger a build inside the test
+    const shouldBuild = process.env.BUILD_IN_TEST === "true" || !fs.existsSync(path.join(webDistDir, "index.html"));
+    if (shouldBuild) {
+      try {
+        execSync("pnpm --filter @ap-saas/web exec vite build", {
+          cwd: repoRoot,
+          stdio: "pipe",
+          timeout: 60000,
+        });
+      } catch (err: any) {
+        throw new Error(
+          `Bundle hygiene test attempted to build apps/web but vite build failed:\n${err.stderr?.toString() || err.message}`
+        );
+      }
+    }
+
+    // Verify dist freshness and structure with explicit error message if stale or missing
+    if (!fs.existsSync(webDistDir) || !fs.existsSync(path.join(webDistDir, "index.html"))) {
+      throw new Error(
+        `apps/web/dist is missing or invalid. Run 'pnpm --filter @ap-saas/web build' before executing bundle hygiene scans.`
+      );
+    }
+  });
+
   it("verifies apps/web/dist is free from sensitive credentials and demo fixtures", () => {
-    expect(fs.existsSync(webDistDir)).toBe(true);
     const distFiles = getAllFiles(webDistDir);
     expect(distFiles.length).toBeGreaterThan(0);
 
@@ -62,29 +89,49 @@ describe("Item 12: Bundle Hygiene and Source Scans", () => {
     }
   });
 
-  it("scans API source for 9876543210 and confirms isolation to payments mock service", () => {
-    const targetAccountNum = ["987654", "3210"].join("");
+  it("scans API source for 9876543210 in expected-until-Item-B list and verifies exclusion from web dist", () => {
+    // This scan executes in apps/api and scans API source files.
+    // The dist scan stays separate.
+    const expectedUntilItemBStrings = [
+      {
+        id: "MOCK_BANK_ACCOUNT_9876543210",
+        pattern: ["987654", "3210"].join(""),
+        allowedApiFiles: [
+          "src/modules/payments/service.ts",
+          "src/modules/payments/bank-file-generator.test.ts",
+        ],
+        targetRemediation: "Item B (Bank Accounts Module - real DB-backed account resolution)",
+      },
+    ];
+
     const apiSrcFiles = getAllFiles(apiSrcDir).filter(
       (f) => !f.endsWith("bundle-hygiene.test.ts")
     );
-    const matches = searchFilesForString(apiSrcFiles, targetAccountNum);
 
-    // Must be found in payments service (mock account pending Phase 2 Bank Accounts module)
-    expect(matches.length).toBeGreaterThanOrEqual(1);
-    for (const match of matches) {
-      const relative = path.relative(apiSrcDir, match).replace(/\\/g, "/");
-      const isAllowedPaymentsModule =
-        relative.includes("modules/payments/service.ts") ||
-        relative.includes("modules/payments/bank-file-generator.test.ts");
+    for (const item of expectedUntilItemBStrings) {
+      // 1. Scan API source files
+      const matches = searchFilesForString(apiSrcFiles, item.pattern);
       expect(
-        isAllowedPaymentsModule,
-        `Unexpected appearance of ${targetAccountNum} in API source: ${relative}`
-      ).toBe(true);
-    }
+        matches.length,
+        `Pattern ${item.id} expected in API source until ${item.targetRemediation}, but not found.`
+      ).toBeGreaterThanOrEqual(1);
 
-    // Verify targetAccountNum does NOT leak into web dist
-    const distFiles = getAllFiles(webDistDir);
-    const webDistMatches = searchFilesForString(distFiles, targetAccountNum);
-    expect(webDistMatches).toHaveLength(0);
+      for (const match of matches) {
+        const relative = path.relative(path.resolve(__dirname, "../../.."), match).replace(/\\/g, "/");
+        const isAllowed = item.allowedApiFiles.some((allowed) => relative.endsWith(allowed));
+        expect(
+          isAllowed,
+          `Unexpected appearance of ${item.id} in API source outside allowed files: ${relative}. Must be resolved in ${item.targetRemediation}.`
+        ).toBe(true);
+      }
+
+      // 2. Scan Web dist assets: MUST NEVER appear in client-facing bundles
+      const distFiles = getAllFiles(webDistDir);
+      const webDistMatches = searchFilesForString(distFiles, item.pattern);
+      expect(
+        webDistMatches,
+        `Pattern ${item.id} leaked into client-facing web bundle: ${webDistMatches.join(", ")}`
+      ).toHaveLength(0);
+    }
   });
 });
