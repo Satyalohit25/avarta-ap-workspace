@@ -35,6 +35,7 @@ import {
   uploadInvoiceDocument,
   resolveException,
   updateInvoice,
+  getInvoiceTracking,
 } from "../../api/invoices";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SkeletonRows } from "../../components/Skeleton";
@@ -474,6 +475,21 @@ export default function InvoiceDetailPage() {
   );
   const [isAuditDrawerOpen, setIsAuditDrawerOpen] = useState(false);
   const [copiedPortalLink, setCopiedPortalLink] = useState(false);
+  const [trackingInfo, setTrackingInfo] = useState<{
+    trackingToken: string;
+    trackingUrl: string;
+    expiresAt: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (invoiceId) {
+      getInvoiceTracking(invoiceId)
+        .then((res) => {
+          if (res.data) setTrackingInfo(res.data);
+        })
+        .catch(() => {});
+    }
+  }, [invoiceId]);
   const [actionBanner, setActionBanner] = useState<{
     type: "success" | "warning" | "error";
     title: string;
@@ -1178,7 +1194,7 @@ export default function InvoiceDetailPage() {
             {/* Vendor Self-Service Portal Launcher & Link Copy */}
             <div className="flex items-center rounded-lg border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs overflow-hidden h-9">
               <a
-                href={`/invoices/track/${invoice.invoiceNumber || invoice.id}`}
+                href={trackingInfo?.trackingUrl || `/track/${invoice.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-medium text-neutral-700 dark:text-zinc-300 hover:bg-neutral-50 dark:hover:bg-zinc-800 transition-colors border-r border-neutral-200 dark:border-zinc-800 h-full"
@@ -1193,7 +1209,7 @@ export default function InvoiceDetailPage() {
               <button
                 type="button"
                 onClick={() => {
-                  const url = `${window.location.origin}/invoices/track/${invoice.invoiceNumber || invoice.id}`;
+                  const url = trackingInfo?.trackingUrl || `${window.location.origin}/track/${invoice.id}`;
                   void navigator.clipboard?.writeText(url);
                   setCopiedPortalLink(true);
                   toast.success(
@@ -1561,6 +1577,7 @@ export default function InvoiceDetailPage() {
         currency={invoice.currency}
         onAction={handleActionClick}
         isActionPending={actionPending}
+        trackingUrl={trackingInfo?.trackingUrl}
       />
 
       {/* ─────────────────────────────────────────────────────────────

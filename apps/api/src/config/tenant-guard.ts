@@ -42,6 +42,16 @@ export function isEngineContext(): boolean {
   return engineStorage.getStore()?.isEngine === true;
 }
 
+const trackingStorage = new AsyncLocalStorage<{ isTrackingLookup: boolean }>();
+
+export function runWithTrackingLookupBypass<T>(fn: () => Promise<T>): Promise<T> {
+  return trackingStorage.run({ isTrackingLookup: true }, fn);
+}
+
+export function isTrackingLookupContext(): boolean {
+  return trackingStorage.getStore()?.isTrackingLookup === true;
+}
+
 /**
  * Registers Prisma middleware for tenant isolation and FSM write protection.
  */
@@ -85,11 +95,15 @@ export function registerGuardMiddleware(prisma: {
       if (guardedActions.includes(params.action)) {
         const where = params.args?.where;
 
-        // Exempt public tracking token hash lookup (unscoped by design, indexed and hashed)
+        // Exempt public tracking token hash lookup ONLY when:
+        // 1. tracking-lookup context flag is set (isTrackingLookupContext())
+        // 2. AND where clause is exactly { trackingTokenHash }
         if (
           params.model === "Invoice" &&
           (params.action === "findFirst" || params.action === "findUnique") &&
           where &&
+          isTrackingLookupContext() &&
+          Object.keys(where).length === 1 &&
           "trackingTokenHash" in where
         ) {
           return next(params);

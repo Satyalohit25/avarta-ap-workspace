@@ -119,6 +119,7 @@ describe("Public Invoice Tracking Hardening (ACT-P0-01)", () => {
   });
 
   afterAll(async () => {
+    await prisma.auditLog.deleteMany({ where: { organizationId: orgId } });
     await prisma.invoice.deleteMany({ where: { id: { in: [invoiceId, expiredInvoiceId] } } });
     await prisma.organization.deleteMany({ where: { id: orgId } });
   });
@@ -163,29 +164,153 @@ describe("Public Invoice Tracking Hardening (ACT-P0-01)", () => {
     expect(invoice?.id).toBe(invoiceId);
   });
 
-  it("allows regenerating tracking token and extends expiry", async () => {
+  it("returns web URL (<APP_BASE_URL>/track/<token>) for operator tracking endpoint", async () => {
+    const managerToken = signAccessToken({
+      userId: "manager-user",
+      organizationId: orgId,
+      role: "FINANCE_MANAGER",
+    });
+
+    const res = await dispatch(
+      app,
+      "GET",
+      `/invoices/${invoiceId}/tracking`,
+      { Authorization: `Bearer ${managerToken}` }
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.data.trackingToken).toBeDefined();
+    expect(res.body.data.trackingUrl).toMatch(/^http:\/\/.*\/track\/[a-f0-9]{64}$/);
+    expect(res.body.data.trackingUrl).not.toContain("/public/invoices/track");
+  });
+
+  it("enforces RBAC on regenerate: allows ADMINISTRATOR and FINANCE_MANAGER, refuses FINANCE_EXECUTIVE", async () => {
+    const execToken = signAccessToken({
+      userId: "exec-user",
+      organizationId: orgId,
+      role: "FINANCE_EXECUTIVE",
+    });
+
+    const resExec = await dispatch(
+      app,
+      "POST",
+      `/invoices/${invoiceId}/tracking/regenerate`,
+      { Authorization: `Bearer ${execToken}` }
+    );
+    expect(resExec.status).toBe(403);
+
+    const fmToken = signAccessToken({
+      userId: "fm-user",
+      organizationId: orgId,
+      role: "FINANCE_MANAGER",
+    });
+
+    const resFm = await dispatch(
+      app,
+      "POST",
+      `/invoices/${invoiceId}/tracking/regenerate`,
+      { Authorization: `Bearer ${fmToken}` }
+    );
+    expect(resFm.status).toBe(200);
+    expect(resFm.body.data.trackingUrl).toMatch(/^http:\/\/.*\/track\/[a-f0-9]{64}$/);
+
+    // Verify audit log written
+    const auditLog = await prisma.auditLog.findFirst({
+      where: {
+        organizationId: orgId,
+        entityId: invoiceId,
+        action: "TRACKING_TOKEN_REGENERATED",
+      },
+    });
+    expect(auditLog).toBeDefined();
+    expect(auditLog?.userId).toBe("fm-user");
+  });
+
+  it("computes 90 days expiry for non-paid invoice, and 270 days (90+180) for PAID invoice", async () => {
     const adminToken = signAccessToken({
       userId: "admin-user",
       organizationId: orgId,
       role: "ADMINISTRATOR",
     });
 
-    const res = await dispatch(
+    // 1. Unpaid invoice regenerate -> 90 days
+    const resUnpaid = await dispatch(
       app,
       "POST",
       `/invoices/${invoiceId}/tracking/regenerate`,
       { Authorization: `Bearer ${adminToken}` }
     );
-    expect(res.status).toBe(200);
-    expect(res.body.data.trackingToken).toBeDefined();
-    expect(res.body.data.trackingToken).not.toBe(rawToken);
+    expect(resUnpaid.status).toBe(200);
+    const expUnpaid = new Date(resUnpaid.body.data.expiresAt).getTime();
+    const diffDaysUnpaid = Math.round((expUnpaid - Date.now()) / (24 * 60 * 60 * 1000));
+    expect(diffDaysUnpaid).toBeGreaterThanOrEqual(89);
+    expect(diffDaysUnpaid).toBeLessThanOrEqual(91);
 
-    // Old token should now fail
-    const oldRes = await dispatch(app, "GET", `/public/invoices/track/${rawToken}`);
-    expect(oldRes.status).toBe(404);
+    // 2. Mark invoice PAID and regenerate -> 270 days
+    await prisma.invoice.update({
+      where: { id: invoiceId },
+      data: { status: "PAID" },
+    });
 
-    // New token should work
-    const newRes = await dispatch(app, "GET", `/public/invoices/track/${res.body.data.trackingToken}`);
-    expect(newRes.status).toBe(200);
+    const resPaid = await dispatch(
+      app,
+      "POST",
+      `/invoices/${invoiceId}/tracking/regenerate`,
+      { Authorization: `Bearer ${adminToken}` }
+    );
+    expect(resPaid.status).toBe(200);
+    const expPaid = new Date(resPaid.body.data.expiresAt).getTime();
+    const diffDaysPaid = Math.round((expPaid - Date.now()) / (24 * 60 * 60 * 1000));
+    expect(diffDaysPaid).toBeGreaterThanOrEqual(269);
+    expect(diffDaysPaid).toBeLessThanOrEqual(271);
+  });
+
+  it("Item 5f: tenant-guard exemption applies ONLY to exact { trackingTokenHash } in tracking context; any other query throws", async () => {
+    const { runWithTrackingLookupBypass } = await import("../../config/tenant-guard");
+    const origEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+
+    try {
+      // 1. Outside tracking context, query without orgId throws
+      await expect(
+        prisma.invoice.findFirst({ where: { invoiceNumber: "INV-TRACK-001" } })
+      ).rejects.toThrow(/AGENTS\.md Rule 7: All queries on Invoice must include organizationId/);
+
+      // 2. Inside tracking context, query with EXACT { trackingTokenHash } succeeds
+      const tokenHash = hashTrackingToken(rawToken);
+      const validQuery = await runWithTrackingLookupBypass(async () => {
+        return prisma.invoice.findFirst({
+          where: { trackingTokenHash: tokenHash },
+        });
+      });
+      // Should not throw (can be found or null, but tenant guard permits it)
+      expect(validQuery !== undefined).toBe(true);
+
+      // 3. Inside tracking context, any query with OTHER fields (e.g. { trackingTokenHash, status }) throws
+      await expect(
+        runWithTrackingLookupBypass(async () => {
+          return prisma.invoice.findFirst({
+            where: { trackingTokenHash: tokenHash, status: "RECEIVED" },
+          });
+        })
+      ).rejects.toThrow(/AGENTS\.md Rule 7/);
+
+      // 4. Inside tracking context, an unscoped query with a different where field throws
+      await expect(
+        runWithTrackingLookupBypass(async () => {
+          return prisma.invoice.findFirst({
+            where: { invoiceNumber: "INV-TRACK-001" },
+          });
+        })
+      ).rejects.toThrow(/AGENTS\.md Rule 7/);
+
+      // 5. Inside tracking context, a findMany query throws
+      await expect(
+        runWithTrackingLookupBypass(async () => {
+          return prisma.invoice.findMany();
+        })
+      ).rejects.toThrow(/AGENTS\.md Rule 7/);
+    } finally {
+      process.env.NODE_ENV = origEnv;
+    }
   });
 });

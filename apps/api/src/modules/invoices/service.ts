@@ -11,7 +11,8 @@ import { extractInvoiceFromFile } from "../../ai/extractor";
 import * as repo from "./repository";
 import { toInvoiceDetail, toInvoiceListItem } from "./mapper";
 import { executeInvoiceApproval, executeInvoiceRejection } from "../approvals/service";
-import { generateTrackingToken, hashTrackingToken, encryptTrackingToken } from "../../lib/crypto";
+import { generateTrackingToken, hashTrackingToken, encryptTrackingToken, decryptTrackingToken } from "../../lib/crypto";
+import { env } from "../../config/env";
 
 interface ListParams {
   organizationId: string;
@@ -878,16 +879,46 @@ export async function addDocumentToInvoice(
 }
 
 /**
- * Regenerates an invoice's public tracking token, updating hash, ciphertext, and expiry.
+ * Retrieves the public tracking token and web URL for an invoice (operator endpoint).
  */
-export async function regenerateInvoiceTrackingToken(organizationId: string, invoiceId: string) {
+export async function getInvoiceTrackingToken(organizationId: string, invoiceId: string) {
+  const invoice = await repo.findInvoiceById(organizationId, invoiceId);
+  if (!invoice) throw ApiError.notFound("Invoice not found");
+
+  let rawToken = "";
+  if (invoice.trackingTokenEncrypted) {
+    try {
+      rawToken = decryptTrackingToken(invoice.trackingTokenEncrypted);
+    } catch {}
+  }
+
+  if (!rawToken || !invoice.trackingTokenExpiresAt) {
+    return regenerateInvoiceTrackingToken(organizationId, invoiceId);
+  }
+
+  return {
+    trackingToken: rawToken,
+    trackingUrl: `${env.webOrigin}/track/${rawToken}`,
+    expiresAt: invoice.trackingTokenExpiresAt,
+  };
+}
+
+/**
+ * Regenerates an invoice's public tracking token, updating hash, ciphertext, and expiry.
+ * Defaults to 90 days, or 270 days (90 + 180) for PAID invoices.
+ */
+export async function regenerateInvoiceTrackingToken(
+  organizationId: string,
+  invoiceId: string,
+  userId?: string
+) {
   const invoice = await repo.findInvoiceById(organizationId, invoiceId);
   if (!invoice) throw ApiError.notFound("Invoice not found");
 
   const rawToken = generateTrackingToken();
   const tokenHash = hashTrackingToken(rawToken);
   const encryptedToken = encryptTrackingToken(rawToken, "v1");
-  const days = invoice.status === "PAID" ? 90 : 30;
+  const days = invoice.status === "PAID" ? 270 : 90;
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
   await prisma.invoice.update({
@@ -899,9 +930,24 @@ export async function regenerateInvoiceTrackingToken(organizationId: string, inv
     },
   });
 
+  await prisma.auditLog.create({
+    data: {
+      organizationId,
+      userId: userId || null,
+      action: "TRACKING_TOKEN_REGENERATED",
+      entityType: "INVOICE",
+      entityId: invoiceId,
+      afterData: {
+        expiresAt: expiresAt.toISOString(),
+        validityDays: days,
+      },
+      result: "SUCCESS",
+    },
+  });
+
   return {
     trackingToken: rawToken,
-    trackingUrl: `/public/invoices/track/${rawToken}`,
+    trackingUrl: `${env.webOrigin}/track/${rawToken}`,
     expiresAt,
   };
 }

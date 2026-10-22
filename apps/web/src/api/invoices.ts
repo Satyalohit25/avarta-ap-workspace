@@ -285,6 +285,28 @@ export function uploadInvoiceDocument(id: string, file: File) {
   });
 }
 
+export function getInvoiceTracking(id: string) {
+  return apiRequest<{
+    data: {
+      trackingToken: string;
+      trackingUrl: string;
+      expiresAt: string;
+    };
+  }>(`/invoices/${id}/tracking`);
+}
+
+export function regenerateInvoiceTracking(id: string) {
+  return apiRequest<{
+    data: {
+      trackingToken: string;
+      trackingUrl: string;
+      expiresAt: string;
+    };
+  }>(`/invoices/${id}/tracking/regenerate`, {
+    method: "POST",
+  });
+}
+
 export function resolveException(exceptionId: string, resolution: string) {
   return apiRequest<{ data: unknown }>(`/exceptions/${exceptionId}/resolve`, {
     method: "POST",

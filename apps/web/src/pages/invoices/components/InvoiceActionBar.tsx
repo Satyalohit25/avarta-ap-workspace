@@ -29,6 +29,7 @@ interface InvoiceActionBarProps {
   currency?: string;
   onAction: (actionKey: string) => void;
   isActionPending?: boolean;
+  trackingUrl?: string;
 }
 
 export function InvoiceActionBar({
@@ -38,6 +39,7 @@ export function InvoiceActionBar({
   currency = "INR",
   onAction,
   isActionPending = false,
+  trackingUrl,
 }: InvoiceActionBarProps) {
   const { status, primaryAction, secondaryActions } = context;
   const [copiedLink, setCopiedLink] = useState(false);
@@ -45,7 +47,7 @@ export function InvoiceActionBar({
   const navigate = useNavigate();
 
   function handleCopyTrackingLink() {
-    const url = `${window.location.origin}/track/${encodeURIComponent(invoiceNumber)}`;
+    const url = trackingUrl || `${window.location.origin}/track/${encodeURIComponent(invoiceNumber)}`;
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 3000);

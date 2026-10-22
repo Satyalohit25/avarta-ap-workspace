@@ -83,6 +83,8 @@ export async function findInvoiceById(organizationId: string, id: string) {
   });
 }
 
+import { runWithTrackingLookupBypass } from "../../config/tenant-guard";
+
 export async function createInvoice(
   organizationId: string,
   data: Prisma.InvoiceUncheckedCreateInput
@@ -90,10 +92,11 @@ export async function createInvoice(
   let trackingFields = {};
   if (!data.trackingTokenHash) {
     const rawToken = generateTrackingToken();
+    const days = data.status === "PAID" ? 270 : 90;
     trackingFields = {
       trackingTokenHash: hashTrackingToken(rawToken),
       trackingTokenEncrypted: encryptTrackingToken(rawToken, "v1"),
-      trackingTokenExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      trackingTokenExpiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000),
     };
   }
 
@@ -120,25 +123,27 @@ export async function updateInvoice(
  * 256-bit token entropy and rate limiting.
  */
 export async function findInvoiceByPublicTrackingHash(hash: string) {
-  return prisma.invoice.findFirst({
-    where: {
-      trackingTokenHash: hash,
-    },
-    include: {
-      supplier: {
-        select: { displayName: true, legalName: true },
+  return runWithTrackingLookupBypass(async () => {
+    return prisma.invoice.findFirst({
+      where: {
+        trackingTokenHash: hash,
       },
-      payments: {
-        select: {
-          status: true,
-          scheduledDate: true,
-          processedAt: true,
-          utrNumber: true,
-          clearingDate: true,
-          clearingDocumentNumber: true,
+      include: {
+        supplier: {
+          select: { displayName: true, legalName: true },
+        },
+        payments: {
+          select: {
+            status: true,
+            scheduledDate: true,
+            processedAt: true,
+            utrNumber: true,
+            clearingDate: true,
+            clearingDocumentNumber: true,
+          },
         },
       },
-    },
+    });
   });
 }
 

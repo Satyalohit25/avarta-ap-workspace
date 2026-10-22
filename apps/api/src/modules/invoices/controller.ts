@@ -225,11 +225,24 @@ export async function auditHandler(req: Request, res: Response, next: NextFuncti
   }
 }
 
+export async function getTrackingHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await invoiceService.getInvoiceTrackingToken(
+      orgId(req),
+      req.params.invoiceId
+    );
+    res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function regenerateTrackingHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const result = await invoiceService.regenerateInvoiceTrackingToken(
       orgId(req),
-      req.params.invoiceId
+      req.params.invoiceId,
+      req.auth?.userId
     );
     res.json({ data: result });
   } catch (err) {

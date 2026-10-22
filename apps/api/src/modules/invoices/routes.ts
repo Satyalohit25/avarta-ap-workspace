@@ -17,6 +17,7 @@ import {
   uploadDocumentHandler,
   extractDocumentHandler,
   regenerateTrackingHandler,
+  getTrackingHandler,
 } from "./controller";
 
 import { enforceInvoiceQuota } from "../billing/middleware";
@@ -73,9 +74,17 @@ invoiceRoutes.post(
   erpSyncHandler
 );
 
+// Operator tracking link fetch endpoint
+invoiceRoutes.get(
+  "/:invoiceId/tracking",
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "APPROVER", "FINANCE_EXECUTIVE", "READ_ONLY"),
+  getTrackingHandler
+);
+
+// Restricted regenerate tracking token endpoint (ADMINISTRATOR and FINANCE_MANAGER only)
 invoiceRoutes.post(
   "/:invoiceId/tracking/regenerate",
-  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER"),
   regenerateTrackingHandler
 );
 
