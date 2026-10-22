@@ -14,5 +14,6 @@ export default defineConfig({
       "**/.{idea,git,cache,output,temp}/**",
     ],
     setupFiles: [path.resolve(__dirname, "apps/api/src/test/setup.ts")],
+    fileParallelism: false,
   },
 });

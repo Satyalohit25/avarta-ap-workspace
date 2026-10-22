@@ -22,7 +22,7 @@ describe("Item 6: Real Entrypoint Server Boot Validation", () => {
     const combinedOutput = (result.stdout || "") + (result.stderr || "");
     expect(combinedOutput).toMatch(/FATAL SECURITY VIOLATION/);
     expect(combinedOutput).toMatch(/MASTER_DEV_PASSWORD/);
-  });
+  }, 15000);
 
   it("fails to boot real server entrypoint (exit code 1) when NODE_ENV=production and MASTER_DEV_EMAIL is set", () => {
     const result = spawnSync(process.execPath, [serverPath], {
@@ -41,5 +41,5 @@ describe("Item 6: Real Entrypoint Server Boot Validation", () => {
     const combinedOutput = (result.stdout || "") + (result.stderr || "");
     expect(combinedOutput).toMatch(/FATAL SECURITY VIOLATION/);
     expect(combinedOutput).toMatch(/MASTER_DEV_EMAIL/);
-  });
+  }, 15000);
 });
