@@ -106,3 +106,41 @@ export async function resolveException(
   return updatedException;
 }
 
+/**
+ * Creates an exception on an invoice with pessimistic row locking
+ * to ensure atomicity with concurrent approval operations.
+ */
+export async function createException(params: {
+  organizationId: string;
+  invoiceId: string;
+  type: any;
+  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  title: string;
+  description: string;
+  tx?: any;
+}) {
+  const runner = async (client: any) => {
+    await client.$queryRawUnsafe(
+      `SELECT "id" FROM "Invoice" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE`,
+      params.invoiceId,
+      params.organizationId
+    );
+
+    return client.exception.create({
+      data: {
+        organizationId: params.organizationId,
+        invoiceId: params.invoiceId,
+        type: params.type,
+        severity: params.severity,
+        title: params.title,
+        description: params.description,
+        status: "OPEN",
+      },
+    });
+  };
+
+  if (params.tx) {
+    return runner(params.tx);
+  }
+  return prisma.$transaction(async (tx) => runner(tx));
+}

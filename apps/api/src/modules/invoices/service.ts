@@ -10,7 +10,7 @@ import { validateGstinChecksum, validateTaxArithmetic } from "./tax-validator";
 import { extractInvoiceFromFile } from "../../ai/extractor";
 import * as repo from "./repository";
 import { toInvoiceDetail, toInvoiceListItem } from "./mapper";
-import { executeInvoiceApproval } from "../approvals/service";
+import { executeInvoiceApproval, executeInvoiceRejection } from "../approvals/service";
 import { generateTrackingToken, hashTrackingToken, encryptTrackingToken } from "../../lib/crypto";
 
 interface ListParams {
@@ -700,7 +700,12 @@ export async function transitionInvoice(
     });
   } else if (action === "REJECT") {
     if (!comment) throw ApiError.badRequest("Comment is required for rejection.");
-    await applyTransition({ invoiceId, event: "REJECTED", triggeredBy: userId, reason: comment });
+    await executeInvoiceRejection({
+      organizationId,
+      invoiceId,
+      userId,
+      reason: comment,
+    });
   } else if (action === "RUN_MATCHING" || action === "SUBMIT_APPROVAL") {
     await runThreeWayMatching({ organizationId, invoiceId, userId });
   } else if (action === "HOLD_REQUEST_CORRECTION") {

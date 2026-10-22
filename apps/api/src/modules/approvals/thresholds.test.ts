@@ -79,6 +79,17 @@ describe("Approval Threshold Engine (Step 3)", () => {
 
   describe("Service enforcement", () => {
     it("throws 403 Forbidden when Approver tries to approve a Tier 2 invoice", async () => {
+      vi.spyOn(prisma, "$queryRawUnsafe").mockResolvedValue([
+        {
+          id: "inv-1",
+          organizationId: "org-1",
+          workflowState: "WAITING_APPROVAL",
+          invoiceNumber: "INV-1",
+          totalAmount: 250_000,
+          currency: "INR",
+        },
+      ] as any);
+
       vi.spyOn(prisma.approval, "findFirst").mockResolvedValue({
         id: "app-1",
         invoiceId: "inv-1",
@@ -100,6 +111,17 @@ describe("Approval Threshold Engine (Step 3)", () => {
     });
 
     it("allows Finance Manager to approve a Tier 2 invoice", async () => {
+      vi.spyOn(prisma, "$queryRawUnsafe").mockResolvedValue([
+        {
+          id: "inv-2",
+          organizationId: "org-1",
+          workflowState: "WAITING_APPROVAL",
+          invoiceNumber: "INV-2",
+          totalAmount: 250_000,
+          currency: "INR",
+        },
+      ] as any);
+
       vi.spyOn(prisma.approval, "findFirst").mockResolvedValue({
         id: "app-2",
         invoiceId: "inv-2",

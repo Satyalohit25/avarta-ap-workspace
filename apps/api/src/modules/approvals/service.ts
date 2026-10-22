@@ -131,17 +131,37 @@ export async function executeInvoiceApproval({
   notes?: string;
 }) {
   return prisma.$transaction(async (tx) => {
-    const invoice = await tx.invoice.findFirst({
-      where: { id: invoiceId, organizationId },
-    });
-    if (!invoice) throw ApiError.notFound("Invoice not found");
+    // Acquire pessimistic row lock on Invoice table with verified casing
+    const lockedRows = await tx.$queryRawUnsafe<
+      Array<{
+        id: string;
+        organizationId: string;
+        workflowState: string;
+        invoiceNumber: string;
+        totalAmount: Prisma.Decimal;
+        currency: string;
+      }>
+    >(
+      `SELECT "id", "organizationId", "workflowState", "invoiceNumber", "totalAmount", "currency" FROM "Invoice" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE`,
+      invoiceId,
+      organizationId
+    );
+    if (!lockedRows || lockedRows.length === 0) {
+      throw ApiError.notFound("Invoice not found");
+    }
+    const lockedInvoice = lockedRows[0];
+    if (lockedInvoice.workflowState !== "WAITING_APPROVAL") {
+      throw ApiError.conflict(
+        `Invoice is not waiting for approval (current workflow state: ${lockedInvoice.workflowState})`
+      );
+    }
 
     await verifyApprovalAuthority(tx, {
       organizationId,
       invoiceId,
-      invoiceNumber: invoice.invoiceNumber,
-      totalAmount: invoice.totalAmount,
-      currency: invoice.currency,
+      invoiceNumber: lockedInvoice.invoiceNumber,
+      totalAmount: lockedInvoice.totalAmount,
+      currency: lockedInvoice.currency,
       userId,
       userRole,
     });
@@ -154,7 +174,58 @@ export async function executeInvoiceApproval({
       tx,
     });
 
-    return invoice;
+    return lockedInvoice;
+  });
+}
+
+export async function executeInvoiceRejection({
+  organizationId,
+  invoiceId,
+  userId,
+  reason,
+}: {
+  organizationId: string;
+  invoiceId: string;
+  userId?: string;
+  reason?: string;
+}) {
+  if (!reason || reason.trim().length === 0) {
+    throw ApiError.badRequest("A reason is required when rejecting an invoice");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    // Acquire pessimistic row lock on Invoice table with verified casing
+    const lockedRows = await tx.$queryRawUnsafe<
+      Array<{
+        id: string;
+        organizationId: string;
+        workflowState: string;
+        invoiceNumber: string;
+      }>
+    >(
+      `SELECT "id", "organizationId", "workflowState", "invoiceNumber" FROM "Invoice" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE`,
+      invoiceId,
+      organizationId
+    );
+    if (!lockedRows || lockedRows.length === 0) {
+      throw ApiError.notFound("Invoice not found");
+    }
+    const lockedInvoice = lockedRows[0];
+    if (lockedInvoice.workflowState !== "WAITING_APPROVAL") {
+      throw ApiError.conflict(
+        `Invoice is not waiting for approval (current workflow state: ${lockedInvoice.workflowState})`
+      );
+    }
+
+    await applyTransition({
+      invoiceId,
+      event: "REJECTED",
+      triggeredBy: userId,
+      reason: reason.trim(),
+      tx,
+    });
+
+    return lockedInvoice;
   });
 }
 
@@ -178,24 +249,12 @@ export async function approveApproval(
     );
   }
 
-  await prisma.$transaction(async (tx) => {
-    await verifyApprovalAuthority(tx, {
-      organizationId,
-      invoiceId: approval.invoiceId,
-      invoiceNumber: approval.invoice.invoiceNumber,
-      totalAmount: approval.invoice.totalAmount,
-      currency: approval.invoice.currency,
-      userId,
-      userRole,
-    });
-
-    await applyTransition({
-      invoiceId: approval.invoiceId,
-      event: "APPROVED",
-      triggeredBy: userId,
-      reason: notes,
-      tx,
-    });
+  await executeInvoiceApproval({
+    organizationId,
+    invoiceId: approval.invoiceId,
+    userId,
+    userRole,
+    notes,
   });
 
   return prisma.approval.findUnique({
@@ -228,11 +287,11 @@ export async function rejectApproval(
     );
   }
 
-  await applyTransition({
+  await executeInvoiceRejection({
+    organizationId,
     invoiceId: approval.invoiceId,
-    event: "REJECTED",
-    triggeredBy: userId,
-    reason: reason.trim(),
+    userId,
+    reason,
   });
 
   return prisma.approval.findUnique({
