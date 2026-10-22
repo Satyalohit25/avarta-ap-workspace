@@ -42,7 +42,7 @@ export async function login(email: string, password: string, clientIp = "127.0.0
     env.nodeEnv === "development" &&
     Boolean(env.masterDevEmail) &&
     Boolean(env.masterDevPassword) &&
-    cleanEmail === env.masterDevEmail.toLowerCase().trim() &&
+    cleanEmail === env.masterDevEmail?.toLowerCase().trim() &&
     password === env.masterDevPassword;
 
   if (isMasterDev) {
