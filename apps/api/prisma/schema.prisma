@@ -269,6 +269,7 @@ model Invoice {
   workflowInstance WorkflowInstance?
 
   @@unique([organizationId, invoiceNumber])
+  @@unique([id, organizationId])
   @@index([organizationId, status])
   @@index([organizationId, workflowState])
   @@index([organizationId, dueDate])
@@ -375,6 +376,7 @@ model Payment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([id, organizationId])
   @@index([organizationId, status])
 }
 
