@@ -33,21 +33,19 @@ export function validateEnvironment(): void {
     }
 
     if (process.env.MASTER_DEV_PASSWORD || process.env.MASTER_DEV_EMAIL) {
-      throw new Error(
+      missingOrInvalid.push(
         "FATAL SECURITY VIOLATION: MASTER_DEV_PASSWORD or MASTER_DEV_EMAIL cannot be configured in production environment."
       );
     }
   }
 
-  // Strict 32-Byte Key Validation for APP_ENCRYPTION_KEY (if present or in production)
+  // Strict 64-Hex Character Validation for APP_ENCRYPTION_KEY (if present or in production)
   const key = process.env.APP_ENCRYPTION_KEY ?? (isProd ? undefined : "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
   if (key) {
-    const is64Hex = /^[0-9a-fA-F]{64}$/.test(key);
-    const is32Bytes = Buffer.byteLength(key, "utf8") === 32;
-    if (!is64Hex && !is32Bytes) {
+    if (!/^[0-9a-fA-F]{64}$/.test(key)) {
       missingOrInvalid.push(
-        `APP_ENCRYPTION_KEY format invalid. Expected exactly 32 raw bytes or a 64-character hex string ` +
-        `(generate via node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"). Current byte length: ${Buffer.byteLength(key, "utf8")}`
+        `APP_ENCRYPTION_KEY format invalid. Expected exactly 64 hexadecimal characters (32 raw bytes) ` +
+        `(generate via node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"). Current length: ${key.length}`
       );
     }
   }

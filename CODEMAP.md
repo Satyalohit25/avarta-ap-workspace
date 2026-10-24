@@ -18,12 +18,12 @@ ap-saas/
 │   │       ├── config/           # env.ts, tenant-guard.ts, tenant-guard-static.test.ts
 │   │       ├── lib/              # crypto.ts (AES-256-GCM), test-db-guard.ts, errors.ts
 │   │       ├── middleware/       # auth.ts, permissions.ts, idempotency.ts, error-handler.ts
-│   │       ├── modules/          # 18 domain modules (controller, service, repository, routes, validation)
+│   │       ├── modules/          # 18 domain modules
 │   │       └── workflow/         # Workflow State Machine (states, transitions, engine)
 │   └── web/                      # React 18 + Vite + Tailwind CSS SPA
 │       ├── e2e/                  # Playwright end-to-end automation specs
 │       └── src/
-│           ├── api/              # Strongly typed API clients (client.ts, auth.ts, invoices.ts, etc.)
+│           ├── api/              # Strongly typed API clients (client.ts, auth.ts, invoices.ts, items.ts)
 │           ├── app/              # App.tsx (React Router v6), AuthContext, ThemeContext
 │           ├── components/       # Design system primitives, layout (Sidebar, TopNav), shared widgets
 │           ├── design-system/    # tokens.ts (4px grid, Inter typography, HSL semantic palettes)
@@ -57,14 +57,15 @@ All authenticated API routes are mounted under `/api/v1` in [`apps/api/src/app/r
   - `GET /`: Filtered, paginated invoice list with multi-column sort.
   - `GET /needs-attention`: Triage filter returning invoices requiring manual action.
   - `POST /`: Ingest new invoice (Upload, Email, Portal, Scanner, API).
-  - `GET /:id`: Full invoice detail with lines, documents, validations, exceptions, and audit history.
-  - `PUT /:id`: Update editable fields during intake review (`ADMINISTRATOR`, `FINANCE_MANAGER`, `FINANCE_EXECUTIVE`).
-  - `POST /:id/documents`: Upload and attach source document (PDF, TIFF, PNG).
-  - `GET /:id/documents/:docId/file`: Secure file stream for document preview pane.
-  - `POST /:id/process`: Trigger OCR parsing, validation rules engine, and 3-way matching.
-  - `POST /:id/transitions`: Advance workflow state via explicit human action (FSM transition).
-  - `POST /:id/erp-sync`: Dispatch invoice journal entry to connected ERP.
-  - `GET /:id/tracking`: Mint or retrieve vendor self-service tracking link (restricted to finance roles).
+  - `GET /:invoiceId`: Full invoice detail with lines, documents, validations, exceptions, and audit history.
+  - `PUT /:invoiceId`: Update editable fields during intake review (`ADMINISTRATOR`, `FINANCE_MANAGER`, `FINANCE_EXECUTIVE`).
+  - `POST /:invoiceId/documents`: Upload and attach source document (PDF, TIFF, PNG).
+  - `GET /:invoiceId/documents/:documentId/file`: Secure file stream for document preview pane.
+  - `POST /:invoiceId/process`: Trigger OCR parsing, validation rules engine, and 3-way matching.
+  - `POST /:invoiceId/transitions`: Advance workflow state via explicit human action (FSM transition).
+  - `POST /:invoiceId/erp-sync`: Dispatch invoice journal entry to connected ERP.
+  - `GET /:invoiceId/tracking`: **Pure read-only endpoint.** Fetches public tracking URL and expiry (`ADMINISTRATOR`, `FINANCE_MANAGER`, `FINANCE_EXECUTIVE`). Throws `404 Not Found` if token is unminted (safe RFC 9110 read idempotency).
+  - `POST /:invoiceId/tracking/regenerate`: **Restricted mutation endpoint.** Generates new 256-bit token, updates `trackingTokenHash`, `trackingTokenEncrypted`, and `trackingTokenExpiresAt`, and creates immutable `AuditLog` entry (`ADMINISTRATOR`, `FINANCE_MANAGER`).
 - **Core Files:** `controller.ts`, `service.ts`, `repository.ts`, `validation.ts`, `mapper.ts`, `tax-validator.ts`
 - **Prisma Models:** `Invoice`, `InvoiceLine`, `Document`, `Validation`, `Exception`, `Supplier`, `PurchaseOrder`, `WorkflowInstance`, `AuditLog`
 
@@ -100,7 +101,7 @@ All authenticated API routes are mounted under `/api/v1` in [`apps/api/src/app/r
   - `POST /:id/approve`: Approve invoice; enforces approval threshold policies and transitions invoice to `SCHEDULED`.
   - `POST /:id/reject`: Reject invoice with mandatory feedback; transitions invoice to `VALIDATION_FAILED` (no silent discard).
   - `POST /batch-approve`: Bulk approval for authorized finance managers across low-risk invoices.
-- **Core Files:** `controller.ts`, `service.ts`, `thresholds.ts`, `thresholds.test.ts`
+- **Core Files:** `controller.ts`, `service.ts`, `thresholds.ts`
 - **Prisma Models:** `Approval`, `Invoice`, `User`, `WorkflowInstance`
 
 ### 2.7 `/payments` — Disbursement Runs, Banking Rails & NACHA Generation
@@ -108,12 +109,17 @@ All authenticated API routes are mounted under `/api/v1` in [`apps/api/src/app/r
   - `GET /`: List scheduled, processing, and paid disbursements.
   - `POST /`: Schedule payment run with bank account assignment and target clearing date.
   - `POST /:paymentId/execute`: Execute disbursement with mandatory `Idempotency-Key` header; transitions invoice to `PAID`.
-  - `POST /batch-execute`: Execute batch disbursement run across multiple approved invoices.
+  - `POST /batch/run`: Execute batch disbursement run across multiple scheduled invoices.
   - `GET /export-file`: Generate bank-ready transmission files:
     - `format=nacha`: 94-character fixed-width ACH batch file conforming to NACHA specification.
     - `format=csv`: Host-to-host corporate banking CSV format.
     - Protected by `requireRole("ADMINISTRATOR", "FINANCE_MANAGER")`.
-- **Core Files:** `controller.ts`, `service.ts`, `bank-file-generator.ts`, `batch-runner.ts`
+- **Conflict & Governance Guards (`payments/service.ts`):**
+  - Throws `409 Conflict` if payment is already `PAID` (`"Payment has already been executed and is marked as PAID."`).
+  - Throws `409 Conflict` if payment is not in `SCHEDULED` or `AWAITING_SCHEDULE` (`"Payment cannot be executed from status..."`).
+  - Throws `403 Forbidden` if Segregation of Duties (SoD) is violated (the user who edited supplier bank coordinates cannot release payment).
+  - **Live Gateway Status:** Payout execution currently uses simulated adapters (`RazorpayXAdapter`, `CashfreeAdapter`, `StripeAdapter`, `ManualBankAdapter`) generating simulated UTRs and clearing references; live third-party banking gating is deferred until production bank credentials are authenticated.
+- **Core Files:** `controller.ts`, `service.ts`, `adapter.ts`, `bank-file-generator.ts`, `batch-runner.ts`
 - **Prisma Models:** `Payment`, `Invoice`, `IdempotencyKey`
 
 ### 2.8 `/dashboard` — Operational KPIs & Executive Analytics
@@ -137,10 +143,9 @@ All authenticated API routes are mounted under `/api/v1` in [`apps/api/src/app/r
 
 ### 2.11 `/integrations` & `/settings/integrations` — ERP Connectors
 - **Routes:** [`apps/api/src/modules/integrations/routes.ts`](file:///d:/Antigravity/ap-saas/apps/api/src/modules/integrations/routes.ts)
-  - `GET /`: List configured accounting and ERP connectors (QuickBooks Online, Xero, SAP Business One, Oracle NetSuite, Tally Prime).
-  - `POST /:erp/connect`: Initialize OAuth2 or API credential connection.
-  - `POST /:erp/sync`: Trigger manual or scheduled two-way sync for vendors, POs, and paid voucher journals.
-- **Adapters:** `apps/api/src/modules/erp/` (`quickbooks.ts`, `xero.ts`, `sap.ts`, `netsuite.ts`, `tally.ts`)
+  - `GET /`: List configured accounting and ERP connectors.
+  - `POST /:erp/connect`: Initialize connection credentials.
+  - `POST /:erp/sync`: Trigger two-way sync for vendors, POs, and paid voucher journals.
 
 ### 2.12 `/billing` & `/settings/billing` — SaaS Subscriptions
 - **Routes:** [`apps/api/src/modules/billing/routes.ts`](file:///d:/Antigravity/ap-saas/apps/api/src/modules/billing/routes.ts)
@@ -149,8 +154,8 @@ All authenticated API routes are mounted under `/api/v1` in [`apps/api/src/app/r
 
 ### 2.13 `/public` — Unauthenticated Self-Service Vendor Tracking
 - **Routes:** [`apps/api/src/modules/public/routes.ts`](file:///d:/Antigravity/ap-saas/apps/api/src/modules/public/routes.ts)
-  - `GET /invoices/track/:token`: Cryptographically validated public endpoint for vendors to check invoice clearance status, bank settlement date, and UTR number without requiring a workspace login.
-  - Pure read endpoint: performs zero state mutations or token re-minting on read.
+  - `GET /invoices/track/:token`: Cryptographically validated public endpoint for vendors to check invoice clearance status, bank settlement date, and UTR number without requiring workspace credentials.
+  - Pure read-only endpoint: performs zero state mutations or token re-minting on read.
 - **Core Files:** `public-tracking.ts`, `crypto.ts`
 - **Security:** Tokens are looked up via SHA-256 hash (`trackingTokenHash`); payloads are encrypted at rest with AES-256-GCM (`trackingTokenEncrypted`).
 
@@ -158,6 +163,25 @@ All authenticated API routes are mounted under `/api/v1` in [`apps/api/src/app/r
 - **Routes:** [`apps/api/src/modules/demo/routes.ts`](file:///d:/Antigravity/ap-saas/apps/api/src/modules/demo/routes.ts)
   - `POST /reset`: Resets demo database state to seeded scenario for walkthroughs.
   - Guarded by `demo-reset-guard.ts`: Strictly disabled in production (`NODE_ENV === "production"` throws 403 Forbidden).
+
+### 2.15 `/erp` — Multi-ERP Synchronization Engine
+- **Module Path:** `apps/api/src/modules/erp/`
+  - Adapters: `quickbooks.ts`, `xero.ts`, `sap.ts`, `netsuite.ts`, `tally.ts`.
+  - Service: `service.ts` converts validated/paid invoice entities into canonical ERP Journal Vouchers, Accounts Payable Credit Memos, and Ledger balancing entries.
+  - Current Status: Deterministic payload transformation and adapter stubs complete; live cloud OAuth APIs stubbed.
+
+### 2.16 `/security` — Security Auditing & Static Policy Validation
+- **Module Path:** `apps/api/src/modules/security/`
+  - Controller & Service: Exposes internal security verification helpers and compliance assertions.
+  - Test Suite: `prerelease-security.test.ts` validates tenant isolation, AST boundary integrity, and OWASP Top 10 defenses.
+
+### 2.17 `/system` — Runtime Hygiene & Bundle Metrics
+- **Module Path:** `apps/api/src/modules/system/`
+  - Test Suite: `bundle-hygiene.test.ts` verifies zero leaking dev secrets, package tree safety, and memory stability.
+
+### 2.18 `/users` — User Directory & Role Administration
+- **Module Path:** `apps/api/src/modules/users/`
+  - Service & Repository: Manages user status, organization assignments, and permission queries supporting `/auth/team/members`.
 
 ---
 
@@ -187,8 +211,11 @@ stateDiagram-v2
     ARCHIVED --> [*]
 ```
 
-### 3.1 14 Canonical Resting States
+### 3.1 Resting States & FSM Reachability
+The 14 canonical states defined in `apps/api/src/workflow/states.ts` and Prisma `WorkflowState` are:
 `RECEIVED`, `CAPTURED`, `VALIDATING`, `VALIDATED`, `VALIDATION_FAILED`, `MATCHING`, `MATCHED`, `MATCHING_FAILED`, `WAITING_APPROVAL`, `SCHEDULED`, `PROCESSING_PAYMENT`, `PAID`, `ERP_SYNC`, `ARCHIVED`.
+
+> **FSM Reachability Note on `MATCHED`:** In [`apps/api/src/workflow/transitions.ts:35`](file:///d:/Antigravity/ap-saas/apps/api/src/workflow/transitions.ts#L35), `MATCHING_SUCCESS` transitions directly from `MATCHING` to `WAITING_APPROVAL`. While `MATCHED` exists in the `WorkflowState` enum and string array for schema compatibility, it is an **inactive resting state** in the active transition graph.
 
 ### 3.2 10 UI Status Projections (`invoices.status`)
 Internal engine states project into clear, simplified badges for finance users:
@@ -213,24 +240,28 @@ In [`apps/api/src/config/tenant-guard.ts`](file:///d:/Antigravity/ap-saas/apps/a
 - Verified at build-time by an AST static code scanner (`tenant-guard-static.test.ts`) that traverses TypeScript AST trees to ensure no bare queries bypass the guard.
 
 ### 4.2 Database Connections: Pooled vs Direct
-- **`DATABASE_URL` (Pooled):** Neon PgBouncer pooled connection with `?sslmode=require&pgbouncer=true&connection_limit=10`. Used for all standard runtime Express queries to prevent connection exhaustion.
+- **`DATABASE_URL` (Pooled):** Neon PgBouncer pooled connection with `?sslmode=require&pgbouncer=true&connection_limit=10`. Used for standard runtime Express queries to prevent connection exhaustion.
 - **`DIRECT_URL` (Unpooled):** Direct Postgres connection endpoint configured in `schema.prisma` (`directUrl = env("DIRECT_URL")`). Used for Prisma migrations, advisory locks (`pg_advisory_lock`), and background backfill scripts.
 
-### 4.3 Production Non-Blocking Indexes
-Migration `20261024130000_add_invoice_payment_compound_uniques/migration.sql`:
-- Contains `-- prisma:no-transaction` directive.
-- Uses `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS` for both:
-  - `"Invoice_id_organizationId_key" ON "Invoice"("id", "organizationId")`
-  - `"Payment_id_organizationId_key" ON "Payment"("id", "organizationId")`
-- Ensures zero downtime and non-blocking table reads/writes during production deployment.
+### 4.3 Zero-Downtime Concurrent Migrations (`arity = 1`)
+PostgreSQL wire protocol wraps multi-statement queries in an implicit transaction block, which throws `SQLSTATE 25001` if `CREATE INDEX CONCURRENTLY` is executed alongside other statements.
+To prevent this, migrations are split into two single-statement migration directories with zero SQL comments:
+1. `apps/api/prisma/migrations/20261024130000_add_invoice_compound_unique/migration.sql`:
+   ```sql
+   CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "Invoice_id_organizationId_key" ON "Invoice"("id", "organizationId");
+   ```
+2. `apps/api/prisma/migrations/20261024130100_add_payment_compound_unique/migration.sql`:
+   ```sql
+   CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "Payment_id_organizationId_key" ON "Payment"("id", "organizationId");
+   ```
 
-### 4.4 Cryptographic Storage Cheat Sheet Compliance
+### 4.4 Cryptographic Storage & Key Validation
 - [`apps/api/src/lib/crypto.ts`](file:///d:/Antigravity/ap-saas/apps/api/src/lib/crypto.ts) implements authenticated AES-256-GCM encryption with 12-byte initialization vectors (IV) and 16-byte authentication tags.
-- Master keys are strictly validated at server boot in `env.ts` as either 64-character hex strings or exact 32-byte buffers.
-- Fast, secure lookups use one-way SHA-256 hashes (`trackingTokenHash`), while secret payloads (`trackingTokenEncrypted`) are decrypted only upon authorized presentation.
+- **Strict 64-Hex Format:** `APP_ENCRYPTION_KEY` is validated in `env.ts` as strictly 64 hexadecimal characters (`/^[0-9a-fA-F]{64}$/`). `crypto.ts` decodes directly via `Buffer.from(secret, "hex")`, throwing if format is invalid without fallback hashing.
+- **Aggregated Boot Error Collection:** `validateEnvironment()` in `env.ts` accumulates all misconfigurations (missing URLs, invalid key formats, and `MASTER_DEV_*` production violations) into `missingOrInvalid[]`, throwing a unified error detailing all violations.
 
 ### 4.5 Financial Idempotency
-- Mutating financial routes (`/payments/:id/execute`, `/invoices/:id/transitions`, `/erp-sync`) require an `Idempotency-Key` header.
+- Mutating financial routes (`/payments/:paymentId/execute`, `/payments/batch/run`, `/invoices/:invoiceId/transitions`, `/erp-sync`) require an `Idempotency-Key` header.
 - Handled by [`apps/api/src/middleware/idempotency.ts`](file:///d:/Antigravity/ap-saas/apps/api/src/middleware/idempotency.ts): stores request hash in `IdempotencyKey` table for 24 hours, returning cached responses on duplicate network submissions.
 
 ---
@@ -239,41 +270,33 @@ Migration `20261024130000_add_invoice_payment_compound_uniques/migration.sql`:
 
 React 18 Single-Page Application configured with Vite, React Router v6, Tailwind CSS, and Radix UI primitives. All top-level routes are code-split via `lazy()` with Suspense fallbacks and idle prefetching.
 
-### 5.1 Route Tree
+### 5.1 Route Tree & Data Persistence Sources
 
-| Route | Component | Access / Roles | Key Capabilities |
+| Route | Component | Access / Roles | Data Source / Backend Persistence |
 | :--- | :--- | :--- | :--- |
-| `/login` | `LoginPage.tsx` | Public | Email/password login, demo persona quick-select. |
-| `/signup` | `SignUpPage.tsx` | Public | Self-serve organization registration. |
-| `/forgot-password` | `ForgotPasswordPage.tsx` | Public | Password reset request. |
-| `/reset-password` | `ResetPasswordPage.tsx` | Public | Set new password with reset token. |
-| `/accept-invite` | `AcceptInvitePage.tsx` | Public | Team member onboarding via email invitation token. |
-| `/track/:token` | `VendorInvoiceTrackPage.tsx` | Public | Vendor self-service portal: live status, clearing date, UTR. |
-| `/privacy`, `/terms`, `/dpa`, `/subprocessors`, `/refund` | Public Legal Pages | Public | GDPR, DPA, terms of service compliance documentation. |
-| `/overview` | `OverviewPage.tsx` | Authenticated | Executive dashboard: KPI cards, Needs Attention Hub, Cash Flow forecast. |
-| `/inbox` | `InboxPage.tsx` | Finance Roles | Batch ingest dropzone, OCR review panel, quick manual entry modal. |
-| `/invoices` | `InvoicesPage.tsx` | Authenticated | Tabbed invoice grid (All, Processing, Pending Approval, Scheduled, Paid). |
-| `/invoices/:invoiceId` | `InvoiceDetailPage.tsx` | Authenticated | Split-view: document viewer + OCR fields, 3-way matching, timeline audit trail, action bar. |
-| `/exceptions` | `ExceptionsPage.tsx` | Authenticated | Exception triage queue, severity badges, assignment & resolution dialogs. |
-| `/approvals` | `ApprovalsPage.tsx` | Approver / Finance | Approval matrix drawer, threshold checks, single & batch approve/reject. |
-| `/payments` | `PaymentsPage.tsx` | Finance Manager / Admin | Scheduled disbursement ledger, batch settlement modal, NACHA & CSV export. |
-| `/suppliers` | `SuppliersPage.tsx` | Authenticated | Supplier directory, GSTIN search, payment terms, risk flags. |
-| `/purchase-orders` | `PurchaseOrdersPage.tsx` | Authenticated | PO catalog, line item inspection, matching status. |
-| `/items` | `ItemsPage.tsx` | Authenticated | Item & SKU master, unit price history. |
-| `/bank-accounts` | `BankAccountsPage.tsx` | Finance Manager / Admin | Company disbursement bank accounts, balance tracking. |
-| `/reports` | `ReportsPage.tsx` | Finance Manager / Admin | AP Aging schedule, touchless processing metrics, cash outflow forecasts. |
-| `/archive` | `ArchivePage.tsx` | Authenticated | Permanent immutable archive with zero-deletion preservation. |
-| `/settings` | `SettingsPage.tsx` | Administrator | Organization profile, team management, approval thresholds, ERP connectors, billing. |
-| `/notifications` | `NotificationsPage.tsx` | Authenticated | In-app notification center for workflow events and mentions. |
-| `/profile` | `ProfilePage.tsx` | Authenticated | User account details, session overview, theme toggle. |
-
-### 5.2 Frontend Component Architecture
-- **Design System (`apps/web/src/design-system/tokens.ts`):** 4px grid spacing, Inter font stack, strict semantic HSL color tokens (Indigo `#4F46E5` primary, emerald success, amber warning, rose error).
-- **Split-View Document Inspector:** Side-by-side synchronized PDF viewer and structured field extraction panel with confidence heatmaps.
-- **3-Way Matching Engine (`LineItemMatchingTable.tsx`):** PO line vs Invoice line comparison with unit price and quantity variance highlighting.
-- **Global Command Palette (`Command.tsx`):** `Cmd + K` instant search across invoices, vendors, POs, and rapid demo persona switching.
-- **Property Inspector (`PropertyInspector.tsx`):** Standardized right-side compliance rail with one-click GSTIN / Tax ID verification.
-- **Network & Error Recovery:** Global `ErrorBoundary`, offline alert toast (`NetworkStatusAlert`), and persistent cookie consent banner.
+| `/login` | `LoginPage.tsx` | Public | Backend `/api/v1/auth/login`. |
+| `/signup` | `SignUpPage.tsx` | Public | Backend `/api/v1/auth/signup`. |
+| `/forgot-password` | `ForgotPasswordPage.tsx` | Public | Backend `/api/v1/auth/password/forgot`. |
+| `/reset-password` | `ResetPasswordPage.tsx` | Public | Backend `/api/v1/auth/password/reset`. |
+| `/accept-invite` | `AcceptInvitePage.tsx` | Public | Backend `/api/v1/auth/invite/accept`. |
+| `/track/:token` | `VendorInvoiceTrackPage.tsx` | Public | Backend `/api/v1/public/invoices/track/:token`. |
+| `/privacy`, `/terms`, `/dpa`, `/subprocessors`, `/refund` | Public Legal Pages | Public | Static legal compliance documentation. |
+| `/overview` | `OverviewPage.tsx` | Authenticated | Backend `/api/v1/dashboard`, `/api/v1/invoices`. |
+| `/inbox` | `InboxPage.tsx` | Finance Roles | Backend `/api/v1/invoices` (upload, manual entry). |
+| `/invoices` | `InvoicesPage.tsx` | Authenticated | Backend `/api/v1/invoices`. |
+| `/invoices/:invoiceId` | `InvoiceDetailPage.tsx` | Authenticated | Backend `/api/v1/invoices/:id`, `/tracking`, `/tracking/regenerate`. |
+| `/exceptions` | `ExceptionsPage.tsx` | Authenticated | Backend `/api/v1/exceptions`. |
+| `/approvals` | `ApprovalsPage.tsx` | Approver / Finance | Backend `/api/v1/approvals`. |
+| `/payments` | `PaymentsPage.tsx` | Finance Manager / Admin | Backend `/api/v1/payments`, `/payments/export-file`, `/batch/run`. |
+| `/suppliers` | `SuppliersPage.tsx` | Authenticated | Backend `/api/v1/suppliers`. |
+| `/purchase-orders` | `PurchaseOrdersPage.tsx` | Authenticated | Backend `/api/v1/purchase-orders`. |
+| `/items` | `ItemsPage.tsx` | Authenticated | **Client-side persistent catalogue** (`apps/web/src/api/items.ts` with `localStorage` scoped to `avarta_items_catalogue_${orgId}`). |
+| `/bank-accounts` | `BankAccountsPage.tsx` | Finance Manager / Admin | Configured corporate accounts linked to `/settings/integrations` & `/payments`. |
+| `/reports` | `ReportsPage.tsx` | Finance Manager / Admin | Backend `/api/v1/reports/operational`, `/aging`, `/cash-outflow`. |
+| `/archive` | `ArchivePage.tsx` | Authenticated | Filtered query on backend `GET /api/v1/invoices?status=ARCHIVED`. |
+| `/settings` | `SettingsPage.tsx` | Administrator | Backend `/api/v1/auth/team`, `/settings/integrations`, `/billing`. |
+| `/notifications` | `NotificationsPage.tsx` | Authenticated | **Client-side notification feed** (`INITIAL_NOTIFICATIONS` + `localStorage` webhook preferences; no dedicated backend REST route). |
+| `/profile` | `ProfilePage.tsx` | Authenticated | User account details from authenticated session (`req.auth`). |
 
 ---
 
@@ -286,17 +309,16 @@ React 18 Single-Page Application configured with Vite, React Router v6, Tailwind
 | **3-Way Matching** | Invoice lines matched against PO and Goods Receipt Notes (`GoodsReceipt`), tolerance variance checks. | `three-way-matching.test.ts` |
 | **Exception Triage** | 14 canonical exception types, severity ranking (`CRITICAL` to `LOW`), assignment to team members, resolution audit notes. | `exceptions/service.ts`, `ExceptionsPage.tsx` |
 | **Approvals** | Multi-tier threshold governance (<$1,000 auto, <$10,000 manager, >$10,000 multi-approver), batch approvals. | `thresholds.ts`, `approval-concurrency.test.ts` |
-| **Disbursements** | Scheduled payment runs, direct banking settlement modal, client idempotency keys, NACHA ACH & CSV exports. | `PaymentsPage.tsx`, `bank-file-generator.ts` |
+| **Disbursements** | Scheduled payment runs, direct banking settlement modal, client idempotency keys, NACHA ACH & CSV exports. Gateway adapters are simulated. | `PaymentsPage.tsx`, `bank-file-generator.ts` |
 | **Vendor Self-Service** | Tokenized public status portal (`/track/:token`), zero-login verification of payment settlement and UTR reference. | `VendorInvoiceTrackPage.tsx`, `public-tracking.ts` |
 | **Audit & Forensic** | Immutable `AuditLog` table with JSON before/after state diffs, P2025 standard error envelopes, SIEM logging with `req.auth`. | `error-handler.ts`, `audit-rbac.test.ts` |
-| **ERP Integration** | Out-of-the-box adapters for QuickBooks, Xero, SAP, NetSuite, Tally with manual and scheduled synchronization. | `erp-adapters.test.ts`, `erp/service.ts` |
+| **ERP Integration** | Adapters for QuickBooks, Xero, SAP, NetSuite, Tally with journal mapping; live OAuth connections stubbed. | `erp-adapters.test.ts`, `erp/service.ts` |
 | **Security Controls** | AST query-level tenant isolation, strict Rule 4 write guard, rate limiting, token revocation blacklist, AES-256-GCM. | `tenant-guard.ts`, `auth-security.test.ts` |
 
 ---
 
 ## 7. Automated Test Suite & Quality Gates
 
-The workspace enforces automated testing across all layers:
 - **Test Runner:** Vitest with dynamic test reconciliation ([`apps/api/scripts/reconcile-tests.ts`](file:///d:/Antigravity/ap-saas/apps/api/scripts/reconcile-tests.ts)).
 - **Current Verified Suite:** **217 passing unit & integration tests across 38 suites (0 failures).**
 - **AST Tenant Security Scanner:** [`apps/api/src/config/tenant-guard-static.test.ts`](file:///d:/Antigravity/ap-saas/apps/api/src/config/tenant-guard-static.test.ts) parses all TypeScript files in `apps/api/src` to mathematically verify every Prisma query includes tenant scoping.
@@ -308,16 +330,16 @@ The workspace enforces automated testing across all layers:
 ## 8. Product Roadmap Status (Alignment with Doc 16)
 
 ```text
-PHASE 1: Foundation (Auth, Org, Users, RBAC, Database, Audit)            [✓ COMPLETE & HARDENED]
-PHASE 2: Invoice Intake (Upload, Storage, Inbox, Manual Entry)           [✓ COMPLETE & HARDENED]
-PHASE 3: Invoice Intelligence (Mock OCR, Tax Validation, Confidence)     [✓ COMPLETE & HARDENED]
-PHASE 4: Matching (Supplier, PO, Goods Receipt, Variance)                [✓ COMPLETE & HARDENED]
-PHASE 5: Exceptions (14 Types, Assignment, Resolution, Collaboration)    [✓ COMPLETE & HARDENED]
-PHASE 6: Approvals (Rules, Sequential, Delegation, Batch Approve)        [✓ COMPLETE & HARDENED]
-PHASE 7: Payments (Disbursement Schedule, Batch, NACHA/CSV Export)       [✓ COMPLETE & HARDENED]
-PHASE 8: ERP Sync (Adapters for QBO, Xero, SAP, NetSuite, Tally)         [✓ COMPLETE - Adapters Built]
-PHASE 9: Reporting & Archive (Aging, Cash Outflow, Immutable Archive)    [✓ COMPLETE & HARDENED]
-PHASE 10: Enterprise Hardening (Tenant Guard, AES-256, Idempotency)      [✓ COMPLETE - Rehearsal Stage]
+PHASE 1: Foundation (Auth, Org, Users, RBAC, Database, Audit)                 [✓ COMPLETE & HARDENED]
+PHASE 2: Invoice Intake (Upload, Storage, Inbox, Manual Entry)                [✓ COMPLETE & HARDENED]
+PHASE 3: Invoice Intelligence [✓ MOCK OCR & DETERMINISTIC PARSING; LIVE CLOUD VISION STUBBED]
+PHASE 4: Matching (Supplier, PO, Goods Receipt, Variance)                     [✓ COMPLETE & HARDENED]
+PHASE 5: Exceptions (14 Types, Assignment, Resolution, Collaboration)         [✓ COMPLETE & HARDENED]
+PHASE 6: Approvals (Rules, Sequential, Delegation, Batch Approve)             [✓ COMPLETE & HARDENED]
+PHASE 7: Payments [✓ DISBURSEMENT RUNS & NACHA/CSV FILE EXPORT; GATEWAYS SIMULATED]
+PHASE 8: ERP Sync [✓ MULTI-ERP ADAPTERS & VOUCHER MAPPING; LIVE OAUTH APIS STUBBED]
+PHASE 9: Reporting & Archive (Aging, Cash Outflow, Immutable Archive)         [✓ COMPLETE & HARDENED]
+PHASE 10: Enterprise Hardening (Tenant Guard, AES-256, Idempotency)           [✓ COMPLETE - Rehearsal Stage]
 ```
 
 ### Next Immediate Milestones:

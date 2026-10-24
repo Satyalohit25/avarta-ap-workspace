@@ -7,10 +7,10 @@ const IV_LENGTH = 12; // Standard 96-bit IV for GCM
 function getMasterKey(): Buffer {
   // Uses dedicated APP_ENCRYPTION_KEY strictly separate from JWT_SECRET
   const secret = env.appEncryptionKey;
-  if (/^[0-9a-fA-F]{64}$/.test(secret)) {
-    return Buffer.from(secret, "hex");
+  if (!/^[0-9a-fA-F]{64}$/.test(secret)) {
+    throw new Error("FATAL: APP_ENCRYPTION_KEY must be a valid 64-character hexadecimal string.");
   }
-  return crypto.createHash("sha256").update(secret).digest();
+  return Buffer.from(secret, "hex");
 }
 
 /**
