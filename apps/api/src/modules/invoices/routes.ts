@@ -77,7 +77,7 @@ invoiceRoutes.post(
 // Operator tracking link fetch endpoint
 invoiceRoutes.get(
   "/:invoiceId/tracking",
-  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "APPROVER", "FINANCE_EXECUTIVE", "READ_ONLY"),
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
   getTrackingHandler
 );
 

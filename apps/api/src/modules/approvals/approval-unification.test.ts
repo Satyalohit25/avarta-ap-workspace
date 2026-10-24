@@ -292,7 +292,9 @@ describe("Unified Approval Authority & Solo-Admin Override Matrix (Day 1.5 Items
       expect(res).toBeDefined();
 
       // Check invoice is approved
-      const updatedInv = await prisma.invoice.findUnique({ where: { id: invoice.id } });
+      const updatedInv = await prisma.invoice.findUnique({
+        where: { id_organizationId: { id: invoice.id, organizationId: orgId } },
+      });
       expect(updatedInv?.workflowState).toBe("SCHEDULED"); // WAITING_APPROVAL -> APPROVED event transitions to SCHEDULED
 
       // Verify AuditLog record written in same transaction with real columns (beforeData, afterData)
@@ -404,7 +406,9 @@ describe("Unified Approval Authority & Solo-Admin Override Matrix (Day 1.5 Items
         role: "APPROVER",
       });
       expect(res1).toBeDefined();
-      const updated1 = await prisma.invoice.findUnique({ where: { id: fixtureTier1.invoice.id } });
+      const updated1 = await prisma.invoice.findUnique({
+        where: { id_organizationId: { id: fixtureTier1.invoice.id, organizationId: orgId } },
+      });
       expect(updated1?.workflowState).toBe("SCHEDULED");
 
       // 8b. FINANCE_MANAGER approving at Tier 2
@@ -419,7 +423,9 @@ describe("Unified Approval Authority & Solo-Admin Override Matrix (Day 1.5 Items
         role: "FINANCE_MANAGER",
       });
       expect(res2).toBeDefined();
-      const updated2 = await prisma.invoice.findUnique({ where: { id: fixtureTier2.invoice.id } });
+      const updated2 = await prisma.invoice.findUnique({
+        where: { id_organizationId: { id: fixtureTier2.invoice.id, organizationId: orgId } },
+      });
       expect(updated2?.workflowState).toBe("SCHEDULED");
 
       // 8c. ADMINISTRATOR approving at Tier 3
@@ -435,8 +441,30 @@ describe("Unified Approval Authority & Solo-Admin Override Matrix (Day 1.5 Items
         role: "ADMINISTRATOR",
       });
       expect(res3).toBeDefined();
-      const updated3 = await prisma.invoice.findUnique({ where: { id: fixtureTier3.invoice.id } });
+      const updated3 = await prisma.invoice.findUnique({
+        where: { id_organizationId: { id: fixtureTier3.invoice.id, organizationId: orgId } },
+      });
       expect(updated3?.workflowState).toBe("SCHEDULED");
+    });
+
+    it("executes successfully under NODE_ENV=production with strict tenant guard and no unguarded queries", async () => {
+      const prevEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "production";
+      try {
+        const fixture = await createInvoiceAndApprovalFixture({
+          amount: 25_000,
+        });
+        const res = await approveApproval(orgId, fixture.approval.id, approverUserId);
+        expect(res).toBeDefined();
+
+        const updated = await prisma.invoice.findUnique({
+          where: { id_organizationId: { id: fixture.invoice.id, organizationId: orgId } },
+        });
+        expect(updated?.workflowState).toBe("SCHEDULED");
+        expect(updated?.status).toBe("SCHEDULED");
+      } finally {
+        process.env.NODE_ENV = prevEnv;
+      }
     });
   });
 });

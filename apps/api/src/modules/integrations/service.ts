@@ -267,7 +267,12 @@ export class IntegrationsService {
         await adapter.exportJournalEntry(entry, (activeErp?.settings?.config as Record<string, string>) || {});
 
         await prisma.invoice.update({
-          where: { id: invoice.id },
+          where: {
+            id_organizationId: {
+              id: invoice.id,
+              organizationId,
+            },
+          },
           data: {
             erpClearingNumber: entry.entryNumber,
             fiscalYear: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
@@ -276,6 +281,7 @@ export class IntegrationsService {
 
         await applyTransition({
           invoiceId: invoice.id,
+          organizationId,
           event: "ERP_SUCCESS",
           triggeredBy: userId,
           reason: `Posted to ${adapter.name} via Sovereign Batch ${batchReference}`,

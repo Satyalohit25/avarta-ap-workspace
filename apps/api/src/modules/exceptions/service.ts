@@ -55,9 +55,16 @@ export async function assignException(organizationId: string, exceptionId: strin
   if (!exception) throw ApiError.notFound("Exception not found");
   if (!targetUser) throw ApiError.badRequest("Assignee user not found or inactive in organization");
 
-  return prisma.exception.update({
-    where: { id: exceptionId },
+  const result = await prisma.exception.updateMany({
+    where: { id: exceptionId, organizationId },
     data: { assignedToId: userId, status: "ASSIGNED" },
+  });
+  if (result.count === 0) {
+    throw ApiError.notFound("Exception not found");
+  }
+
+  return prisma.exception.findFirst({
+    where: { id: exceptionId, organizationId },
   });
 }
 
@@ -85,26 +92,31 @@ export async function resolveException(
     throw ApiError.conflict(`Exception is already in "${exception.status}" status.`);
   }
 
-  const updatedException = await prisma.exception.update({
-    where: { id: exceptionId },
+  const updateResult = await prisma.exception.updateMany({
+    where: { id: exceptionId, organizationId },
     data: {
       status: "RESOLVED",
       resolution: resolution.trim(),
       resolvedAt: new Date(),
     },
   });
+  if (updateResult.count === 0) {
+    throw ApiError.notFound("Exception not found");
+  }
 
   // Re-trigger validation via workflow engine
   const { applyTransition } = await import("../../workflow/engine");
   await applyTransition({
     invoiceId: exception.invoiceId,
+    organizationId,
     event: "EXCEPTION_RESOLVED",
     triggeredBy: userId,
     reason: resolution.trim(),
   });
 
-
-  return updatedException;
+  return prisma.exception.findFirst({
+    where: { id: exceptionId, organizationId },
+  });
 }
 
 /**

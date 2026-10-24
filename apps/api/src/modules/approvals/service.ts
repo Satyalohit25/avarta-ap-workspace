@@ -166,6 +166,7 @@ export async function verifyApprovalAuthority(
   const openException = await tx.exception.findFirst({
     where: {
       invoiceId,
+      organizationId,
       status: { in: ["OPEN", "ASSIGNED", "UNDER_REVIEW"] },
     },
   });
@@ -236,6 +237,7 @@ export async function executeInvoiceApproval({
 
     await applyTransition({
       invoiceId,
+      organizationId,
       event: "APPROVED",
       triggeredBy: userId,
       reason: notes,
@@ -287,6 +289,7 @@ export async function executeInvoiceRejection({
 
     await applyTransition({
       invoiceId,
+      organizationId,
       event: "REJECTED",
       triggeredBy: userId,
       reason: reason.trim(),

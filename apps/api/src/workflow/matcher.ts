@@ -102,11 +102,11 @@ export async function runThreeWayMatching(params: {
     throw new Error(`Invoice ${invoiceId} not found in org ${organizationId}`);
   }
 
-  await applyTransition({ invoiceId, event: "MATCHING_START", triggeredBy: userId });
+  await applyTransition({ invoiceId, organizationId, event: "MATCHING_START", triggeredBy: userId });
 
   // If Non-PO invoice, passes matching by design
   if (!invoice.purchaseOrderId) {
-    await applyTransition({ invoiceId, event: "MATCHING_SUCCESS", triggeredBy: userId });
+    await applyTransition({ invoiceId, organizationId, event: "MATCHING_SUCCESS", triggeredBy: userId });
     return {
       passed: true,
       exceptionType: "NONE",
@@ -126,7 +126,7 @@ export async function runThreeWayMatching(params: {
 
   if (!po) {
     // Missing PO exception
-    await applyTransition({ invoiceId, event: "MATCHING_FAILURE", triggeredBy: userId });
+    await applyTransition({ invoiceId, organizationId, event: "MATCHING_FAILURE", triggeredBy: userId });
     await prisma.exception.create({
       data: {
         organizationId,
@@ -173,7 +173,7 @@ export async function runThreeWayMatching(params: {
   const result = evaluateThreeWayMatch(poContext, invoicedQuantity, invoicedAmount);
 
   if (!result.passed) {
-    await applyTransition({ invoiceId, event: "MATCHING_FAILURE", triggeredBy: userId });
+    await applyTransition({ invoiceId, organizationId, event: "MATCHING_FAILURE", triggeredBy: userId });
     const exType =
       result.exceptionType && result.exceptionType !== "NONE"
         ? result.exceptionType
@@ -192,6 +192,6 @@ export async function runThreeWayMatching(params: {
     return result;
   }
 
-  await applyTransition({ invoiceId, event: "MATCHING_SUCCESS", triggeredBy: userId });
+  await applyTransition({ invoiceId, organizationId, event: "MATCHING_SUCCESS", triggeredBy: userId });
   return result;
 }

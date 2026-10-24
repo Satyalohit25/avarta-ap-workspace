@@ -138,7 +138,12 @@ export async function updateInvoice(input: UpdateInvoiceInput) {
 
   return prisma.$transaction(async (tx) => {
     await tx.invoice.update({
-      where: { id: input.invoiceId },
+      where: {
+        id_organizationId: {
+          id: input.invoiceId,
+          organizationId: input.organizationId,
+        },
+      },
       data: updateData,
     });
 
@@ -364,7 +369,7 @@ export async function processInvoice(organizationId: string, invoiceId: string, 
   if (!invoice) throw ApiError.notFound("Invoice not found");
 
   // Capture
-  await applyTransition({ invoiceId, event: "CAPTURE_COMPLETE", triggeredBy: userId });
+  await applyTransition({ invoiceId, organizationId, event: "CAPTURE_COMPLETE", triggeredBy: userId });
 
   // Document AI Extraction (Multimodal Live AI with BYOK or Statutory Heuristic)
   let confidence: number | null = invoice.aiConfidence ? Number(invoice.aiConfidence) : null;
@@ -444,7 +449,12 @@ export async function processInvoice(organizationId: string, invoiceId: string, 
       }
 
       await prisma.invoice.update({
-        where: { id: invoiceId },
+        where: {
+          id_organizationId: {
+            id: invoiceId,
+            organizationId,
+          },
+        },
         data: {
           aiConfidence: confidence,
           supplierId: supplierId ?? undefined,
@@ -474,23 +484,39 @@ export async function processInvoice(organizationId: string, invoiceId: string, 
       });
     } catch (err) {
       console.warn("Document AI extraction fallback:", err);
-      await prisma.invoice.update({ where: { id: invoiceId }, data: { aiConfidence: confidence } });
+      await prisma.invoice.update({
+        where: {
+          id_organizationId: {
+            id: invoiceId,
+            organizationId,
+          },
+        },
+        data: { aiConfidence: confidence },
+      });
     }
   } else {
-    await prisma.invoice.update({ where: { id: invoiceId }, data: { aiConfidence: confidence } });
+    await prisma.invoice.update({
+      where: {
+        id_organizationId: {
+          id: invoiceId,
+          organizationId,
+        },
+      },
+      data: { aiConfidence: confidence },
+    });
   }
 
   // Validate
-  await applyTransition({ invoiceId, event: "VALIDATION_START", triggeredBy: userId });
+  await applyTransition({ invoiceId, organizationId, event: "VALIDATION_START", triggeredBy: userId });
   const validationFailures = await runValidations(organizationId, invoice, confidence);
 
   if (validationFailures.length > 0) {
-    await applyTransition({ invoiceId, event: "VALIDATION_FAILURE", triggeredBy: userId });
+    await applyTransition({ invoiceId, organizationId, event: "VALIDATION_FAILURE", triggeredBy: userId });
     await createExceptionsForFailures(organizationId, invoiceId, validationFailures);
     return getInvoice(organizationId, invoiceId);
   }
 
-  await applyTransition({ invoiceId, event: "VALIDATION_SUCCESS", triggeredBy: userId });
+  await applyTransition({ invoiceId, organizationId, event: "VALIDATION_SUCCESS", triggeredBy: userId });
 
   // Match (Doc 04 Stage 4: 3-Way Matching PO <-> GRN <-> Invoice per Tata Chemicals standard)
   await runThreeWayMatching({ organizationId, invoiceId, userId });
@@ -565,7 +591,9 @@ async function runValidations(
 
   // Statutory GSTIN Checksum Verification (Step 10)
   if (invoice.supplierId) {
-    const supplier = await prisma.supplier.findUnique({ where: { id: invoice.supplierId } });
+    const supplier = await prisma.supplier.findFirst({
+      where: { id: invoice.supplierId, organizationId },
+    });
     if (supplier?.gstNumber && !validateGstinChecksum(supplier.gstNumber)) {
       failures.push({
         ruleCode: "GSTIN_CHECKSUM",
@@ -650,12 +678,12 @@ export async function retryValidation(organizationId: string, invoiceId: string,
     throw ApiError.badRequest("Validation still fails.", { failures });
   }
 
-  await applyTransition({ invoiceId, event: "EXCEPTION_RESOLVED", triggeredBy: userId });
-  await applyTransition({ invoiceId, event: "MATCHING_START", triggeredBy: userId });
-  await applyTransition({ invoiceId, event: "MATCHING_SUCCESS", triggeredBy: userId });
+  await applyTransition({ invoiceId, organizationId, event: "EXCEPTION_RESOLVED", triggeredBy: userId });
+  await applyTransition({ invoiceId, organizationId, event: "MATCHING_START", triggeredBy: userId });
+  await applyTransition({ invoiceId, organizationId, event: "MATCHING_SUCCESS", triggeredBy: userId });
 
   await prisma.exception.updateMany({
-    where: { invoiceId, status: { in: ["OPEN", "ASSIGNED", "UNDER_REVIEW"] } },
+    where: { invoiceId, organizationId, status: { in: ["OPEN", "ASSIGNED", "UNDER_REVIEW"] } },
     data: { status: "RESOLVED", resolvedAt: new Date() },
   });
 
@@ -833,7 +861,12 @@ export async function addDocumentToInvoice(
     }
 
     await prisma.invoice.update({
-      where: { id: invoiceId },
+      where: {
+        id_organizationId: {
+          id: invoiceId,
+          organizationId,
+        },
+      },
       data: updateData,
     });
 
@@ -891,7 +924,7 @@ export async function getInvoiceTrackingToken(organizationId: string, invoiceId:
   }
 
   if (!rawToken || !invoice.trackingTokenExpiresAt) {
-    return regenerateInvoiceTrackingToken(organizationId, invoiceId);
+    throw ApiError.notFound("Tracking token not found for this invoice. Please generate or regenerate it.");
   }
 
   return {
@@ -920,7 +953,12 @@ export async function regenerateInvoiceTrackingToken(
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
   await prisma.invoice.update({
-    where: { id: invoiceId },
+    where: {
+      id_organizationId: {
+        id: invoiceId,
+        organizationId,
+      },
+    },
     data: {
       trackingTokenHash: tokenHash,
       trackingTokenEncrypted: encryptedToken,

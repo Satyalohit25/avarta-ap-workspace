@@ -107,11 +107,17 @@ export async function createInvoice(
 }
 
 export async function updateInvoice(
+  organizationId: string,
   id: string,
   data: Prisma.InvoiceUncheckedUpdateInput
 ) {
   return prisma.invoice.update({
-    where: { id },
+    where: {
+      id_organizationId: {
+        id,
+        organizationId,
+      },
+    },
     data,
     include: listInclude,
   });

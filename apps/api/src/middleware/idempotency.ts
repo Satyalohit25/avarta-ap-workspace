@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { ApiError } from "../lib/errors";
 import { prisma } from "../config/database";
+import { runWithSystemJobBypass } from "../config/tenant-guard";
 
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -58,9 +59,9 @@ async function handleIdempotency(
   res: Response,
   next: NextFunction
 ) {
-  // Clean up expired keys (fire-and-forget, non-blocking)
+  // Clean up expired keys for this organization (fire-and-forget, non-blocking)
   prisma.idempotencyKey
-    .deleteMany({ where: { expiresAt: { lt: new Date() } } })
+    .deleteMany({ where: { organizationId, expiresAt: { lt: new Date() } } })
     .catch(() => {/* best-effort cleanup */});
 
   const existing = await prisma.idempotencyKey.findUnique({
@@ -123,4 +124,17 @@ async function handleIdempotency(
   }) as typeof res.json;
 
   next();
+}
+
+/**
+ * System job wrapper for pruning expired idempotency keys across all tenants.
+ * Must only be invoked via scheduled background maintenance job.
+ */
+export async function cleanupExpiredIdempotencyKeys(): Promise<number> {
+  return runWithSystemJobBypass("idempotency-key-cleanup", async () => {
+    const res = await prisma.idempotencyKey.deleteMany({
+      where: { expiresAt: { lt: new Date() } },
+    });
+    return res.count;
+  });
 }

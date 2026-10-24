@@ -78,7 +78,12 @@ export async function syncInvoiceWithErp(params: {
 
   // Stamping clearing document reference onto invoice
   await prisma.invoice.update({
-    where: { id: invoiceId },
+    where: {
+      id_organizationId: {
+        id: invoiceId,
+        organizationId,
+      },
+    },
     data: {
       erpClearingNumber: clearingDocNumber,
       fiscalYear: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
@@ -87,6 +92,7 @@ export async function syncInvoiceWithErp(params: {
 
   await applyTransition({
     invoiceId,
+    organizationId,
     event: "ERP_SUCCESS",
     triggeredBy: userId,
     reason: `Posted double-entry ledger journal ${entry.entryNumber} via ${targetErp || defaultAdapter.name}`,

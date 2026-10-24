@@ -114,7 +114,7 @@ export async function executePayment(
     }
   }
 
-  await applyTransition({ invoiceId: payment.invoiceId, event: "PAYMENT_RUN", triggeredBy: userId });
+  await applyTransition({ invoiceId: payment.invoiceId, organizationId, event: "PAYMENT_RUN", triggeredBy: userId });
 
   // Resolve tenant's configured Payment Gateway (BYOPG)
   const { IntegrationRepository } = await import("../integrations/repository");
@@ -146,14 +146,14 @@ export async function executePayment(
   });
 
   if (!payoutResult.success) {
-    await applyTransition({ invoiceId: payment.invoiceId, event: "PAYMENT_FAILURE", triggeredBy: userId });
+    await applyTransition({ invoiceId: payment.invoiceId, organizationId, event: "PAYMENT_FAILURE", triggeredBy: userId });
     throw ApiError.badRequest(
       `Payment gateway payout initiation failed: ${payoutResult.errorMessage || "Gateway rejected transaction"}`
     );
   }
 
   // Payment confirmed by Gateway Adapter — proceed with state advance
-  await applyTransition({ invoiceId: payment.invoiceId, event: "PAYMENT_SUCCESS", triggeredBy: userId });
+  await applyTransition({ invoiceId: payment.invoiceId, organizationId, event: "PAYMENT_SUCCESS", triggeredBy: userId });
 
   const finalUtr = details?.utrNumber || payoutResult.utrNumber || `NEFT-${Date.now().toString().slice(-8)}`;
   const finalClearingDoc = details?.clearingDocumentNumber || payoutResult.clearingDocumentNumber || `CLR-${Date.now().toString(36).toUpperCase()}`;
@@ -161,7 +161,12 @@ export async function executePayment(
 
   // Stamp invoice with clearing document and buyer invoice id
   await prisma.invoice.update({
-    where: { id: payment.invoiceId },
+    where: {
+      id_organizationId: {
+        id: payment.invoiceId,
+        organizationId,
+      },
+    },
     data: {
       erpClearingNumber: finalClearingDoc,
       buyerInvoiceId: `2522${Date.now().toString().slice(-6)}`,
@@ -170,7 +175,12 @@ export async function executePayment(
   });
 
   return prisma.payment.update({
-    where: { id: paymentId },
+    where: {
+      id_organizationId: {
+        id: paymentId,
+        organizationId,
+      },
+    },
     data: {
       status: "PAID",
       processedAt: clearingDate,

@@ -8,6 +8,7 @@ import { getAllowedRolesForAmount } from "../modules/approvals/thresholds";
 
 export interface ApplyTransitionInput {
   invoiceId: string;
+  organizationId: string;
   event: WorkflowEvent;
   triggeredBy?: string | null;
   reason?: string | null;
@@ -23,7 +24,14 @@ export interface ApplyTransitionInput {
  * Application/controller code must call this function rather than writing
  * to either field directly.
  */
-export async function applyTransition({ invoiceId, event, triggeredBy, reason, tx: providedTx }: ApplyTransitionInput) {
+export async function applyTransition({
+  invoiceId,
+  organizationId,
+  event,
+  triggeredBy,
+  reason,
+  tx: providedTx,
+}: ApplyTransitionInput) {
   return runWithEngineBypass(async () => {
     const execute = async (tx: Prisma.TransactionClient) => {
     const instance = await tx.workflowInstance.findUnique({ where: { invoiceId } });
@@ -61,7 +69,12 @@ export async function applyTransition({ invoiceId, event, triggeredBy, reason, t
 
     const projectedStatus = STATE_TO_INVOICE_STATUS[rule.to];
     const invoice = await tx.invoice.update({
-      where: { id: invoiceId },
+      where: {
+        id_organizationId: {
+          id: invoiceId,
+          organizationId,
+        },
+      },
       data: {
         workflowState: rule.to as unknown as never,
         status: projectedStatus as unknown as never,
@@ -78,7 +91,7 @@ export async function applyTransition({ invoiceId, event, triggeredBy, reason, t
         const allowedRoles = getAllowedRolesForAmount(amount);
         const approver = await tx.user.findFirst({
           where: {
-            organizationId: invoice.organizationId,
+            organizationId,
             role: { in: allowedRoles },
             status: "ACTIVE",
           },
@@ -118,11 +131,13 @@ export async function applyTransition({ invoiceId, event, triggeredBy, reason, t
 
     // Relational Side Effect: Automated Payment Creation / Scheduling
     if (rule.to === "SCHEDULED" && event === "APPROVED") {
-      const existingPayment = await tx.payment.findFirst({ where: { invoiceId } });
+      const existingPayment = await tx.payment.findFirst({
+        where: { invoiceId, organizationId },
+      });
       if (!existingPayment) {
         await tx.payment.create({
           data: {
-            organizationId: invoice.organizationId,
+            organizationId,
             invoiceId,
             amount: invoice.totalAmount,
             currency: invoice.currency,
@@ -133,7 +148,12 @@ export async function applyTransition({ invoiceId, event, triggeredBy, reason, t
         });
       } else if (existingPayment.status === "AWAITING_SCHEDULE") {
         await tx.payment.update({
-          where: { id: existingPayment.id },
+          where: {
+            id_organizationId: {
+              id: existingPayment.id,
+              organizationId,
+            },
+          },
           data: { status: "SCHEDULED" },
         });
       }
@@ -142,7 +162,7 @@ export async function applyTransition({ invoiceId, event, triggeredBy, reason, t
     // Relational Side Effect: Payment Finalization
     if (rule.to === "PAID") {
       await tx.payment.updateMany({
-        where: { invoiceId, status: { not: "PAID" } },
+        where: { invoiceId, organizationId, status: { not: "PAID" } },
         data: {
           status: "PAID",
           processedAt: new Date(),
@@ -152,14 +172,19 @@ export async function applyTransition({ invoiceId, event, triggeredBy, reason, t
       // Extend public tracking token expiration for vendor audit/remittance retention (+90 days)
       const extendedExpiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
       await tx.invoice.update({
-        where: { id: invoiceId },
+        where: {
+          id_organizationId: {
+            id: invoiceId,
+            organizationId,
+          },
+        },
         data: { trackingTokenExpiresAt: extendedExpiresAt },
       });
     }
 
     await tx.auditLog.create({
       data: {
-        organizationId: invoice.organizationId,
+        organizationId,
         userId: triggeredBy ?? null,
         action: "WORKFLOW_TRANSITION",
         entityType: "invoice",
@@ -169,13 +194,13 @@ export async function applyTransition({ invoiceId, event, triggeredBy, reason, t
       },
     });
 
-      return { invoice, workflowInstance: updatedInstance };
-    };
+    return { invoice, workflowInstance: updatedInstance };
+  };
 
-    if (providedTx) {
-      return execute(providedTx);
-    }
-    return prisma.$transaction(execute);
+  if (providedTx) {
+    return execute(providedTx);
+  }
+  return prisma.$transaction(execute);
   });
 }
 
