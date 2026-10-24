@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { PrismaClient } from "@prisma/client";
 import { prisma } from "../../config/database";
+import { runWithEngineBypass } from "../../config/tenant-guard";
 import { executeInvoiceApproval, executeInvoiceRejection } from "./service";
 import { createException } from "../exceptions/service";
 import { transitionInvoice } from "../invoices/service";
@@ -331,9 +332,11 @@ describe("Pessimistic Row Locking & Concurrency Protection (Day 1.5 Item 4)", ()
       await releaseLock;
 
       // Update state to SCHEDULED under lock
-      await txA.invoice.update({
-        where: { id: inv.id },
-        data: { workflowState: "SCHEDULED" },
+      await runWithEngineBypass(async () => {
+        await txA.invoice.update({
+          where: { id_organizationId: { id: inv.id, organizationId: orgId } },
+          data: { workflowState: "SCHEDULED" },
+        });
       });
     });
 
@@ -352,7 +355,9 @@ describe("Pessimistic Row Locking & Concurrency Protection (Day 1.5 Item 4)", ()
           );
           clientBBlocked = false;
 
-          const current = await txB.invoice.findUnique({ where: { id: inv.id } });
+          const current = await txB.invoice.findFirst({
+            where: { id: inv.id, organizationId: orgId },
+          });
           if (current?.workflowState !== "WAITING_APPROVAL") {
             const err = new Error(`Cannot approve invoice in state ${current?.workflowState}`);
             (err as any).status = 409;

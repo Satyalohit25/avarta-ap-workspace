@@ -9,7 +9,6 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "start": "node dist/app/server.js",
-
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
@@ -37,6 +36,7 @@
     "@types/node": "^20.14.9",
     "@types/uuid": "^9.0.8",
     "prisma": "^5.20.0",
+    "ts-morph": "^28.0.0",
     "tsx": "^4.16.2",
     "typescript": "^5.5.3",
     "vitest": "^4.1.10"

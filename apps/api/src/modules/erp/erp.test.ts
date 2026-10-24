@@ -89,7 +89,7 @@ describe("ERP Sync (CSV Adapter) (Step 8)", () => {
     expect(result.syncResult.isBalanced).toBe(true);
     expect(updateSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: "inv-123" },
+        where: { id_organizationId: { id: "inv-123", organizationId: "org-1" } },
         data: expect.objectContaining({ erpClearingNumber: expect.any(String) }),
       })
     );

@@ -9,6 +9,7 @@ describe("Item 10: Idempotent Tracking Backfill and Expiry Recomputation", () =>
   let paidInvoiceWithOld90dExpiryId: string;
 
   beforeAll(async () => {
+    await prisma.invoice.deleteMany({ where: { organizationId: orgId } });
     await prisma.organization.upsert({
       where: { id: orgId },
       update: {},
@@ -71,9 +72,7 @@ describe("Item 10: Idempotent Tracking Backfill and Expiry Recomputation", () =>
 
   afterAll(async () => {
     await prisma.invoice.deleteMany({
-      where: {
-        id: { in: [invoiceWithoutTokenId, invoiceWithOld30dExpiryId, paidInvoiceWithOld90dExpiryId] },
-      },
+      where: { organizationId: orgId },
     });
     await prisma.organization.deleteMany({ where: { id: orgId } });
   });
@@ -84,7 +83,9 @@ describe("Item 10: Idempotent Tracking Backfill and Expiry Recomputation", () =>
     expect(result.recomputed).toBeGreaterThanOrEqual(2);
 
     // Verify invoice with previously null token got populated with 90-day expiry
-    const inv1 = await prisma.invoice.findUniqueOrThrow({ where: { id: invoiceWithoutTokenId } });
+    const inv1 = await prisma.invoice.findFirstOrThrow({
+      where: { id: invoiceWithoutTokenId, organizationId: orgId },
+    });
     expect(inv1.trackingTokenHash).toBeDefined();
     expect(inv1.trackingTokenEncrypted).toBeDefined();
     expect(inv1.trackingTokenExpiresAt).toBeDefined();
@@ -93,13 +94,17 @@ describe("Item 10: Idempotent Tracking Backfill and Expiry Recomputation", () =>
     expect(inv1RemainingDays).toBeLessThanOrEqual(91);
 
     // Verify invoice with old 30d expiry got recomputed to 90 days
-    const inv2 = await prisma.invoice.findUniqueOrThrow({ where: { id: invoiceWithOld30dExpiryId } });
+    const inv2 = await prisma.invoice.findFirstOrThrow({
+      where: { id: invoiceWithOld30dExpiryId, organizationId: orgId },
+    });
     const inv2RemainingDays = (inv2.trackingTokenExpiresAt!.getTime() - Date.now()) / (24 * 60 * 60 * 1000);
     expect(inv2RemainingDays).toBeGreaterThan(80);
     expect(inv2RemainingDays).toBeLessThanOrEqual(91);
 
     // Verify PAID invoice with old 90d expiry got recomputed to 270 days (90 + 180)
-    const inv3 = await prisma.invoice.findUniqueOrThrow({ where: { id: paidInvoiceWithOld90dExpiryId } });
+    const inv3 = await prisma.invoice.findFirstOrThrow({
+      where: { id: paidInvoiceWithOld90dExpiryId, organizationId: orgId },
+    });
     const inv3RemainingDays = (inv3.trackingTokenExpiresAt!.getTime() - Date.now()) / (24 * 60 * 60 * 1000);
     expect(inv3RemainingDays).toBeGreaterThan(250);
     expect(inv3RemainingDays).toBeLessThanOrEqual(271);

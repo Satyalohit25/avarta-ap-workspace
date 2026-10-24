@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { prisma } from "../../config/database";
+import { runWithSystemJobBypass } from "../../config/tenant-guard";
 import { startWorkflow } from "../../workflow/engine";
 import { processInvoice } from "../invoices/service";
 
@@ -50,10 +51,12 @@ async function resolveOrganizationId(to: string, from: string, explicitOrgId?: s
     if (org) return org.id;
   }
 
-  // Lookup supplier by sender email
-  const supplier = await prisma.supplier.findFirst({
-    where: { email: { equals: from, mode: "insensitive" } },
-  });
+  // Lookup supplier by sender email (cross-tenant lookup wrapped in system job bypass)
+  const supplier = await runWithSystemJobBypass("email-webhook-supplier-lookup", () =>
+    prisma.supplier.findFirst({
+      where: { email: { equals: from, mode: "insensitive" } },
+    })
+  );
   if (supplier) return supplier.organizationId;
 
   throw new Error(

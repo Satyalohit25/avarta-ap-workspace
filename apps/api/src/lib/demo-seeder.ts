@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { runWithSeederBypass } from "../config/tenant-guard";
 
 export interface SeedSummary {
   success: boolean;
@@ -28,29 +29,30 @@ export async function seedDemoDataset(prismaClient: PrismaClient): Promise<SeedS
 
   const prisma = prismaClient;
 
-
   // 1. Dependency-ordered clean table wipe inside transaction
-  await prisma.$transaction([
-    prisma.idempotencyKey.deleteMany(),
-    prisma.auditLog.deleteMany(),
-    prisma.notification.deleteMany(),
-    prisma.comment.deleteMany(),
-    prisma.workflowTransition.deleteMany(),
-    prisma.workflowInstance.deleteMany(),
-    prisma.payment.deleteMany(),
-    prisma.approval.deleteMany(),
-    prisma.exception.deleteMany(),
-    prisma.validation.deleteMany(),
-    prisma.document.deleteMany(),
-    prisma.invoiceLine.deleteMany(),
-    prisma.invoice.deleteMany(),
-    prisma.goodsReceiptLine.deleteMany(),
-    prisma.goodsReceipt.deleteMany(),
-    prisma.purchaseOrder.deleteMany(),
-    prisma.supplier.deleteMany(),
-    prisma.user.deleteMany(),
-    prisma.organization.deleteMany(),
-  ]);
+  await runWithSeederBypass(async () => {
+    await prisma.$transaction([
+      prisma.idempotencyKey.deleteMany(),
+      prisma.auditLog.deleteMany(),
+      prisma.notification.deleteMany(),
+      prisma.comment.deleteMany(),
+      prisma.workflowTransition.deleteMany(),
+      prisma.workflowInstance.deleteMany(),
+      prisma.payment.deleteMany(),
+      prisma.approval.deleteMany(),
+      prisma.exception.deleteMany(),
+      prisma.validation.deleteMany(),
+      prisma.document.deleteMany(),
+      prisma.invoiceLine.deleteMany(),
+      prisma.invoice.deleteMany(),
+      prisma.goodsReceiptLine.deleteMany(),
+      prisma.goodsReceipt.deleteMany(),
+      prisma.purchaseOrder.deleteMany(),
+      prisma.supplier.deleteMany(),
+      prisma.user.deleteMany(),
+      prisma.organization.deleteMany(),
+    ]);
+  });
 
   // 2. Organization Creation (Deterministic ID preserves active demo session tokens)
   const org = await prisma.organization.create({

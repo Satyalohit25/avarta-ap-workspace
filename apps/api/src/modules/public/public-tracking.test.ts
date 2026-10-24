@@ -7,6 +7,7 @@ import { invoiceRoutes } from "../invoices/routes";
 import { signAccessToken } from "../../lib/jwt";
 import { hashTrackingToken, generateTrackingToken, encryptTrackingToken } from "../../lib/crypto";
 import { findInvoiceByPublicTrackingHash } from "../invoices/repository";
+import { runWithEngineBypass, runWithTrackingLookupBypass } from "../../config/tenant-guard";
 
 function createTestApp() {
   const app = express();
@@ -120,7 +121,7 @@ describe("Public Invoice Tracking Hardening (ACT-P0-01)", () => {
 
   afterAll(async () => {
     await prisma.auditLog.deleteMany({ where: { organizationId: orgId } });
-    await prisma.invoice.deleteMany({ where: { id: { in: [invoiceId, expiredInvoiceId] } } });
+    await prisma.invoice.deleteMany({ where: { organizationId: orgId, id: { in: [invoiceId, expiredInvoiceId] } } });
     await prisma.organization.deleteMany({ where: { id: orgId } });
   });
 
@@ -246,9 +247,11 @@ describe("Public Invoice Tracking Hardening (ACT-P0-01)", () => {
     expect(diffDaysUnpaid).toBeLessThanOrEqual(91);
 
     // 2. Mark invoice PAID and regenerate -> 270 days
-    await prisma.invoice.update({
-      where: { id: invoiceId },
-      data: { status: "PAID" },
+    await runWithEngineBypass(async () => {
+      await prisma.invoice.update({
+        where: { id_organizationId: { id: invoiceId, organizationId: orgId } },
+        data: { status: "PAID" },
+      });
     });
 
     const resPaid = await dispatch(

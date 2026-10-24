@@ -32,7 +32,10 @@ describe("Demo Dataset Seeder & Dynamic Scenarios", () => {
     ]);
 
     // Verify relative dates in database
-    const invoices = await prisma.invoice.findMany({ select: { dueDate: true, invoiceDate: true } });
+    const invoices = await prisma.invoice.findMany({
+      where: { organizationId: "org_demo_001" },
+      select: { dueDate: true, invoiceDate: true },
+    });
     expect(invoices.length).toBeGreaterThanOrEqual(28);
 
     const now = new Date();

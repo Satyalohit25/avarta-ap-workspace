@@ -8,6 +8,7 @@ describe("Invoice Creation Automatic Tracking Token Generation", () => {
   let supplierId: string;
 
   beforeEach(async () => {
+    await prisma.auditLog.deleteMany({ where: { organizationId: orgId } });
     await prisma.invoiceLine.deleteMany({ where: { invoice: { organizationId: orgId } } });
     await prisma.workflowTransition.deleteMany({
       where: { workflowInstance: { invoice: { organizationId: orgId } } },
@@ -59,7 +60,7 @@ describe("Invoice Creation Automatic Tracking Token Generation", () => {
     });
 
     const fullInvoice = await prisma.invoice.findUnique({
-      where: { id: inv.id },
+      where: { id_organizationId: { id: inv.id, organizationId: orgId } },
       select: {
         id: true,
         createdAt: true,
