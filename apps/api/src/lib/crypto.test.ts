@@ -41,9 +41,18 @@ describe("Cryptographic Vault (AES-256-GCM)", () => {
     expect(() => decryptSecret(tamperedTag)).toThrow();
   });
 
+  it("should fail decryption when auth tag length is invalid", () => {
+    const rawKey = "sk-proj-super-secret-openai-token";
+    const encrypted = encryptSecret(rawKey);
+    const parts = encrypted.split(":");
+    const shortTag = `${parts[0]}:deadbeef:${parts[2]}`;
+
+    expect(() => decryptSecret(shortTag)).toThrow(/Invalid AES-GCM IV or AuthTag length/);
+  });
+
   it("should mask secrets appropriately for UI display", () => {
-    expect(maskSecret("AIzaSyBv1234567890abcdef")).toEqual("AIza••••••••cdef");
-    expect(maskSecret("short")).toEqual("••••••••");
+    expect(maskSecret("AIzaSyBv1234567890abcdef")).toEqual("AIza********cdef");
+    expect(maskSecret("short")).toEqual("********");
     expect(maskSecret("")).toEqual("");
   });
 });

@@ -105,3 +105,24 @@ export async function backfillInvoiceTrackingTokens(operator = "admin-migration-
     };
   });
 }
+
+// CLI Execution Entrypoint
+if (process.argv[1]?.replace(/\\/g, "/").includes("backfill-tracking")) {
+  const isProd = process.env.NODE_ENV === "production";
+  const hasConfirm = process.argv.includes("--confirm-production-backfill");
+  if (isProd && !hasConfirm) {
+    console.error("FATAL: In production, --confirm-production-backfill flag is required to run tracking backfill.");
+    process.exit(1);
+  }
+  console.log(`[BACKFILL] Starting invoice tracking token backfill and recomputation (operator: admin-migration-backfill)...`);
+  backfillInvoiceTrackingTokens("admin-migration-backfill")
+    .then((result) => {
+      console.log(`[BACKFILL SUCCESS] Created: ${result.created}, Recomputed: ${result.recomputed}, Total Processed: ${result.totalProcessed}`);
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error(`[BACKFILL ERROR]`, err);
+      process.exit(1);
+    });
+}
+

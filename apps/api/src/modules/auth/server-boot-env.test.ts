@@ -15,6 +15,7 @@ describe("Item 6: Real Entrypoint Server Boot Validation", () => {
         DIRECT_URL: "postgresql://postgres:123456@127.0.0.1:5432/avarta_db?schema=test_suite",
         JWT_SECRET: "a-secure-production-secret-at-least-32chars!!",
         APP_ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        WEB_ORIGIN: "https://avarta.app",
       },
       encoding: "utf8",
     });
@@ -35,6 +36,7 @@ describe("Item 6: Real Entrypoint Server Boot Validation", () => {
         DIRECT_URL: "postgresql://postgres:123456@127.0.0.1:5432/avarta_db?schema=test_suite",
         JWT_SECRET: "a-secure-production-secret-at-least-32chars!!",
         APP_ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        WEB_ORIGIN: "https://avarta.app",
       },
       encoding: "utf8",
     });

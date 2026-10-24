@@ -44,7 +44,15 @@ export function decryptSecret(cipherPayload: string): string {
   const iv = Buffer.from(ivHex, "hex");
   const authTag = Buffer.from(authTagHex, "hex");
 
-  const decipher = crypto.createDecipheriv(ALGORITHM, getMasterKey(), iv);
+  if (iv.byteLength !== IV_LENGTH || authTag.byteLength !== 16) {
+    throw new Error(
+      `Invalid AES-GCM IV or AuthTag length. Expected IV: ${IV_LENGTH} bytes, AuthTag: 16 bytes.`
+    );
+  }
+
+  const decipher = crypto.createDecipheriv(ALGORITHM, getMasterKey(), iv, {
+    authTagLength: 16,
+  });
   decipher.setAuthTag(authTag);
 
   let decrypted = decipher.update(encryptedHex, "hex", "utf8");
@@ -58,10 +66,10 @@ export function decryptSecret(cipherPayload: string): string {
  */
 export function maskSecret(secret: string): string {
   if (!secret) return "";
-  if (secret.length <= 8) return "••••••••";
+  if (secret.length <= 8) return "********";
   const start = secret.slice(0, 4);
   const end = secret.slice(-4);
-  return `${start}••••••••${end}`;
+  return `${start}********${end}`;
 }
 
 /**

@@ -32,6 +32,10 @@ export function validateEnvironment(): void {
       missingOrInvalid.push("APP_ENCRYPTION_KEY is required in production");
     }
 
+    if (!process.env.WEB_ORIGIN) {
+      missingOrInvalid.push("WEB_ORIGIN is required in production");
+    }
+
     if (process.env.MASTER_DEV_PASSWORD || process.env.MASTER_DEV_EMAIL) {
       missingOrInvalid.push(
         "FATAL SECURITY VIOLATION: MASTER_DEV_PASSWORD or MASTER_DEV_EMAIL cannot be configured in production environment."
