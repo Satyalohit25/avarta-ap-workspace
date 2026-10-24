@@ -442,6 +442,9 @@ function buildInvoiceAuditTimeline(
   return [...dynamicEvents, ...events];
 }
 
+// Cache 404s for invoices without minted tracking tokens to prevent repeated network requests
+const tracking404Cache = new Set<string>();
+
 export default function InvoiceDetailPage() {
   const { invoiceId } = useParams<{ invoiceId: string }>();
   const navigate = useNavigate();
@@ -480,12 +483,19 @@ export default function InvoiceDetailPage() {
   } | null>(null);
 
   useEffect(() => {
-    if (invoiceId) {
+    if (invoiceId && !tracking404Cache.has(invoiceId)) {
       getInvoiceTracking(invoiceId)
         .then((res) => {
           if (res.data) setTrackingInfo(res.data);
         })
-        .catch(() => {});
+        .catch((err: unknown) => {
+          const status =
+            (err as { status?: number; statusCode?: number })?.status ||
+            (err as { status?: number; statusCode?: number })?.statusCode;
+          if (status === 404) {
+            tracking404Cache.add(invoiceId);
+          }
+        });
     }
   }, [invoiceId]);
   const [actionBanner, setActionBanner] = useState<{
@@ -631,8 +641,18 @@ export default function InvoiceDetailPage() {
       ]);
 
       await load();
-    } catch {
+    } catch (err: unknown) {
       setProcessingStage("error");
+      const is409 =
+        (err as { status?: number; statusCode?: number })?.status === 409 ||
+        (err as { status?: number; statusCode?: number })?.statusCode === 409;
+      setActionBanner({
+        type: is409 ? "warning" : "error",
+        title: is409 ? "Already Processed" : "Processing Failed",
+        message: is409
+          ? "This invoice has already completed validation and advanced in the workflow."
+          : (err as Error)?.message || "Failed to trigger processing pipeline.",
+      });
     } finally {
       setProcessingStage("idle");
       setActionPending(false);

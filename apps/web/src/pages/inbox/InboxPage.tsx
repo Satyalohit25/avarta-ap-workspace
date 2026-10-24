@@ -188,9 +188,15 @@ export default function InboxPage() {
       setDialogOpen(false);
       loadData();
     } catch (err: unknown) {
-      const msg = err instanceof ApiRequestError ? err.message : "An unexpected error occurred. Please try again.";
+      const is409 =
+        err instanceof ApiRequestError && (err.status === 409 || (err as any).statusCode === 409);
+      const msg = is409
+        ? "Invoice has already been processed and advanced to validation/matching."
+        : err instanceof ApiRequestError
+        ? err.message
+        : "An unexpected error occurred. Please try again.";
       setApiError(msg);
-      toast.error("Invoice Ingestion Failed", msg);
+      toast.error(is409 ? "Already Processed" : "Invoice Ingestion Failed", msg);
     } finally {
       setFormSubmitting(false);
     }

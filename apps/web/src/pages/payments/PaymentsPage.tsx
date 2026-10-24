@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { listPayments, executePayment, PaymentRow } from "../../api/payments";
+import { API_URL, getAccessToken } from "../../api/client";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SkeletonRows } from "../../components/Skeleton";
 import { EmptyState } from "../../components/EmptyState";
@@ -178,7 +179,7 @@ export default function PaymentsPage() {
     });
   }
 
-  function handleExportBankFile(format: "CSV" | "NACHA" = "CSV") {
+  async function handleExportBankFile(format: "CSV" | "NACHA" = "CSV") {
     const listToExport = selectedIds.length > 0
       ? rows.filter((r) => selectedIds.includes(r.id))
       : filteredRows;
@@ -228,11 +229,33 @@ export default function PaymentsPage() {
       );
     } else if (format === "NACHA") {
       const idsParam = listToExport.map((p) => p.id).join(",");
-      window.open(`/api/payments/export-file?format=nacha&paymentIds=${encodeURIComponent(idsParam)}`, "_blank");
-      toast.success(
-        "NACHA ACH Batch File Exported",
-        `94-character fixed-width ACH batch file generated for ${listToExport.length} disbursement(s) (C8-4).`
-      );
+      try {
+        const token = getAccessToken();
+        const res = await fetch(
+          `${API_URL}/payments/export-file?format=nacha&paymentIds=${encodeURIComponent(idsParam)}`,
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }
+        );
+        if (!res.ok) {
+          throw new Error(`Failed to export NACHA batch file (HTTP ${res.status})`);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `nacha_ach_batch_${new Date().toISOString().slice(0, 10)}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success(
+          "NACHA ACH Batch File Exported",
+          `94-character fixed-width ACH batch file generated for ${listToExport.length} disbursement(s) (C8-4).`
+        );
+      } catch (err: unknown) {
+        toast.error("Export Failed", err instanceof Error ? err.message : "Failed to download ACH file");
+      }
     }
   }
 

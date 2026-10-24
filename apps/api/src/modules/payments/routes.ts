@@ -14,7 +14,11 @@ export const paymentRoutes = Router();
 paymentRoutes.use(requireAuth);
 
 paymentRoutes.get("/", listHandler);
-paymentRoutes.get("/export-file", exportBankFileHandler);
+paymentRoutes.get(
+  "/export-file",
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER"),
+  exportBankFileHandler
+);
 paymentRoutes.post(
   "/",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER"),
