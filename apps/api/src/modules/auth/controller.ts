@@ -5,6 +5,9 @@ import { ApiError } from "../../lib/errors";
 
 export async function signupHandler(req: Request, res: Response, next: NextFunction) {
   try {
+    if (process.env.NODE_ENV === "production" && process.env.ALLOW_PUBLIC_SIGNUP !== "true") {
+      throw ApiError.forbidden("Public signup is disabled in production. Initial administrators must be provisioned via the secure CLI tool.");
+    }
     const body = signupSchema.parse(req.body);
     const result = await authService.signup(body);
     res.status(201).json(result);
