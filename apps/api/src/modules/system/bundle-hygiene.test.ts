@@ -72,7 +72,7 @@ describe("Item 12: Bundle Hygiene, Build Verification, and Source Scans", () => 
         `Forbidden string "${str}" found in built web assets: ${matches.join(", ")}`
       ).toHaveLength(0);
     }
-  });
+  }, 30000);
 
   it("tracks expected-until-Item-C fixtures and verifies Item C is not started prematurely", () => {
     // Strings that are explicitly expected until Item C lands

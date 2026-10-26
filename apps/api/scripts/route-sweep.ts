@@ -2,7 +2,7 @@ import http from "http";
 import { createApp } from "../src/app/app";
 import { signAccessToken } from "../src/lib/jwt";
 import { prisma } from "../src/config/database";
-import { Prisma } from "@prisma/client";
+import { Role, Prisma } from "@prisma/client";
 import { runWithSeederBypass } from "../src/config/tenant-guard";
 
 interface SweepResult {
@@ -21,8 +21,8 @@ function doRequest(
   method: string,
   path: string,
   headers: Record<string, string>,
-  body?: any
-): Promise<{ status: number; text: string; json?: any }> {
+  body?: unknown
+): Promise<{ status: number; text: string; json?: unknown }> {
   return new Promise((resolve, reject) => {
     const req = http.request(
       {
@@ -36,7 +36,7 @@ function doRequest(
         let text = "";
         res.on("data", (chunk) => (text += chunk));
         res.on("end", () => {
-          let json: any = undefined;
+          let json: unknown = undefined;
           try {
             json = JSON.parse(text);
           } catch {}
@@ -55,7 +55,8 @@ function doRequest(
 export async function runRouteSweep() {
   const app = createApp();
   const server = app.listen(0);
-  const port = (server.address() as any).port;
+  const address = server.address();
+  const port = typeof address === "object" && address ? address.port : 0;
 
   const { orgId, supplier, po } = await runWithSeederBypass(async () => {
     let org = await prisma.organization.findFirst();
@@ -117,7 +118,7 @@ export async function runRouteSweep() {
   // Intercept console.error to capture exact stack traces during request execution
   const originalError = console.error;
   let currentLogBuffer: string[] = [];
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     const text = args
       .map((a) => (a instanceof Error ? `${a.message}\n${a.stack}` : typeof a === "object" ? JSON.stringify(a) : String(a)))
       .join(" ");
@@ -133,18 +134,15 @@ export async function runRouteSweep() {
       const token = signAccessToken({
         userId: activeUser.id,
         organizationId: orgId,
-        role: role as any,
+        role: role as Role,
         tokenVersion: 0,
       });
 
       // Seed dedicated fresh entities per role so state transitions in one role don't conflict with another
       const {
         invReceived,
-        invWaitingApproval,
         approval,
-        invException,
         exception,
-        invScheduled,
         paymentScheduled,
         invPaid,
       } = await runWithSeederBypass(async () => {
@@ -308,7 +306,7 @@ export async function runRouteSweep() {
         };
       });
 
-      const routes: Array<{ method: "GET" | "POST" | "PUT"; path: string; body?: any; desc: string }> = [
+      const routes: Array<{ method: "GET" | "POST" | "PUT"; path: string; body?: unknown; desc: string }> = [
         // Auth
         { method: "GET", path: "/api/v1/auth/me", desc: "Auth Me" },
         { method: "GET", path: "/api/v1/auth/team", desc: "Auth Team" },

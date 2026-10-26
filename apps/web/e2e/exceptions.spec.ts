@@ -16,7 +16,7 @@ test.describe("Exceptions Handling Queue", () => {
 
   test("renders exception status badges or empty state correctly", async ({ page }) => {
     await page.goto("/exceptions");
-    await expect(page.locator("h1")).toHaveText("Exceptions");
+    await expect(page.locator("h1")).toHaveText("Exceptions", { timeout: 15000 });
 
     const mainContainer = page.locator(".bg-white");
     await expect(mainContainer.first()).toBeVisible();

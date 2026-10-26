@@ -108,6 +108,20 @@ export function isSeederContext(): boolean {
   return seederStorage.getStore()?.isSeeder === true;
 }
 
+export class TenantGuardViolationError extends Error {
+  readonly isTenantGuardViolation = true;
+  readonly targetModel?: string;
+  readonly targetAction?: string;
+
+  constructor(message: string, model?: string, action?: string) {
+    super(message);
+    this.name = "TenantGuardViolationError";
+    this.targetModel = model;
+    this.targetAction = action;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
 /**
  * Recursively verifies that a Prisma where clause contains valid tenant scoping.
  *
@@ -116,7 +130,7 @@ export function isSeederContext(): boolean {
  * - OR: organizationId must be present in EVERY branch (to prevent tenant hopping).
  * - NOT: Does NOT satisfy tenant scoping.
  */
-export function checkWhereHasTenantFilter(where: any): boolean {
+export function checkWhereHasTenantFilter(where: Record<string, unknown> | null | undefined): boolean {
   if (!where || typeof where !== "object") {
     return false;
   }
@@ -127,41 +141,41 @@ export function checkWhereHasTenantFilter(where: any): boolean {
   }
 
   // 2. Nested parent relation scoping (e.g., { invoice: { organizationId } })
-  if (where.invoice && typeof where.invoice === "object" && checkWhereHasTenantFilter(where.invoice)) {
+  if (where.invoice && typeof where.invoice === "object" && checkWhereHasTenantFilter(where.invoice as Record<string, unknown>)) {
     return true;
   }
 
   // 3. Compound unique selector objects
-  if (where.id_organizationId && typeof where.id_organizationId === "object" && "organizationId" in where.id_organizationId) {
+  if (where.id_organizationId && typeof where.id_organizationId === "object" && "organizationId" in (where.id_organizationId as Record<string, unknown>)) {
     return true;
   }
-  if (where.key_organizationId && typeof where.key_organizationId === "object" && "organizationId" in where.key_organizationId) {
+  if (where.key_organizationId && typeof where.key_organizationId === "object" && "organizationId" in (where.key_organizationId as Record<string, unknown>)) {
     return true;
   }
-  if (where.organizationId_invoiceNumber && typeof where.organizationId_invoiceNumber === "object" && "organizationId" in where.organizationId_invoiceNumber) {
+  if (where.organizationId_invoiceNumber && typeof where.organizationId_invoiceNumber === "object" && "organizationId" in (where.organizationId_invoiceNumber as Record<string, unknown>)) {
     return true;
   }
-  if (where.organizationId_supplierCode && typeof where.organizationId_supplierCode === "object" && "organizationId" in where.organizationId_supplierCode) {
+  if (where.organizationId_supplierCode && typeof where.organizationId_supplierCode === "object" && "organizationId" in (where.organizationId_supplierCode as Record<string, unknown>)) {
     return true;
   }
-  if (where.organizationId_poNumber && typeof where.organizationId_poNumber === "object" && "organizationId" in where.organizationId_poNumber) {
+  if (where.organizationId_poNumber && typeof where.organizationId_poNumber === "object" && "organizationId" in (where.organizationId_poNumber as Record<string, unknown>)) {
     return true;
   }
-  if (where.organizationId_email && typeof where.organizationId_email === "object" && "organizationId" in where.organizationId_email) {
+  if (where.organizationId_email && typeof where.organizationId_email === "object" && "organizationId" in (where.organizationId_email as Record<string, unknown>)) {
     return true;
   }
-  if (where.organizationId_grnNumber && typeof where.organizationId_grnNumber === "object" && "organizationId" in where.organizationId_grnNumber) {
+  if (where.organizationId_grnNumber && typeof where.organizationId_grnNumber === "object" && "organizationId" in (where.organizationId_grnNumber as Record<string, unknown>)) {
     return true;
   }
 
   // 4. AND logical operator: organizationId in at least one branch
   if (where.AND) {
     if (Array.isArray(where.AND) && where.AND.length > 0) {
-      if (where.AND.some((branch: any) => checkWhereHasTenantFilter(branch))) {
+      if (where.AND.some((branch: unknown) => typeof branch === "object" && branch !== null && checkWhereHasTenantFilter(branch as Record<string, unknown>))) {
         return true;
       }
     } else if (typeof where.AND === "object") {
-      if (checkWhereHasTenantFilter(where.AND)) {
+      if (checkWhereHasTenantFilter(where.AND as Record<string, unknown>)) {
         return true;
       }
     }
@@ -170,7 +184,7 @@ export function checkWhereHasTenantFilter(where: any): boolean {
   // 5. OR logical operator: organizationId must be present in EVERY branch
   if (where.OR) {
     if (Array.isArray(where.OR) && where.OR.length > 0) {
-      if (where.OR.every((branch: any) => checkWhereHasTenantFilter(branch))) {
+      if (where.OR.every((branch: unknown) => typeof branch === "object" && branch !== null && checkWhereHasTenantFilter(branch as Record<string, unknown>))) {
         return true;
       }
     }
@@ -249,13 +263,11 @@ export function registerGuardMiddleware(prisma: {
           console.error(
             `[TENANT GUARD VIOLATION] Create on ${params.model} missing organizationId. Args: ${JSON.stringify(data || {})}`
           );
-          const err = new Error(
-            `AGENTS.md Rule 7: Row creation on ${params.model} must include organizationId.`
+          throw new TenantGuardViolationError(
+            `AGENTS.md Rule 7: Row creation on ${params.model} must include organizationId.`,
+            params.model,
+            params.action
           );
-          (err as any).isTenantGuardViolation = true;
-          (err as any).targetModel = params.model;
-          (err as any).targetAction = params.action;
-          throw err;
         }
         return next(params);
       }
@@ -265,18 +277,16 @@ export function registerGuardMiddleware(prisma: {
         const valid =
           Array.isArray(dataArr) &&
           dataArr.length > 0 &&
-          dataArr.every((row: any) => row && typeof row === "object" && "organizationId" in row && row.organizationId);
+          dataArr.every((row: unknown) => row && typeof row === "object" && "organizationId" in row && (row as Record<string, unknown>).organizationId);
         if (!valid) {
           console.error(
             `[TENANT GUARD VIOLATION] createMany on ${params.model} missing organizationId in rows.`
           );
-          const err = new Error(
-            `AGENTS.md Rule 7: Row creation on ${params.model} must include organizationId.`
+          throw new TenantGuardViolationError(
+            `AGENTS.md Rule 7: Row creation on ${params.model} must include organizationId.`,
+            params.model,
+            params.action
           );
-          (err as any).isTenantGuardViolation = true;
-          (err as any).targetModel = params.model;
-          (err as any).targetAction = params.action;
-          throw err;
         }
         return next(params);
       }
@@ -290,14 +300,12 @@ export function registerGuardMiddleware(prisma: {
           console.error(
             `[TENANT GUARD VIOLATION] Query on ${params.model}.${params.action} missing organizationId filter. Args: ${JSON.stringify(where || {})}`
           );
-          const err = new Error(
+          throw new TenantGuardViolationError(
             `AGENTS.md Rule 7: All queries on ${params.model} must include organizationId. ` +
-            `Never trust organizationId from a request body — derive it from the authenticated session.`
+            `Never trust organizationId from a request body — derive it from the authenticated session.`,
+            params.model,
+            params.action
           );
-          (err as any).isTenantGuardViolation = true;
-          (err as any).targetModel = params.model;
-          (err as any).targetAction = params.action;
-          throw err;
         }
 
         // For upsert, additionally verify create data carries organizationId
@@ -307,13 +315,11 @@ export function registerGuardMiddleware(prisma: {
             console.error(
               `[TENANT GUARD VIOLATION] Upsert create block on ${params.model} missing organizationId.`
             );
-            const err = new Error(
-              `AGENTS.md Rule 7: All queries on ${params.model} must include organizationId.`
+            throw new TenantGuardViolationError(
+              `AGENTS.md Rule 7: All queries on ${params.model} must include organizationId.`,
+              params.model,
+              params.action
             );
-            (err as any).isTenantGuardViolation = true;
-            (err as any).targetModel = params.model;
-            (err as any).targetAction = params.action;
-            throw err;
           }
         }
       }

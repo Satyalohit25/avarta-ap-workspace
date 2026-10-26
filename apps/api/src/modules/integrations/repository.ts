@@ -41,6 +41,8 @@ export class IntegrationRepository {
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
+      `);
+      await prisma.$executeRawUnsafe(`
         CREATE UNIQUE INDEX IF NOT EXISTS "OrganizationIntegration_org_type_provider_key" 
         ON "OrganizationIntegration" ("organizationId", "type", "provider");
       `);

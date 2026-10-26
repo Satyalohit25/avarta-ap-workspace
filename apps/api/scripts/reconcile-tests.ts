@@ -41,9 +41,13 @@ export function runReconciliation() {
       maxBuffer: 50 * 1024 * 1024,
       env: { ...process.env, NODE_ENV: "test" },
     });
-  } catch (err: any) {
-    // If vitest exits with error, it may still emit JSON
-    jsonOutput = err.stdout || "";
+  } catch (err: unknown) {
+    // If vitest exits with error, it may still emit JSON in stdout
+    if (typeof err === "object" && err !== null && "stdout" in err) {
+      jsonOutput = String((err as { stdout: unknown }).stdout || "");
+    } else {
+      jsonOutput = err instanceof Error ? err.message : String(err);
+    }
   }
 
   // Find start of JSON in output

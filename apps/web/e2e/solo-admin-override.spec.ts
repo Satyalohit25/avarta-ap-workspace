@@ -3,9 +3,8 @@ import { PrismaClient } from "@prisma/client";
 import { loginAs, SEEDED_ACCOUNTS } from "./helpers/auth";
 
 const dbUrl =
-  process.env.DATABASE_URL && process.env.DATABASE_URL.includes("schema=test_suite")
-    ? process.env.DATABASE_URL
-    : "postgresql://postgres:123456@127.0.0.1:5432/avarta_db?schema=test_suite";
+  process.env.DATABASE_URL ||
+  "postgresql://postgres:123456@127.0.0.1:5432/avarta_db?schema=public";
 
 const prisma = new PrismaClient({ datasources: { db: { url: dbUrl } } });
 

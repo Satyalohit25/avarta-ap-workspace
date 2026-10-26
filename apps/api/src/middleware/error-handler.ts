@@ -1,6 +1,16 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 import { ApiError } from "../lib/errors";
+import { TenantGuardViolationError } from "../config/tenant-guard";
+
+function hasErrorCode(err: unknown, code: string): err is { code: string } {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as { code: unknown }).code === code
+  );
+}
 
 // Doc 14 §14.7 standard error response shape.
 export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction) {
@@ -29,7 +39,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   // Prisma P2025: "An operation failed because it depends on one or more records that were required but not found."
   // When updating via compound unique { id_organizationId }, a mismatched organizationId returns P2025.
   // We map it to 404 with an identical message to non-existent entities to prevent tenant enumeration.
-  if ((err as any)?.code === "P2025") {
+  if (hasErrorCode(err, "P2025")) {
     return res.status(404).json({
       error: {
         code: "NOT_FOUND",
@@ -40,10 +50,10 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   }
 
   // Tenant Guard Violation: Log distinctly for SIEM / monitoring
-  if ((err as any)?.isTenantGuardViolation) {
+  if (err instanceof TenantGuardViolationError) {
     console.error(
       `[SECURITY AUDIT] [TENANT GUARD VIOLATION] ${req.method} ${req.originalUrl || req.url} ` +
-      `attempted unguarded ${((err as any).targetAction || "action")} on ${((err as any).targetModel || "model")}. ` +
+      `attempted unguarded ${err.targetAction || "action"} on ${err.targetModel || "model"}. ` +
       `Operator: ${req.auth?.userId || "unknown"} Org: ${req.auth?.organizationId || "none"} RequestId: ${req.requestId}`
     );
   } else {

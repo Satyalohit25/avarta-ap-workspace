@@ -7,7 +7,7 @@ import { invoiceRoutes } from "../invoices/routes";
 import { signAccessToken } from "../../lib/jwt";
 import { hashTrackingToken, generateTrackingToken, encryptTrackingToken } from "../../lib/crypto";
 import { findInvoiceByPublicTrackingHash } from "../invoices/repository";
-import { runWithEngineBypass, runWithTrackingLookupBypass } from "../../config/tenant-guard";
+import { runWithEngineBypass } from "../../config/tenant-guard";
 
 function createTestApp() {
   const app = express();

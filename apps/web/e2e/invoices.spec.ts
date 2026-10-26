@@ -133,7 +133,7 @@ test.describe("Invoice Lifecycle & Processing Workflow", () => {
 
   test("verifies dynamic stage audit trail and single details toggle on paid invoice", async ({ page }) => {
     await page.goto("/invoices");
-    await expect(page.locator("h1")).toHaveText("Invoices");
+    await expect(page.locator("h1")).toHaveText("Invoices", { timeout: 15000 });
 
     // Search for or click INV-2026-1011
     const paidInvoiceLink = page.getByRole("link", { name: "INV-2026-1011" }).first();

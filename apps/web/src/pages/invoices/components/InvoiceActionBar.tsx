@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   CheckSquare,
   Zap,
@@ -14,7 +14,6 @@ import {
   ChevronRight,
   Send,
   MoreHorizontal,
-  FileDown,
   History,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -34,7 +33,6 @@ interface InvoiceActionBarProps {
 
 export function InvoiceActionBar({
   context,
-  invoiceNumber,
   totalAmount,
   currency = "INR",
   onAction,

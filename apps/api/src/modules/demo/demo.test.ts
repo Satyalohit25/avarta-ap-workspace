@@ -38,7 +38,6 @@ describe("Demo Dataset Seeder & Dynamic Scenarios", () => {
     });
     expect(invoices.length).toBeGreaterThanOrEqual(28);
 
-    const now = new Date();
     for (const inv of invoices) {
       if (inv.dueDate) {
         expect(inv.dueDate instanceof Date).toBe(true);
