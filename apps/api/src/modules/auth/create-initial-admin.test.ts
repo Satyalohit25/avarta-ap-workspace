@@ -61,14 +61,14 @@ describe("Production Gate Item C: Initial Admin CLI & Signup Lock", () => {
       ).rejects.toThrow(/Database host confirmation mismatch/);
     });
 
-    it("enforces password policy (minimum 8 characters)", async () => {
+    it("enforces password policy (minimum 12 characters)", async () => {
       await expect(
         provisionInitialAdmin(
           {
             companyName: "Acme Corp",
             fullName: "Acme Admin",
             email: "admin@acme.dev",
-            password: "short",
+            password: "ShortPass1", // 10 characters (strictly < 12)
             country: "IN",
           },
           {
@@ -76,7 +76,25 @@ describe("Production Gate Item C: Initial Admin CLI & Signup Lock", () => {
             confirmedHost: "127.0.0.1",
           }
         )
-      ).rejects.toThrow(/Password must be at least 8 characters/);
+      ).rejects.toThrow(/Administrator password must be at least 12 characters long/);
+    });
+
+    it("rejects common easily guessable passwords even if 12+ characters", async () => {
+      await expect(
+        provisionInitialAdmin(
+          {
+            companyName: "Acme Corp",
+            fullName: "Acme Admin",
+            email: "admin@acme.dev",
+            password: "password123456", // 14 characters but common
+            country: "IN",
+          },
+          {
+            expectedHost: "127.0.0.1",
+            confirmedHost: "127.0.0.1",
+          }
+        )
+      ).rejects.toThrow(/Password is too common or easily guessable/);
     });
   });
 

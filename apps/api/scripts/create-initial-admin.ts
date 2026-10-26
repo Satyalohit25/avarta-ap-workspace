@@ -15,11 +15,35 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "../src/config/database";
 
+export const COMMON_PASSWORDS = new Set([
+  "password1234",
+  "password12345",
+  "password123456",
+  "administrator1",
+  "administrator12",
+  "admin12345678",
+  "changeme1234",
+  "changeme12345",
+  "welcome12345",
+  "welcome123456",
+  "letmein12345",
+  "qwertyuiop12",
+  "123456789012",
+  "1234567890123",
+  "iloveyou12345",
+]);
+
 const adminInputSchema = z.object({
   companyName: z.string().min(2, "Company name must be at least 2 characters"),
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
   email: z.string().email("Valid work email is required"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z
+    .string()
+    .min(12, "Administrator password must be at least 12 characters long")
+    .refine(
+      (val) => !COMMON_PASSWORDS.has(val.toLowerCase().trim()),
+      { message: "Password is too common or easily guessable. Please choose a strong passphrase." }
+    ),
   country: z.string().default("IN"),
 });
 
@@ -199,7 +223,7 @@ export async function runCli() {
 
   let password = process.env.ADMIN_PASSWORD;
   if (!password) {
-    password = await prompt("Administrator Password (min 8 chars): ");
+    password = await prompt("Administrator Password (min 12 chars): ");
   }
 
   const targetHost = getDatabaseHost();

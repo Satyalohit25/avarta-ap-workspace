@@ -81,6 +81,15 @@ export async function runVerification() {
     TARGET_URL = `http://127.0.0.1:${addr.port}`;
   }
 
+  const targetHost = new URL(TARGET_URL).hostname;
+  const isLocal = targetHost === "127.0.0.1" || targetHost === "localhost";
+  if (!isLocal && !process.argv.includes("--allow-production-run")) {
+    console.error(`\n[SAFETY ABORT] Target host "${targetHost}" appears to be a remote or production deployment.`);
+    console.error("To prevent leaving throwaway test data in production, run verification against a Neon branch deployment.");
+    console.error("To override and execute against production, pass the explicit flag: --allow-production-run\n");
+    process.exit(1);
+  }
+
   const runId = Math.random().toString(36).substring(2, 8);
   const testEmail = `verify-${Date.now()}-${runId}@clearops.dev`;
   const testPassword = `P@ssword_${Date.now()}_${runId}!`;
@@ -413,9 +422,10 @@ export async function runVerification() {
       }
     } else {
       console.log("\n-------------------------------------------------------------------------------");
-      console.log("PRODUCTION CLEANUP INSTRUCTION (DO NOT LEAVE TEST DATA IN PRODUCTION):");
-      console.log(`To purge this verification run's throwaway organization from production, run:`);
-      console.log(`  pnpm --filter @ap-saas/api db:purge-demo --confirm-purge-demo --target-org-id=${orgId}`);
+      console.log("VERIFICATION TEST DATA ISOLATION NOTICE:");
+      console.log(`Throwaway tenant created: "${throwawayOrgName}" (ID: ${orgId}).`);
+      console.log("When verifying against a temporary Neon branch preview deployment, simply delete the branch after testing.");
+      console.log("If run against production with --allow-production-run, manual database cleanup requires explicit human authorization.");
       console.log("-------------------------------------------------------------------------------");
     }
 
