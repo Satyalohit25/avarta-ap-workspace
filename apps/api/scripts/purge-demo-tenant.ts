@@ -230,6 +230,9 @@ async function main() {
     });
 
     console.log(`\n[PURGE SUCCESSFUL] Target organization "${targetOrgId}" and ${usr.count} user accounts completely removed.`);
+  }, {
+    timeout: 60000,
+    maxWait: 15000,
   });
 }
 
