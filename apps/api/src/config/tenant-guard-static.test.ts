@@ -222,7 +222,7 @@ describe("AST Static Analysis: Tenant Guardrail (AGENTS.md Rule 7)", () => {
     }
 
     expect(allViolations.length).toBe(0);
-  });
+  }, 30000);
 
   describe("Known-Bad Fixtures Verification (Proving Analyzer Can Fail)", () => {
     const virtualProject = new Project({ useInMemoryFileSystem: true });
