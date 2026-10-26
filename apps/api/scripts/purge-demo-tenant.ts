@@ -86,7 +86,7 @@ async function main() {
 
     // 2. Comments, Transitions, Workflow
     await tx.comment.deleteMany({ where: { user: { organizationId: DEMO_ORG_ID } } });
-    await tx.workflowTransition.deleteMany({ where: { instance: { invoice: { organizationId: DEMO_ORG_ID } } } });
+    await tx.workflowTransition.deleteMany({ where: { workflowInstance: { invoice: { organizationId: DEMO_ORG_ID } } } });
     await tx.workflowInstance.deleteMany({ where: { invoice: { organizationId: DEMO_ORG_ID } } });
 
     // 3. Financials
