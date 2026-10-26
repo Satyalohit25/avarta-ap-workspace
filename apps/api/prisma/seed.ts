@@ -1,8 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 import { seedDemoDataset } from "../src/lib/demo-seeder";
 
-// Permit CLI setup/migration script while live API endpoints remain locked
-process.env.ALLOW_PROD_SEED = process.env.ALLOW_PROD_SEED || "true";
+if (process.env.NODE_ENV === "production") {
+  console.error("FATAL ERROR: seed.ts is strictly forbidden from running in production (NODE_ENV=production).");
+  process.exit(1);
+}
 
 const prisma = new PrismaClient();
 

@@ -15,10 +15,13 @@ export interface BackfillTrackingResult {
  * - 90 days for standard invoices
  * - 270 days for PAID invoices (90 + 180 days retention)
  */
-export async function backfillInvoiceTrackingTokens(operator = "admin-migration-backfill"): Promise<BackfillTrackingResult> {
+export async function backfillInvoiceTrackingTokens(
+  operator = "admin-migration-backfill",
+  client: typeof prisma = prisma
+): Promise<BackfillTrackingResult> {
   return runWithAdminBackfillBypass("tracking-backfill", operator, async () => {
     // Step 1: Backfill missing tokens for invoices where trackingTokenHash is null
-    const invoicesWithoutToken = await prisma.invoice.findMany({
+    const invoicesWithoutToken = await client.invoice.findMany({
       where: {
         trackingTokenHash: null,
       },
@@ -40,7 +43,7 @@ export async function backfillInvoiceTrackingTokens(operator = "admin-migration-
       const days = inv.status === "PAID" ? 270 : 90;
       const expiresAt = new Date(inv.createdAt.getTime() + days * 24 * 60 * 60 * 1000);
 
-      await prisma.invoice.update({
+      await client.invoice.update({
         where: {
           id_organizationId: {
             id: inv.id,
@@ -58,7 +61,7 @@ export async function backfillInvoiceTrackingTokens(operator = "admin-migration-
 
     // Step 2: Idempotent recomputation for existing tokens
     // Fixes previously backfilled rows that received 30 days (or 90 days for PAID)
-    const existingInvoices = await prisma.invoice.findMany({
+    const existingInvoices = await client.invoice.findMany({
       where: {
         trackingTokenHash: { not: null },
       },
@@ -83,7 +86,7 @@ export async function backfillInvoiceTrackingTokens(operator = "admin-migration-
       // Tolerance buffer of 1 day to prevent re-updating on idempotent runs
       if (Math.abs(currentExpiryTime - expectedExpiryTime) > 24 * 60 * 60 * 1000) {
         const newExpiresAt = new Date(expectedExpiryTime);
-        await prisma.invoice.update({
+        await client.invoice.update({
           where: {
             id_organizationId: {
               id: inv.id,
@@ -110,14 +113,75 @@ export async function backfillInvoiceTrackingTokens(operator = "admin-migration-
 if (process.argv[1]?.replace(/\\/g, "/").includes("backfill-tracking")) {
   const isProd = process.env.NODE_ENV === "production";
   const hasConfirm = process.argv.includes("--confirm-production-backfill");
-  if (isProd && !hasConfirm) {
-    console.error("FATAL: In production, --confirm-production-backfill flag is required to run tracking backfill.");
-    process.exit(1);
+
+  if (hasConfirm || isProd) {
+    if (!hasConfirm) {
+      console.error(
+        "FATAL: In production, --confirm-production-backfill flag is required to run tracking backfill."
+      );
+      process.exit(1);
+    }
+    if (process.env.ALLOW_PROD_BACKFILL !== "true") {
+      console.error(
+        "FATAL: In production, ALLOW_PROD_BACKFILL=true environment variable is required."
+      );
+      process.exit(1);
+    }
+
+    // Strict 1: Verify APP_ENCRYPTION_KEY is explicitly supplied and is NOT the dev fallback key
+    const rawKey = process.env.APP_ENCRYPTION_KEY;
+    if (!rawKey) {
+      console.error(
+        "FATAL: APP_ENCRYPTION_KEY must be explicitly defined in environment for production backfill."
+      );
+      process.exit(1);
+    }
+    if (!/^[0-9a-fA-F]{64}$/.test(rawKey)) {
+      console.error(
+        `FATAL: APP_ENCRYPTION_KEY format invalid. Expected exactly 64 hexadecimal characters. Got length: ${rawKey.length}`
+      );
+      process.exit(1);
+    }
+    if (rawKey.toLowerCase() === "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef") {
+      console.error(
+        "FATAL SECURITY VIOLATION: Production backfill cannot use the static development key fallback."
+      );
+      process.exit(1);
+    }
+
+    // Strict 2: Verify database connection points to a non-localhost endpoint
+    const targetDb = process.env.DIRECT_URL || process.env.DATABASE_URL || "";
+    if (!targetDb) {
+      console.error(
+        "FATAL: DIRECT_URL or DATABASE_URL must be configured for production backfill."
+      );
+      process.exit(1);
+    }
+    if (
+      targetDb.includes("localhost") ||
+      targetDb.includes("127.0.0.1") ||
+      targetDb.includes("avarta_db?schema=public")
+    ) {
+      console.error(
+        "FATAL SAFETY ABORT: --confirm-production-backfill was supplied, but database connection points to localhost/dev database. Target a non-local database via DIRECT_URL."
+      );
+      process.exit(1);
+    }
+    if (!process.env.DIRECT_URL) {
+      console.warn(
+        "[BACKFILL WARNING] DIRECT_URL is not set; falling back to DATABASE_URL. Strongly recommend configuring DIRECT_URL for unpooled direct connection."
+      );
+    }
   }
-  console.log(`[BACKFILL] Starting invoice tracking token backfill and recomputation (operator: admin-migration-backfill)...`);
+
+  console.log(
+    `[BACKFILL] Starting invoice tracking token backfill and recomputation (operator: admin-migration-backfill)...`
+  );
   backfillInvoiceTrackingTokens("admin-migration-backfill")
     .then((result) => {
-      console.log(`[BACKFILL SUCCESS] Created: ${result.created}, Recomputed: ${result.recomputed}, Total Processed: ${result.totalProcessed}`);
+      console.log(
+        `[BACKFILL SUCCESS] Created: ${result.created}, Recomputed: ${result.recomputed}, Total Processed: ${result.totalProcessed}`
+      );
       process.exit(0);
     })
     .catch((err) => {
@@ -125,4 +189,5 @@ if (process.argv[1]?.replace(/\\/g, "/").includes("backfill-tracking")) {
       process.exit(1);
     });
 }
+
 

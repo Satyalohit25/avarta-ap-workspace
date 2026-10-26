@@ -68,3 +68,14 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     },
   });
 }
+
+export function notFoundHandler(req: Request, res: Response) {
+  return res.status(404).json({
+    error: {
+      code: "NOT_FOUND",
+      message: `Cannot ${req.method} ${req.path}`,
+      requestId: req.requestId,
+    },
+  });
+}
+

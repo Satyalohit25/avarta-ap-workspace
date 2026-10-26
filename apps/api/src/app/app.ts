@@ -1,7 +1,7 @@
 import cors from "cors";
 import express from "express";
 import { env } from "../config/env";
-import { errorHandler } from "../middleware/error-handler";
+import { errorHandler, notFoundHandler } from "../middleware/error-handler";
 import { requestId } from "../middleware/request-id";
 import { apiRateLimiter } from "../middleware/rate-limiter";
 import { router } from "./routes";
@@ -85,6 +85,7 @@ export function createApp() {
   app.use("/api/v1", router);
   app.use("/api", router);
 
+  app.use(notFoundHandler);
   app.use(errorHandler);
 
   return app;

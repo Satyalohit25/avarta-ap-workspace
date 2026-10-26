@@ -21,9 +21,9 @@ export interface SeedSummary {
 }
 
 export async function seedDemoDataset(prismaClient: PrismaClient): Promise<SeedSummary> {
-  if (process.env.NODE_ENV === "production" && process.env.ALLOW_PROD_SEED !== "true") {
+  if (process.env.NODE_ENV === "production") {
     throw new Error(
-      "AGENTS.md Production Gate: seedDemoDataset is strictly disabled in production. Database seeding must only be executed via CLI migration scripts (apps/api/prisma/seed.ts) with ALLOW_PROD_SEED=true."
+      "AGENTS.md Production Gate: seedDemoDataset is strictly disabled in production. Seeding demo accounts or datasets into a production database is permanently prohibited."
     );
   }
 
