@@ -157,13 +157,23 @@ if (process.argv[1]?.replace(/\\/g, "/").includes("backfill-tracking")) {
       );
       process.exit(1);
     }
-    if (
-      targetDb.includes("localhost") ||
-      targetDb.includes("127.0.0.1") ||
-      targetDb.includes("avarta_db?schema=public")
-    ) {
+    let isLocalhost = false;
+    try {
+      const parsed = new URL(targetDb);
+      const host = parsed.hostname.toLowerCase();
+      isLocalhost =
+        host === "localhost" ||
+        host === "127.0.0.1" ||
+        host === "0.0.0.0" ||
+        host === "::1" ||
+        host.endsWith(".local");
+    } catch {
+      isLocalhost = targetDb.includes("localhost") || targetDb.includes("127.0.0.1");
+    }
+
+    if (isLocalhost) {
       console.error(
-        "FATAL SAFETY ABORT: --confirm-production-backfill was supplied, but database connection points to localhost/dev database. Target a non-local database via DIRECT_URL."
+        "FATAL SAFETY ABORT: --confirm-production-backfill was supplied, but database connection points to localhost/loopback. Target a remote database via DIRECT_URL."
       );
       process.exit(1);
     }
