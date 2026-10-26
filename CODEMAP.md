@@ -346,3 +346,5 @@ PHASE 10: Enterprise Hardening (Tenant Guard, AES-256, Idempotency)           [â
 1. **Neon Branch Rehearsal:** Run zero-downtime migration, backfill tracking tokens, and execute the 180-combination route sweep against an isolated Neon database branch.
 2. **Production Release:** Apply concurrent compound unique indexes to production Postgres, inject `APP_ENCRYPTION_KEY` in Render, and trigger manual zero-downtime cutover via Render Deploy Hook.
 3. **Item A: Multi-Org Switching:** Multi-tenant workspace switcher for finance executives managing multiple legal subsidiaries.
+4. **Least-Privilege Database Role (Backlog):** Create a dedicated restricted application role in PostgreSQL for runtime query execution (`SELECT`, `INSERT`, `UPDATE` with no schema DDL permissions) while reserving database owner privileges strictly for migration execution via `DIRECT_URL`.
+5. **Isolated Public Demo Deployment (Backlog):** Establish a separate preview deployment and isolated demo database seeded with fixtures, complete with a persistent top-bar "Demo Sandbox" banner, completely decoupled from production customer data.
