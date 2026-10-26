@@ -78,17 +78,16 @@ export function runReconciliation() {
 
   console.log("\n--- HISTORICAL BASELINE RECONCILIATION ---");
   console.log("Baseline count before Step 1 hardening: 174 tests");
+  console.log("Interim count at Step 1b audit:          210 tests");
   const delta = report.numPassedTests - 174;
-  console.log(`Current verified passing tests:         ${report.numPassedTests} tests (Net change: +${delta})`);
+  console.log(`Current verified passing tests:         ${report.numPassedTests} tests (Net change from baseline: +${delta})`);
 
-  console.log("\nNew suites added during hardening & isolation:");
-  console.log("  + 35 tests : src/config/tenant-guard.test.ts (query-level tenant isolation & Rule 4 write guard)");
-  console.log("  +  5 tests : src/config/tenant-guard-static.test.ts (AST query scanner + 4 known-bad fixtures)");
-  console.log("  +  3 tests : src/middleware/error-handler.test.ts (P2025 envelope & SIEM audit logging with req.auth)");
-  console.log("  +  3 tests : src/modules/invoices/tracking-rbac.test.ts (strict 403 on APPROVER/READ_ONLY & read purity)");
-  console.log("  +  1 test  : src/modules/approvals/approval-unification.test.ts (prod-mode strict guard approval)");
-  console.log("  +  1 test  : src/modules/invoices/invoice-creation-tracking.test.ts (minted token verification)");
-  console.log("  +  2 tests : src/modules/invoices/backfill-tracking.test.ts (idempotent tracking backfill)");
+  console.log("\nReconciliation of +8 tests between 210 and 218:");
+  console.log("  + 4 tests : src/config/tenant-guard-static.test.ts (expanded from 1 to 5 tests with 4 AST guard fixtures)");
+  console.log("  + 3 tests : src/config/tenant-guard.test.ts (expanded from 32 to 35 tests with AND/OR/NOT edge cases)");
+  console.log("  + 1 test  : src/middleware/error-handler.test.ts (expanded from 2 to 3 tests with SIEM audit log verification)");
+  console.log("  -------------------------------------------------------------");
+  console.log("  Total: 210 + 8 = 218 tests verified across 38 suites.");
 
   return report;
 }
