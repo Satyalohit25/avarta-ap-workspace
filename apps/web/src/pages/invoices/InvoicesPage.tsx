@@ -149,6 +149,23 @@ export default function InvoicesPage() {
     );
   }
 
+  function getSortHeadProps(field: SortField, extraClass = "") {
+    const isCurrent = sortField === field;
+    return {
+      role: "columnheader",
+      tabIndex: 0,
+      "aria-sort": (isCurrent ? (sortOrder === "asc" ? "ascending" : "descending") : "none") as "ascending" | "descending" | "none",
+      onClick: () => handleSort(field),
+      onKeyDown: (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleSort(field);
+        }
+      },
+      className: `cursor-pointer select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-600 focus-visible:ring-inset ${extraClass}`,
+    };
+  }
+
   const counts = useMemo(() => {
     return {
       all: allInvoices.length,
@@ -264,12 +281,18 @@ export default function InvoicesPage() {
           e.preventDefault();
           navigate(`/invoices/${paginatedInvoices[focusedRowIndex].id}`);
         }
+      } else if (e.key === "x" || e.key === "X") {
+        if (focusedRowIndex >= 0 && focusedRowIndex < paginatedInvoices.length) {
+          e.preventDefault();
+          const targetId = paginatedInvoices[focusedRowIndex].id;
+          handleToggleSelect(targetId, !selectedIds.has(targetId));
+        }
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [paginatedInvoices, focusedRowIndex, navigate]);
+  }, [paginatedInvoices, focusedRowIndex, navigate, selectedIds]);
 
   useEffect(() => {
     setFocusedRowIndex(-1);
@@ -537,7 +560,7 @@ export default function InvoicesPage() {
         <button
           type="button"
           onClick={() => setQuickFilter("ALL")}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-all ${
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-colors duration-100 ${
             quickFilter === "ALL"
               ? "bg-neutral-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs"
               : "bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-300 hover:bg-neutral-200 dark:hover:bg-zinc-700"
@@ -548,7 +571,7 @@ export default function InvoicesPage() {
         <button
           type="button"
           onClick={() => setQuickFilter(quickFilter === "DUE_SOON" ? "ALL" : "DUE_SOON")}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-all ${
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-colors duration-100 ${
             quickFilter === "DUE_SOON"
               ? "bg-amber-600 text-white shadow-2xs"
               : "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60 hover:bg-amber-100 dark:hover:bg-amber-900/50"
@@ -569,7 +592,7 @@ export default function InvoicesPage() {
         <button
           type="button"
           onClick={() => setQuickFilter(quickFilter === "MISSING_PO" ? "ALL" : "MISSING_PO")}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-all ${
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-colors duration-100 ${
             quickFilter === "MISSING_PO"
               ? "bg-rose-600 text-white shadow-2xs"
               : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/60 hover:bg-rose-100 dark:hover:bg-rose-900/50"
@@ -590,7 +613,7 @@ export default function InvoicesPage() {
         <button
           type="button"
           onClick={() => setQuickFilter(quickFilter === "HIGH_VALUE" ? "ALL" : "HIGH_VALUE")}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-all ${
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-colors duration-100 ${
             quickFilter === "HIGH_VALUE"
               ? "bg-indigo-600 text-white shadow-2xs"
               : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
@@ -613,7 +636,7 @@ export default function InvoicesPage() {
           onClick={() =>
             setQuickFilter(quickFilter === "HIGH_CONFIDENCE" ? "ALL" : "HIGH_CONFIDENCE")
           }
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-all ${
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-colors duration-100 ${
             quickFilter === "HIGH_CONFIDENCE"
               ? "bg-emerald-600 text-white shadow-2xs"
               : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
@@ -750,38 +773,23 @@ export default function InvoicesPage() {
                       />
                     </div>
                   </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("invoiceNumber")}
-                    className="cursor-pointer select-none"
-                  >
+                  <TableHead {...getSortHeadProps("invoiceNumber")}>
                     <span>Invoice #</span>
                     {renderSortIcon("invoiceNumber")}
                   </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("vendor")}
-                    className="cursor-pointer select-none"
-                  >
+                  <TableHead {...getSortHeadProps("vendor")}>
                     <span>Vendor</span>
                     {renderSortIcon("vendor")}
                   </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("invoiceDate")}
-                    className="cursor-pointer select-none"
-                  >
+                  <TableHead {...getSortHeadProps("invoiceDate")}>
                     <span>Invoice Date</span>
                     {renderSortIcon("invoiceDate")}
                   </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("dueDate")}
-                    className="cursor-pointer select-none"
-                  >
+                  <TableHead {...getSortHeadProps("dueDate")}>
                     <span>Due Date</span>
                     {renderSortIcon("dueDate")}
                   </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("amount")}
-                    className="text-right cursor-pointer select-none"
-                  >
+                  <TableHead {...getSortHeadProps("amount", "text-right")}>
                     <span>Amount</span>
                     {renderSortIcon("amount")}
                   </TableHead>
@@ -840,7 +848,7 @@ export default function InvoicesPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-neutral-800 dark:text-zinc-200 font-medium">
-                        {inv.supplier?.name ?? "—"}
+                        {inv.supplier?.name ?? <span className="font-mono text-xs text-neutral-400">N/A</span>}
                       </TableCell>
                       <TableCell className="text-neutral-500 dark:text-zinc-400 font-mono text-micro">
                         {formatDate(inv.invoiceDate)}

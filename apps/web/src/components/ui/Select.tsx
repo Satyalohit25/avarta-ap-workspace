@@ -77,7 +77,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             id={selectId}
             aria-label={props["aria-label"] ?? label ?? name ?? placeholder ?? "Select option"}
             className={cn(
-              "flex w-full items-center justify-between rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-2xs transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400 dark:focus-visible:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
+              "flex w-full items-center justify-between rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-2xs transition-colors duration-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400 dark:focus-visible:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
               isCompact ? "h-8 px-2.5 py-1 text-micro font-mono" : "h-9 px-3 py-2 text-body-sm",
               error
                 ? "border-error-500 dark:border-error-500 focus-visible:ring-error-500/50"

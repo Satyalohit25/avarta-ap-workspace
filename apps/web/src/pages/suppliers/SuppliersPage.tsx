@@ -751,7 +751,7 @@ export default function SuppliersPage() {
                             setSelectedSupplier(null);
                             navigate(`/invoices/${inv.id}`);
                           }}
-                          className="p-3 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-indigo-500/50 hover:bg-neutral-50/70 dark:hover:bg-zinc-800/60 cursor-pointer transition-all flex items-center justify-between gap-3 text-body-sm"
+                          className="p-3 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-indigo-500/50 hover:bg-neutral-50/70 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors duration-100 flex items-center justify-between gap-3 text-body-sm"
                         >
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
@@ -891,7 +891,7 @@ export default function SuppliersPage() {
               key={s}
               type="button"
               onClick={() => setAddModalSection(s)}
-              className={`flex-1 py-1.5 px-2 text-caption font-semibold rounded-md transition-all ${
+              className={`flex-1 py-1.5 px-2 text-caption font-semibold rounded-md transition-colors duration-100 ${
                 addModalSection === s
                   ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-sm"
                   : "text-neutral-500 dark:text-zinc-400 hover:text-neutral-700 dark:hover:text-zinc-200"
@@ -1022,10 +1022,10 @@ export default function SuppliersPage() {
                   value={currency}
                   onValueChange={setCurrency}
                   options={[
-                    { value: "INR", label: "INR (₹) — Indian Rupee" },
-                    { value: "USD", label: "USD ($) — US Dollar" },
-                    { value: "EUR", label: "EUR (€) — Euro" },
-                    { value: "GBP", label: "GBP (£) — Pound Sterling" },
+                    { value: "INR", label: "INR (₹) Indian Rupee" },
+                    { value: "USD", label: "USD ($) US Dollar" },
+                    { value: "EUR", label: "EUR (€) Euro" },
+                    { value: "GBP", label: "GBP (£) British Pound" },
                   ]}
                 />
               </div>
@@ -1132,7 +1132,7 @@ export default function SuppliersPage() {
               {(["entity", "contact", "banking"] as const).map((s) => (
                 <span
                   key={s}
-                  className={`w-2 h-2 rounded-full transition-all ${
+                  className={`w-2 h-2 rounded-full transition-colors duration-100 ${
                     addModalSection === s
                       ? "bg-indigo-600 dark:bg-indigo-400 w-5"
                       : "bg-neutral-300 dark:bg-zinc-600"

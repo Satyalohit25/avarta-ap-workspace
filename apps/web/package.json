@@ -9,8 +9,8 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "lint": "eslint src e2e"
+    "lint": "eslint src e2e",
+    "lint:ui": "node scripts/audit-ui-invariants.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",

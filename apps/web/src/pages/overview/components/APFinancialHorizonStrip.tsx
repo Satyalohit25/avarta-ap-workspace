@@ -151,7 +151,7 @@ export function APFinancialHorizonStrip({
           }
         : {
             direction: "neutral",
-            label: "⚡ Save ₹17,750",
+            label: "Save ₹17,750 discount",
             tooltip: "Early payment discount available if settled before due date (2% on qualifying invoices)",
           },
       path: "/payments",
@@ -197,101 +197,58 @@ export function APFinancialHorizonStrip({
     },
   ];
 
-  const [hero, ...secondary] = anchors;
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-2.5">
-      {/* ── HERO CARD: Action Required — single focal point ── */}
-      <button
-        type="button"
-        id="kpi-action-required"
-        onClick={() => navigate(hero.path)}
-        className="md:col-span-2 xl:col-span-3 p-4 rounded-xl border-2 border-indigo-400/70 dark:border-indigo-600/60 bg-indigo-50/40 dark:bg-indigo-950/25 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all text-left group shadow-sm cursor-pointer flex flex-col justify-between relative overflow-hidden"
-        aria-label={`${hero.label}: ${hero.value}`}
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none" aria-hidden="true" />
+    <section
+      aria-label="Accounts Payable Financial Horizon"
+      className="bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-md grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-neutral-200 dark:divide-zinc-800 overflow-hidden"
+    >
+      {anchors.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          id={`kpi-${item.id}`}
+          onClick={() => navigate(item.path)}
+          className="p-4 flex flex-col justify-between text-left group hover:bg-neutral-50/70 dark:hover:bg-zinc-800/40 transition-colors duration-100 cursor-pointer min-w-0"
+          aria-label={`${item.label}: ${item.value}`}
+        >
+          <div className="flex items-center justify-between w-full mb-1.5">
+            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400 truncate">
+              {item.label}
+            </span>
+            <ArrowUpRight
+              size={12}
+              className="text-neutral-300 dark:text-zinc-600 group-hover:text-neutral-700 dark:group-hover:text-zinc-200 transition-colors shrink-0 ml-1"
+              aria-hidden="true"
+            />
+          </div>
 
-        <div className="flex items-center justify-between w-full mb-2 relative">
-          <div className="flex items-center gap-1.5">
-            <AlertCircle size={13} className="text-indigo-600 dark:text-indigo-400 shrink-0" aria-hidden="true" />
-            <span className="text-[10.5px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
-              {hero.label}
+          <div className="my-1">
+            <span className="text-lg sm:text-xl font-bold font-mono tabular-nums text-neutral-900 dark:text-zinc-50 tracking-tight leading-snug block truncate">
+              {item.value}
             </span>
           </div>
-          <ArrowUpRight
-            size={13}
-            className="text-indigo-400 dark:text-indigo-500 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors shrink-0"
-            aria-hidden="true"
-          />
-        </div>
 
-        <div className="my-1.5 relative">
-          <span className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-neutral-900 dark:text-zinc-50 tracking-tight leading-tight block truncate">
-            {hero.value}
-          </span>
-        </div>
-
-        <div className="mt-2 pt-2 border-t border-indigo-200/50 dark:border-indigo-800/40 flex items-end justify-between gap-2 relative">
-          <div className="flex flex-col gap-1">
-            <span className="text-[11px] text-indigo-700/70 dark:text-indigo-300/70 font-medium">
-              {hero.subtitle}
+          <div className="mt-1.5 pt-1.5 border-t border-neutral-100 dark:border-zinc-800/80 flex items-center justify-between gap-1.5">
+            <span className="text-[11px] text-neutral-500 dark:text-zinc-400 truncate font-mono">
+              {item.subtitle}
             </span>
-            <TrendPill trend={hero.trend} />
+            <Sparkline
+              points={item.sparkPoints}
+              color={
+                item.trend.direction === "positive"
+                  ? tokens.color.success
+                  : item.trend.direction === "negative"
+                  ? tokens.color.error
+                  : tokens.color.neutral
+              }
+            />
           </div>
-          <Sparkline points={hero.sparkPoints} color={tokens.color.primary} />
-        </div>
-      </button>
 
-      {/* ── SECONDARY CARDS: quieter, equal visual weight ── */}
-      <div className="md:col-span-2 xl:col-span-9 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-        {secondary.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            id={`kpi-${item.id}`}
-            onClick={() => navigate(item.path)}
-            className="p-3.5 rounded-xl border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 hover:border-neutral-300 dark:hover:border-zinc-700 transition-all text-left group shadow-2xs cursor-pointer flex flex-col justify-between min-w-0"
-            aria-label={`${item.label}: ${item.value}`}
-          >
-            <div className="flex items-center justify-between w-full mb-1.5">
-              <span className="text-[10.5px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400 truncate">
-                {item.label}
-              </span>
-              <ArrowUpRight
-                size={12}
-                className="text-neutral-300 dark:text-zinc-600 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors shrink-0 ml-1"
-                aria-hidden="true"
-              />
-            </div>
-
-            <div className="my-1">
-              <span className="text-sm sm:text-base font-bold font-mono tabular-nums text-neutral-900 dark:text-zinc-50 tracking-tight leading-snug block truncate">
-                {item.value}
-              </span>
-            </div>
-
-            <div className="mt-1.5 pt-1.5 border-t border-neutral-100 dark:border-zinc-800/80 flex items-center justify-between gap-1.5">
-              <span className="text-[11px] text-neutral-500 dark:text-zinc-400 truncate">
-                {item.subtitle}
-              </span>
-              <Sparkline
-                points={item.sparkPoints}
-                color={
-                  item.trend.direction === "positive"
-                    ? tokens.color.success
-                    : item.trend.direction === "negative"
-                    ? tokens.color.error
-                    : tokens.color.neutral
-                }
-              />
-            </div>
-
-            <div className="mt-1.5">
-              <TrendPill trend={item.trend} />
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
+          <div className="mt-2">
+            <TrendPill trend={item.trend} />
+          </div>
+        </button>
+      ))}
+    </section>
   );
 }

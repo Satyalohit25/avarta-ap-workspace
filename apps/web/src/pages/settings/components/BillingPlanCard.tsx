@@ -92,7 +92,7 @@ export function BillingPlanCard() {
   return (
     <div className="space-y-6">
       {/* Current Subscription Status */}
-      <div className="p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-neutral-200/80 dark:border-zinc-800 shadow-xs space-y-6">
+      <div className="p-6 rounded-md bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-100 dark:border-zinc-800 pb-5">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/50">
@@ -134,7 +134,7 @@ export function BillingPlanCard() {
             </div>
             <div className="w-full bg-neutral-200 dark:bg-zinc-700 h-2 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-500 ${
+                className={`h-full rounded-full transition-colors duration-100 duration-500 ${
                   invoicePercentage > 85 ? "bg-amber-500" : "bg-indigo-600 dark:bg-indigo-500"
                 }`}
                 style={{ width: `${activePlanId === "ENTERPRISE" ? 15 : invoicePercentage}%` }}
@@ -155,7 +155,7 @@ export function BillingPlanCard() {
             </div>
             <div className="w-full bg-neutral-200 dark:bg-zinc-700 h-2 rounded-full overflow-hidden">
               <div
-                className="h-full bg-emerald-600 dark:bg-emerald-500 rounded-full transition-all duration-500"
+                className="h-full bg-emerald-600 dark:bg-emerald-500 rounded-full transition-colors duration-100 duration-500"
                 style={{ width: `${activePlanId === "ENTERPRISE" ? 20 : seatPercentage}%` }}
               />
             </div>
@@ -168,74 +168,106 @@ export function BillingPlanCard() {
       </div>
 
       {/* Plan Tiers Matrix */}
-      <div>
-        <h3 className="text-body font-semibold text-neutral-900 dark:text-zinc-100 mb-1">
-          Available Subscription Plans
-        </h3>
-        <p className="text-caption text-neutral-500 dark:text-zinc-400 mb-4">
-          Upgrade or modify your tier. All plans include automated 3-way matching, audit logs, and WCAG AA accessibility.
-        </p>
+      <div className="bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-md overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-neutral-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-neutral-50/70 dark:bg-zinc-850/50">
+          <div>
+            <h3 className="text-body font-semibold text-neutral-900 dark:text-zinc-100">
+              Workspace Subscription & Entitlements
+            </h3>
+            <p className="text-caption text-neutral-500 dark:text-zinc-400">
+              Contract capacity, OCR throughput limits, and compliance SLA tier
+            </p>
+          </div>
+          <span className="font-mono text-xs px-2 py-0.5 bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-700 rounded-sm">
+            Billing Currency: INR (₹)
+          </span>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {AVAILABLE_PLANS.map((plan) => {
-            const isCurrent = plan.id === activePlanId;
-            return (
-              <div
-                key={plan.id}
-                className={`p-5 rounded-2xl border transition-all flex flex-col justify-between ${
-                  isCurrent
-                    ? "bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-500/80 ring-2 ring-indigo-500/20 dark:ring-indigo-500/30"
-                    : "bg-white dark:bg-zinc-900 border-neutral-200/80 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700"
-                }`}
-              >
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-body text-neutral-900 dark:text-zinc-100">{plan.name}</span>
-                    {isCurrent && (
-                      <Badge variant="indigo" className="text-[10px] uppercase font-bold">
-                        Current Plan
-                      </Badge>
-                    )}
-                  </div>
-
-                  <p className="text-caption text-neutral-500 dark:text-zinc-400 min-h-[36px]">{plan.tagline}</p>
-
-                  <div className="border-t border-b border-neutral-100 dark:border-zinc-800 py-3">
-                    <span className="text-2xl font-bold font-mono text-neutral-900 dark:text-zinc-100 tabular-nums">
-                      ₹{plan.priceMonthlyInr.toLocaleString("en-IN")}
-                    </span>
-                    <span className="text-caption text-neutral-500 dark:text-zinc-400"> / month</span>
-                  </div>
-
-                  <ul className="space-y-2 pt-1 text-caption text-neutral-600 dark:text-zinc-300">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2">
-                        <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="pt-6">
-                  <Button
-                    type="button"
-                    variant={isCurrent ? "outline" : "primary"}
-                    disabled={isCurrent || isUpgrading}
-                    onClick={() => handleSelectPlan(plan.id)}
-                    className="w-full text-caption font-semibold"
-                  >
-                    {isCurrent ? "Active Plan" : `Upgrade to ${plan.name}`}
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-caption tabular-nums">
+            <thead>
+              <tr className="border-b border-neutral-200 dark:border-zinc-800 bg-neutral-50/40 dark:bg-zinc-900 text-neutral-500 dark:text-zinc-400">
+                <th className="py-2.5 px-4 font-medium w-2/5">Entitlement Parameter</th>
+                {AVAILABLE_PLANS.map((plan) => (
+                  <th key={plan.id} className="py-2.5 px-4 font-medium">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-neutral-900 dark:text-zinc-100">{plan.name}</span>
+                      {plan.id === activePlanId && (
+                        <span className="text-[9px] font-mono uppercase bg-neutral-200 dark:bg-zinc-700 text-neutral-800 dark:text-zinc-200 px-1 py-0.2 rounded-xs font-semibold">
+                          Active
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-neutral-500 font-mono text-[11px] font-normal">
+                      ₹{plan.priceMonthlyInr.toLocaleString("en-IN")}/mo
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-200 dark:divide-zinc-800 text-neutral-700 dark:text-zinc-300">
+              <tr>
+                <td className="py-2.5 px-4 font-medium text-neutral-900 dark:text-zinc-100">Monthly Invoices Quota</td>
+                <td className="py-2.5 px-4 font-mono">50 invoices</td>
+                <td className="py-2.5 px-4 font-mono">500 invoices</td>
+                <td className="py-2.5 px-4 font-mono font-semibold text-neutral-900 dark:text-zinc-100">Unlimited (Dedicated Queue)</td>
+              </tr>
+              <tr>
+                <td className="py-2.5 px-4 font-medium text-neutral-900 dark:text-zinc-100">Authorized Team Seats</td>
+                <td className="py-2.5 px-4 font-mono">2 seats</td>
+                <td className="py-2.5 px-4 font-mono">10 seats</td>
+                <td className="py-2.5 px-4 font-mono font-semibold text-neutral-900 dark:text-zinc-100">Unlimited (RBAC Multi-Tier)</td>
+              </tr>
+              <tr>
+                <td className="py-2.5 px-4 font-medium text-neutral-900 dark:text-zinc-100">3-Way PO & GRN Matching</td>
+                <td className="py-2.5 px-4 font-mono text-neutral-400">Manual / Standard</td>
+                <td className="py-2.5 px-4 font-mono">Automated 3-Way</td>
+                <td className="py-2.5 px-4 font-mono font-semibold text-neutral-900 dark:text-zinc-100">Custom Tolerances + Direct ERP</td>
+              </tr>
+              <tr>
+                <td className="py-2.5 px-4 font-medium text-neutral-900 dark:text-zinc-100">BYOK AI Model Choice</td>
+                <td className="py-2.5 px-4 font-mono text-neutral-400">N/A</td>
+                <td className="py-2.5 px-4 font-mono">Included (OpenAI/Anthropic)</td>
+                <td className="py-2.5 px-4 font-mono font-semibold text-neutral-900 dark:text-zinc-100">Custom Vault / Sovereign Endpoints</td>
+              </tr>
+              <tr>
+                <td className="py-2.5 px-4 font-medium text-neutral-900 dark:text-zinc-100">ERP Sub-Ledger Connectors</td>
+                <td className="py-2.5 px-4 font-mono text-neutral-400">CSV Export Only</td>
+                <td className="py-2.5 px-4 font-mono">Tally Prime, QBO, Xero</td>
+                <td className="py-2.5 px-4 font-mono font-semibold text-neutral-900 dark:text-zinc-100">SAP S/4HANA, NetSuite, Oracle</td>
+              </tr>
+              <tr>
+                <td className="py-2.5 px-4 font-medium text-neutral-900 dark:text-zinc-100">Data Sovereignty & BYODB</td>
+                <td className="py-2.5 px-4 font-mono text-neutral-400">Multi-tenant Cloud</td>
+                <td className="py-2.5 px-4 font-mono text-neutral-400">Multi-tenant Cloud</td>
+                <td className="py-2.5 px-4 font-mono font-semibold text-emerald-600 dark:text-emerald-400">Dedicated Sovereign DB (PostgreSQL)</td>
+              </tr>
+              <tr className="bg-neutral-50/60 dark:bg-zinc-850/30">
+                <td className="py-3 px-4 font-medium text-neutral-900 dark:text-zinc-100">Workspace Tier Allocation</td>
+                {AVAILABLE_PLANS.map((plan) => {
+                  const isCurrent = plan.id === activePlanId;
+                  return (
+                    <td key={plan.id} className="py-3 px-4">
+                      <Button
+                        type="button"
+                        variant={isCurrent ? "outline" : "primary"}
+                        disabled={isCurrent || isUpgrading}
+                        onClick={() => handleSelectPlan(plan.id)}
+                        className="text-micro font-semibold h-8 w-full rounded-sm"
+                      >
+                        {isCurrent ? "Active Tier" : `Switch to ${plan.name}`}
+                      </Button>
+                    </td>
+                  );
+                })}
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
       {/* Billing Invoices & Receipts */}
-      <div className="p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-neutral-200/80 dark:border-zinc-800 shadow-xs space-y-4">
+      <div className="p-6 rounded-md bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 space-y-4">
         <div className="flex items-center justify-between border-b border-neutral-100 dark:border-zinc-800 pb-3">
           <div className="flex items-center gap-2">
             <FileText size={18} className="text-neutral-500 dark:text-zinc-400" />

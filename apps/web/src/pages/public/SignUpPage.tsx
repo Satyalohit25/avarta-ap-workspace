@@ -158,8 +158,7 @@ export default function SignUpPage() {
         className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden z-0"
         aria-hidden="true"
       >
-        <div className="absolute w-[600px] h-[600px] rounded-full bg-radial from-indigo-500/8 dark:from-indigo-400/10 via-transparent to-transparent blur-2xl" />
-        <div className="w-[780px] max-w-[94vw] aspect-square opacity-[0.07] dark:opacity-[0.11] transition-opacity duration-300 transform scale-105 sm:scale-110 contain-layout">
+        <div className="w-[780px] max-w-[94vw] aspect-square opacity-[0.05] dark:opacity-[0.08] transition-opacity duration-300 transform scale-105 sm:scale-110 contain-layout">
           <AvartaCrest variant="full" glow className="w-full h-full" />
         </div>
       </div>
@@ -183,7 +182,7 @@ export default function SignUpPage() {
 
         <Card 
           level="surface" 
-          className="relative border border-neutral-200/80 dark:border-zinc-800/90 bg-white/95 dark:bg-zinc-900/85 backdrop-blur-md shadow-xl rounded-2xl overflow-hidden"
+          className="relative border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-md overflow-hidden"
         >
           <CardContent className="p-6 md:p-8">
             {loadingConfig ? (
@@ -340,7 +339,7 @@ export default function SignUpPage() {
                       {[1, 2, 3, 4].map((step) => (
                         <div
                           key={step}
-                          className={`flex-1 transition-all duration-300 ${
+                          className={`flex-1 transition-colors duration-100 duration-300 ${
                             strength.score >= step ? strength.colorCls : "bg-transparent"
                           }`}
                         />

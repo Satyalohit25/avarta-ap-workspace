@@ -77,7 +77,7 @@ export default function OverviewPage() {
             type="button"
             onClick={() => fetchDashboard(true)}
             disabled={refreshing || loading}
-            className="h-8 px-2.5 rounded-lg border border-neutral-200 dark:border-zinc-700 text-[11px] font-medium text-neutral-600 dark:text-zinc-400 hover:bg-neutral-50 dark:hover:bg-zinc-800 transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-8 px-2.5 rounded-lg border border-neutral-200 dark:border-zinc-700 text-[11px] font-medium text-neutral-600 dark:text-zinc-400 hover:bg-neutral-50 dark:hover:bg-zinc-800 transition-colors duration-100 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Refresh dashboard data"
             aria-label="Refresh dashboard"
           >

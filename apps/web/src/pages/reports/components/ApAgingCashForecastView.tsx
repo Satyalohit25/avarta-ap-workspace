@@ -146,22 +146,22 @@ export function ApAgingCashForecastView() {
             <div className="h-4 w-full rounded-full bg-neutral-100 dark:bg-zinc-800 flex overflow-hidden">
               <div
                 style={{ width: `${currentPct}%` }}
-                className="bg-emerald-500 hover:opacity-90 transition-all"
+                className="bg-emerald-500 hover:opacity-90 transition-colors duration-100"
                 title={`Current (0-30D): ${currentPct}%`}
               />
               <div
                 style={{ width: `${overdue31_60Pct}%` }}
-                className="bg-amber-400 hover:opacity-90 transition-all"
+                className="bg-amber-400 hover:opacity-90 transition-colors duration-100"
                 title={`31-60D: ${overdue31_60Pct}%`}
               />
               <div
                 style={{ width: `${overdue61_90Pct}%` }}
-                className="bg-orange-500 hover:opacity-90 transition-all"
+                className="bg-orange-500 hover:opacity-90 transition-colors duration-100"
                 title={`61-90D: ${overdue61_90Pct}%`}
               />
               <div
                 style={{ width: `${overdue91PlusPct}%` }}
-                className="bg-rose-500 hover:opacity-90 transition-all"
+                className="bg-rose-500 hover:opacity-90 transition-colors duration-100"
                 title={`91+D: ${overdue91PlusPct}%`}
               />
             </div>
@@ -245,7 +245,7 @@ export function ApAgingCashForecastView() {
                       <div className="h-2.5 w-full rounded-full bg-neutral-100 dark:bg-zinc-800 overflow-hidden">
                         <div
                           style={{ width: `${heightPct}%` }}
-                          className="h-full bg-indigo-600 rounded-full transition-all duration-300"
+                          className="h-full bg-indigo-600 rounded-full transition-colors duration-100 duration-300"
                         />
                       </div>
                     </div>

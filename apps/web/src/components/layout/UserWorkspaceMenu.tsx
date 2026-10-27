@@ -60,7 +60,7 @@ export function UserWorkspaceMenu({
         aria-expanded={isOpen}
         aria-haspopup="true"
         aria-label={`User menu for ${user?.name ?? "User"} (${displayRole})`}
-        className={`flex items-center gap-2 py-1 px-2 rounded-lg border transition-all cursor-pointer ${
+        className={`flex items-center gap-2 py-1 px-2 rounded-lg border transition-colors duration-100 cursor-pointer ${
           isOpen
             ? "bg-neutral-100 dark:bg-zinc-800 border-indigo-500/40 dark:border-indigo-400/40 shadow-xs"
             : "border-transparent hover:border-neutral-200 dark:hover:border-zinc-700/80 hover:bg-neutral-100/70 dark:hover:bg-zinc-800/60"
@@ -100,7 +100,7 @@ export function UserWorkspaceMenu({
 
       {/* The Space Where Everything Exists: Dropdown / Popover Hub */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-[420px] sm:w-[480px] bg-white dark:bg-zinc-900 border border-neutral-200/90 dark:border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-neutral-800 dark:text-zinc-200 divide-y divide-neutral-100 dark:divide-zinc-800/80">
+        <div className="absolute right-0 top-full mt-2 w-[420px] sm:w-[480px] bg-white dark:bg-zinc-900 border border-neutral-200/90 dark:border-zinc-800 rounded-lg shadow-lg z-50 overflow-hidden text-neutral-800 dark:text-zinc-200 divide-y divide-neutral-100 dark:divide-zinc-800/80">
           {/* Section 1: User & Organization Identity */}
           <div className="p-4 bg-neutral-50/70 dark:bg-zinc-900/50">
             <div className="flex items-start justify-between gap-3">
@@ -157,7 +157,7 @@ export function UserWorkspaceMenu({
               >
                 <Settings size={12} className="shrink-0" />
                 <span>Organization Settings</span>
-                <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                <ChevronRight size={12} />
               </Link>
               <Link
                 to="/profile"
@@ -178,14 +178,14 @@ export function UserWorkspaceMenu({
                 setIsOpen(false);
                 onOpenTour();
               }}
-              className="flex items-center gap-2.5 p-2 rounded-lg text-body-sm font-medium text-neutral-700 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-zinc-100 transition-colors cursor-pointer group border border-transparent hover:border-neutral-200 dark:hover:border-zinc-700"
+              className="flex items-center gap-2.5 p-2 rounded-sm text-body-sm font-medium text-neutral-700 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-zinc-100 transition-colors cursor-pointer group border border-transparent hover:border-neutral-200 dark:hover:border-zinc-700"
             >
-              <Compass size={16} className="text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-110 transition-transform" />
+              <Compass size={16} className="text-neutral-600 dark:text-zinc-400 shrink-0" />
               <div className="flex-1 text-left min-w-0">
                 <span className="block text-caption font-semibold leading-tight truncate">Product Tour</span>
                 <span className="text-micro text-neutral-500 dark:text-zinc-400 truncate block mt-0.5">60s walkthrough</span>
               </div>
-              <span className="text-micro font-mono bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded font-semibold shrink-0">
+              <span className="text-micro font-mono bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 px-1.5 py-0.5 rounded-sm font-semibold shrink-0 border border-neutral-200 dark:border-zinc-700">
                 Tour
               </span>
             </button>
@@ -196,9 +196,9 @@ export function UserWorkspaceMenu({
                 setIsOpen(false);
                 onOpenCommand();
               }}
-              className="flex items-center gap-2.5 p-2 rounded-lg text-body-sm font-medium text-neutral-700 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-zinc-100 transition-colors cursor-pointer group border border-transparent hover:border-neutral-200 dark:hover:border-zinc-700"
+              className="flex items-center gap-2.5 p-2 rounded-sm text-body-sm font-medium text-neutral-700 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-zinc-100 transition-colors cursor-pointer group border border-transparent hover:border-neutral-200 dark:hover:border-zinc-700"
             >
-              <Command size={16} className="text-neutral-500 dark:text-zinc-400 shrink-0 group-hover:scale-110 transition-transform" />
+              <Command size={16} className="text-neutral-500 dark:text-zinc-400 shrink-0" />
               <div className="flex-1 text-left min-w-0">
                 <span className="block text-caption font-semibold leading-tight truncate">Command Bar</span>
                 <span className="text-micro text-neutral-500 dark:text-zinc-400 font-mono truncate block mt-0.5">Search &amp; jump</span>

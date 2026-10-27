@@ -88,11 +88,8 @@ export default function LoginPage() {
         className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden z-0"
         aria-hidden="true"
       >
-        {/* Ambient radial lighting behind crest */}
-        <div className="absolute w-[600px] h-[600px] rounded-full bg-radial from-indigo-500/8 dark:from-indigo-400/10 via-transparent to-transparent blur-2xl" />
-        
         {/* Large Grand Crest Watermark */}
-        <div className="w-[780px] max-w-[94vw] aspect-square opacity-[0.07] dark:opacity-[0.11] transition-opacity duration-300 transform scale-105 sm:scale-110 contain-layout">
+        <div className="w-[780px] max-w-[94vw] aspect-square opacity-[0.05] dark:opacity-[0.08] transition-opacity duration-300 transform scale-105 sm:scale-110 contain-layout">
           <AvartaCrest 
             variant="full" 
             glow 
@@ -120,7 +117,7 @@ export default function LoginPage() {
 
         <Card 
           level="surface" 
-          className="relative border border-neutral-200/80 dark:border-zinc-800/90 bg-white/95 dark:bg-zinc-900/85 backdrop-blur-md shadow-xl rounded-2xl overflow-hidden"
+          className="relative border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-md overflow-hidden"
         >
           <CardContent className="p-6 md:p-8">
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -205,9 +202,10 @@ export default function LoginPage() {
                       setPasswordError(null);
                       setError(null);
                     }}
-                    className="w-full py-1.5 px-2 rounded-lg border border-dashed border-indigo-300 dark:border-indigo-800/80 bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300 text-micro font-mono flex items-center justify-center gap-1.5 hover:bg-indigo-100/50 dark:hover:bg-indigo-900/30 transition-colors"
+                    className="w-full py-1.5 px-2 rounded-sm border border-neutral-200 dark:border-zinc-750 bg-neutral-100/70 dark:bg-zinc-800/80 text-neutral-700 dark:text-zinc-300 text-micro font-mono flex items-center justify-center gap-1.5 hover:bg-neutral-200/70 dark:hover:bg-zinc-700/80 transition-colors duration-100"
                   >
-                    <span>⚡ Fill Master Dev Credentials (admin@avarta.dev)</span>
+                    <span className="px-1 py-0.5 text-[9px] font-semibold bg-neutral-200 dark:bg-zinc-700 rounded-xs">DEV</span>
+                    <span>Load Dev Operator Credentials (admin@avarta.dev)</span>
                   </button>
                 </div>
               )}

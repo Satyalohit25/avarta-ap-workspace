@@ -202,7 +202,7 @@ export default function ProfilePage() {
                     </div>
                     <label
                       htmlFor="avatar-upload-input"
-                      className="absolute bottom-0 right-0 p-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md cursor-pointer transition-transform hover:scale-105"
+                      className="absolute bottom-0 right-0 p-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer transition-colors duration-100"
                       title="Upload new display picture"
                     >
                       <Camera size={13} />

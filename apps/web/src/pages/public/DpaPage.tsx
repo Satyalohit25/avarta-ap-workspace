@@ -1,10 +1,10 @@
-import { FileText, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { FileText, ArrowLeft, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function DpaPage() {
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-zinc-950 text-neutral-900 dark:text-zinc-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto space-y-8 bg-white dark:bg-zinc-900 p-8 sm:p-12 rounded-2xl border border-neutral-200/80 dark:border-zinc-800 shadow-sm">
+      <div className="max-w-4xl mx-auto space-y-8 bg-white dark:bg-zinc-900 p-8 sm:p-12 rounded-lg border border-neutral-200/80 dark:border-zinc-800">
         <div className="flex items-center justify-between border-b border-neutral-100 dark:border-zinc-800 pb-6">
           <Link
             to="/login"
@@ -38,20 +38,20 @@ export default function DpaPage() {
             <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">2. Technical & Organizational Security Measures (TOMs)</h2>
             <p>Processor implements robust enterprise safeguards including:</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-neutral-50 dark:bg-zinc-800/50 border border-neutral-200/60 dark:border-zinc-700/60">
-                <CheckCircle2 className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" size={16} />
+              <div className="flex items-start gap-2.5 p-3 rounded-md bg-neutral-50 dark:bg-zinc-800/50 border border-neutral-200/60 dark:border-zinc-700/60">
+                <ShieldCheck className="text-neutral-600 dark:text-zinc-400 shrink-0 mt-0.5" size={16} />
                 <span className="text-caption"><strong>AES-256-GCM Encryption:</strong> Master encryption at rest for customer secrets and tokens.</span>
               </div>
-              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-neutral-50 dark:bg-zinc-800/50 border border-neutral-200/60 dark:border-zinc-700/60">
-                <CheckCircle2 className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" size={16} />
+              <div className="flex items-start gap-2.5 p-3 rounded-md bg-neutral-50 dark:bg-zinc-800/50 border border-neutral-200/60 dark:border-zinc-700/60">
+                <ShieldCheck className="text-neutral-600 dark:text-zinc-400 shrink-0 mt-0.5" size={16} />
                 <span className="text-caption"><strong>Database-Level Isolation:</strong> Strict multi-tenant query filters enforced on every database transaction.</span>
               </div>
-              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-neutral-50 dark:bg-zinc-800/50 border border-neutral-200/60 dark:border-zinc-700/60">
-                <CheckCircle2 className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" size={16} />
+              <div className="flex items-start gap-2.5 p-3 rounded-md bg-neutral-50 dark:bg-zinc-800/50 border border-neutral-200/60 dark:border-zinc-700/60">
+                <ShieldCheck className="text-neutral-600 dark:text-zinc-400 shrink-0 mt-0.5" size={16} />
                 <span className="text-caption"><strong>TLS 1.3 In Transit:</strong> All HTTP traffic strictly forced over HTTPS with HSTS preloading.</span>
               </div>
-              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-neutral-50 dark:bg-zinc-800/50 border border-neutral-200/60 dark:border-zinc-700/60">
-                <CheckCircle2 className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" size={16} />
+              <div className="flex items-start gap-2.5 p-3 rounded-md bg-neutral-50 dark:bg-zinc-800/50 border border-neutral-200/60 dark:border-zinc-700/60">
+                <ShieldCheck className="text-neutral-600 dark:text-zinc-400 shrink-0 mt-0.5" size={16} />
                 <span className="text-caption"><strong>Immutable Audit Trails:</strong> Every workflow advance and sensitive action recorded with actor UUID & timestamp.</span>
               </div>
             </div>

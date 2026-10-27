@@ -43,7 +43,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             autoComplete={inputAutoComplete}
             aria-label={inputAriaLabel}
             className={cn(
-              "flex h-9 w-full rounded-md border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1 text-body-sm text-neutral-900 dark:text-zinc-100 shadow-2xs transition-all placeholder:text-neutral-400 dark:placeholder:text-zinc-500 hover:border-neutral-300 dark:hover:border-zinc-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400 dark:focus-visible:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50",
+              "flex h-9 w-full rounded-md border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1 text-body-sm text-neutral-900 dark:text-zinc-100 shadow-2xs transition-colors duration-100 placeholder:text-neutral-400 dark:placeholder:text-zinc-500 hover:border-neutral-300 dark:hover:border-zinc-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400 dark:focus-visible:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50",
               leftIcon && "pl-9",
               rightIcon && "pr-9",
               error

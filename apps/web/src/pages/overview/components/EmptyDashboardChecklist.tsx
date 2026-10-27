@@ -6,7 +6,7 @@ import {
   Users,
   CheckCircle2,
   Circle,
-  Sparkles,
+  Cpu,
   UploadCloud,
   ChevronRight,
 } from "lucide-react";
@@ -88,15 +88,15 @@ export function EmptyDashboardChecklist({ onOpenTour }: EmptyDashboardChecklistP
   return (
     <div className="space-y-6 max-w-5xl mx-auto py-4">
       {/* ── Welcome Banner ── */}
-      <div className="rounded-2xl border border-indigo-200/80 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-50/70 via-white to-neutral-50 dark:from-indigo-950/30 dark:via-zinc-900 dark:to-zinc-900 p-6 sm:p-8 shadow-sm">
+      <div className="rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-micro font-semibold uppercase tracking-wider bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+              <span className="px-2 py-0.5 rounded-sm text-micro font-semibold uppercase tracking-wider bg-neutral-100 dark:bg-zinc-800 text-neutral-800 dark:text-zinc-200 border border-neutral-200 dark:border-zinc-700">
                 Workspace Initialized
               </span>
               <span className="text-[11px] text-neutral-500 dark:text-zinc-400">
-                Honest start • No fake demo data
+                Honest start • Production workspace
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-zinc-50">
@@ -112,7 +112,7 @@ export function EmptyDashboardChecklist({ onOpenTour }: EmptyDashboardChecklistP
             <Button
               variant="primary"
               onClick={() => navigate("/inbox")}
-              className="w-full sm:w-auto h-10 px-5 font-semibold text-body-sm shadow-sm gap-2"
+              className="w-full sm:w-auto h-10 px-5 font-semibold text-body-sm gap-2 rounded-sm"
             >
               <UploadCloud size={16} />
               <span>Add Your First Invoice</span>
@@ -121,9 +121,9 @@ export function EmptyDashboardChecklist({ onOpenTour }: EmptyDashboardChecklistP
               <button
                 type="button"
                 onClick={onOpenTour}
-                className="w-full sm:w-auto text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:underline flex items-center justify-center gap-1.5 py-1"
+                className="w-full sm:w-auto text-[11px] font-medium text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200 hover:underline flex items-center justify-center gap-1.5 py-1"
               >
-                <Sparkles size={13} />
+                <Cpu size={13} />
                 <span>Take a 2-minute tour</span>
               </button>
             )}
@@ -131,7 +131,7 @@ export function EmptyDashboardChecklist({ onOpenTour }: EmptyDashboardChecklistP
         </div>
 
         {/* ── Setup Progress Bar ── */}
-        <div className="mt-6 pt-5 border-t border-indigo-100 dark:border-indigo-900/40">
+        <div className="mt-6 pt-5 border-t border-neutral-200 dark:border-zinc-800">
           <div className="flex items-center justify-between text-body-sm mb-2">
             <span className="font-semibold text-neutral-800 dark:text-zinc-200">
               Workspace Setup Progress
@@ -140,9 +140,9 @@ export function EmptyDashboardChecklist({ onOpenTour }: EmptyDashboardChecklistP
               {completedIds.length} of {CHECKLIST_ITEMS.length} completed ({progressPct}%)
             </span>
           </div>
-          <div className="w-full h-2 bg-neutral-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-neutral-200 dark:bg-zinc-800 rounded-xs overflow-hidden">
             <div
-              className="h-full bg-indigo-600 dark:bg-indigo-500 transition-all duration-500 rounded-full"
+              className="h-full bg-neutral-900 dark:bg-zinc-100 transition-colors duration-100 rounded-xs"
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -159,10 +159,10 @@ export function EmptyDashboardChecklist({ onOpenTour }: EmptyDashboardChecklistP
             <Card
               key={item.id}
               level="surface"
-              className={`border transition-all cursor-pointer group ${
+              className={`border transition-colors duration-100 cursor-pointer group rounded-md ${
                 isDone
-                  ? "border-emerald-200/70 dark:border-emerald-900/40 bg-emerald-50/20 dark:bg-emerald-950/10"
-                  : "border-neutral-200/80 dark:border-zinc-800 hover:border-indigo-300 dark:hover:border-indigo-700/60"
+                  ? "border-emerald-200/70 dark:border-emerald-900/40 bg-neutral-50/50 dark:bg-zinc-850/50"
+                  : "border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700"
               }`}
               onClick={() => navigate(item.route)}
             >
@@ -170,7 +170,7 @@ export function EmptyDashboardChecklist({ onOpenTour }: EmptyDashboardChecklistP
                 <button
                   type="button"
                   onClick={(e) => toggleComplete(item.id, e)}
-                  className="mt-0.5 shrink-0 text-neutral-400 hover:text-indigo-600 dark:text-zinc-500 dark:hover:text-indigo-400 transition-colors focus:outline-none"
+                  className="mt-0.5 shrink-0 text-neutral-400 hover:text-neutral-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors focus:outline-none"
                   aria-label={isDone ? `Mark ${item.title} as incomplete` : `Mark ${item.title} as completed`}
                   title={isDone ? "Click to uncheck" : "Click to mark done / skip"}
                 >
@@ -183,7 +183,7 @@ export function EmptyDashboardChecklist({ onOpenTour }: EmptyDashboardChecklistP
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <Icon size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    <Icon size={15} className="text-neutral-600 dark:text-zinc-400 shrink-0" />
                     <span className="text-micro font-mono font-semibold text-neutral-400 dark:text-zinc-500">
                       STEP 0{idx + 1}
                     </span>
@@ -191,7 +191,7 @@ export function EmptyDashboardChecklist({ onOpenTour }: EmptyDashboardChecklistP
                       className={`text-body font-semibold truncate ${
                         isDone
                           ? "line-through text-neutral-500 dark:text-zinc-500"
-                          : "text-neutral-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
+                          : "text-neutral-900 dark:text-zinc-100"
                       }`}
                     >
                       {item.title}
@@ -203,7 +203,7 @@ export function EmptyDashboardChecklist({ onOpenTour }: EmptyDashboardChecklistP
                   </p>
 
                   <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                    <span className="text-[11px] font-semibold text-neutral-700 dark:text-zinc-300 flex items-center gap-1 transition-colors">
                       {item.actionText} <ChevronRight size={13} />
                     </span>
                     <span

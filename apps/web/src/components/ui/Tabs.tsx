@@ -39,7 +39,7 @@ export function Tabs({ tabs, defaultTabId, variant = "line", onChange }: TabsPro
             key={tab.id}
             value={tab.id}
             className={cn(
-              "text-body-sm font-medium transition-all duration-fast flex items-center gap-2 focus:outline-none",
+              "text-body-sm font-medium transition-colors duration-100 duration-fast flex items-center gap-2 focus:outline-none",
               variant === "pill"
                 ? tab.id === activeTab
                   ? "h-7 px-3 rounded-md bg-white dark:bg-zinc-800 text-neutral-900 dark:text-zinc-100 font-semibold shadow-2xs"

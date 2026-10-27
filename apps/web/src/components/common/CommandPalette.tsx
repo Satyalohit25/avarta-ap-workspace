@@ -471,11 +471,11 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       role="dialog"
       aria-modal="true"
       aria-label="Workspace Command Palette"
-      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/60 animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-neutral-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-150"
+        className="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-lg shadow-lg border border-neutral-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input Bar */}
@@ -484,6 +484,11 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           <input
             ref={inputRef}
             type="text"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded="true"
+            aria-controls="command-listbox"
+            aria-activedescendant={filteredItems[selectedIndex] ? `cmd-opt-${filteredItems[selectedIndex].id}` : undefined}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Type a command, search invoices, vendors, POs, or switch role..."
@@ -522,7 +527,12 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         </div>
 
         {/* Results List */}
-        <div className="overflow-y-auto p-2 divide-y divide-neutral-100 dark:divide-zinc-800/60 flex-1">
+        <div
+          id="command-listbox"
+          role="listbox"
+          aria-label="Commands and matching records"
+          className="overflow-y-auto p-2 divide-y divide-neutral-100 dark:divide-zinc-800/60 flex-1"
+        >
           {filteredItems.length === 0 ? (
             <div className="py-12 text-center text-neutral-500 dark:text-zinc-400 space-y-2">
               <Search size={26} className="mx-auto text-neutral-400 dark:text-zinc-500 stroke-1" />
@@ -537,19 +547,22 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
               return (
                 <div
                   key={item.id}
+                  id={`cmd-opt-${item.id}`}
+                  role="option"
+                  aria-selected={isSelected}
                   onClick={() => item.action()}
                   onMouseEnter={() => setSelectedIndex(index)}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-100 ${
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-sm cursor-pointer transition-colors duration-100 ${
                     isSelected
-                      ? "bg-indigo-50 dark:bg-indigo-950/60 border-l-3 border-indigo-600 dark:border-indigo-400 pl-3.5"
-                      : "hover:bg-neutral-50/80 dark:hover:bg-zinc-800/40"
+                      ? "bg-neutral-100 dark:bg-zinc-800 text-neutral-900 dark:text-zinc-100"
+                      : "hover:bg-neutral-50 dark:hover:bg-zinc-800/60"
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <span
-                      className={`p-2 rounded-lg shrink-0 ${
+                      className={`p-1.5 rounded-sm shrink-0 ${
                         isSelected
-                          ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300"
+                          ? "bg-neutral-200 dark:bg-zinc-700 text-neutral-900 dark:text-zinc-100"
                           : "bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400"
                       }`}
                     >

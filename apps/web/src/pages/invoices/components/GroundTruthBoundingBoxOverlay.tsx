@@ -39,13 +39,13 @@ export function GroundTruthToolbar({
 }: GroundTruthToolbarProps) {
   return (
     <div
-      className={`bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border-b border-neutral-200 dark:border-zinc-800 px-3 py-2 flex items-center justify-between gap-2 flex-wrap text-caption z-10 shrink-0 ${className}`}
+      className={`bg-white dark:bg-zinc-900 border-b border-neutral-200 dark:border-zinc-800 px-3 py-2 flex items-center justify-between gap-2 flex-wrap text-caption z-10 shrink-0 ${className}`}
     >
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => onToggleEnabled(!isEnabled)}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-caption font-medium transition-all ${
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-caption font-medium transition-colors duration-100 ${
             isEnabled
               ? "bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-semibold shadow-2xs"
               : "bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400 border border-neutral-200 dark:border-zinc-700 hover:text-neutral-900 dark:hover:text-zinc-200"
@@ -185,7 +185,7 @@ export function VoucherAnchor({
       }}
       onMouseEnter={() => onHoverField(fieldKey)}
       onMouseLeave={() => onHoverField(null)}
-      className={`relative rounded transition-all duration-150 cursor-pointer ${ringClasses} ${className}`}
+      className={`relative rounded transition-colors duration-100 duration-150 cursor-pointer ${ringClasses} ${className}`}
       title={`${label}: ${score}% Confidence (Click to inspect and edit)`}
       aria-label={`${label} field marker, ${score}% confidence`}
     >
@@ -269,7 +269,7 @@ export function GroundTruthSvgOverlay({
           return (
             <g
               key={box.id}
-              className="pointer-events-auto cursor-pointer transition-all duration-150"
+              className="pointer-events-auto cursor-pointer transition-colors duration-100 duration-150"
               onMouseEnter={() => {
                 setLocalHoveredBoxId(box.fieldKey);
                 onHoverField(box.fieldKey);
@@ -329,7 +329,7 @@ export function GroundTruthSvgOverlay({
 
           return (
             <div
-              className="absolute pointer-events-auto transition-all duration-200 z-30"
+              className="absolute pointer-events-auto transition-colors duration-100 duration-200 z-30"
               style={{
                 left: `${Math.min(75, Math.max(5, activeBox.x * 100))}%`,
                 top: `${Math.min(85, (activeBox.y + activeBox.height) * 100 + 1)}%`,
@@ -337,7 +337,7 @@ export function GroundTruthSvgOverlay({
             >
               <div
                 onClick={() => onSelectField(activeBox.fieldKey)}
-                className="cursor-pointer bg-neutral-900/95 dark:bg-zinc-900/95 text-white border border-indigo-500/80 rounded-lg p-2.5 shadow-xl backdrop-blur-md max-w-xs space-y-1.5 animate-in fade-in zoom-in-95 duration-150"
+                className="cursor-pointer bg-neutral-900 dark:bg-zinc-900 text-white border border-indigo-500/80 rounded-md p-2.5 shadow-lg max-w-xs space-y-1.5 duration-150"
               >
                 <div className="flex items-center justify-between gap-3 border-b border-neutral-700/80 pb-1 text-micro">
                   <span className="font-semibold text-indigo-300 flex items-center gap-1 font-sans">

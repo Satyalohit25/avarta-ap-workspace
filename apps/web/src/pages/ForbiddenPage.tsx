@@ -7,11 +7,11 @@ export default function ForbiddenPage() {
 
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 text-center select-none">
-      <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 flex items-center justify-center mb-6 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 shadow-inner">
-        <ShieldAlert size={36} strokeWidth={1.5} />
+      <div className="w-12 h-12 rounded-md bg-rose-50 dark:bg-rose-950/40 flex items-center justify-center mb-6 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60">
+        <ShieldAlert size={28} strokeWidth={1.5} />
       </div>
 
-      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-mono text-caption font-semibold mb-3">
+      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-mono text-caption font-semibold mb-3">
         <span>ERROR 403 • ACCESS RESTRICTED</span>
       </div>
 

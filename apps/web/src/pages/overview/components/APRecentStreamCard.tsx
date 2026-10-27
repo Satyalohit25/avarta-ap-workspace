@@ -76,7 +76,7 @@ export function APRecentStreamCard({ items }: APRecentStreamCardProps) {
               key={item.id}
               type="button"
               onClick={() => navigate(`/invoices/${item.id}`)}
-              className="p-2.5 rounded-lg border border-neutral-100 dark:border-zinc-800/80 bg-neutral-50/50 dark:bg-zinc-900/50 hover:bg-neutral-50 dark:hover:bg-zinc-800/60 hover:border-indigo-300 dark:hover:border-indigo-800 transition-all text-left group cursor-pointer flex flex-col justify-between space-y-1.5"
+              className="p-2.5 rounded-lg border border-neutral-100 dark:border-zinc-800/80 bg-neutral-50/50 dark:bg-zinc-900/50 hover:bg-neutral-50 dark:hover:bg-zinc-800/60 hover:border-indigo-300 dark:hover:border-indigo-800 transition-colors duration-100 text-left group cursor-pointer flex flex-col justify-between space-y-1.5"
             >
               {/* Top Row: Invoice # & Channel */}
               <div className="flex items-center justify-between gap-1 w-full">

@@ -185,7 +185,7 @@ export default function NotificationsPage() {
                   <button
                     type="button"
                     onClick={() => setFilter("ALL")}
-                    className={`px-3 py-1 rounded-md transition-all font-medium cursor-pointer ${
+                    className={`px-3 py-1 rounded-md transition-colors duration-100 font-medium cursor-pointer ${
                       filter === "ALL"
                         ? "bg-white dark:bg-zinc-700 text-neutral-900 dark:text-zinc-100 shadow-2xs font-semibold"
                         : "text-neutral-500 hover:text-neutral-900 dark:text-zinc-400"
@@ -196,7 +196,7 @@ export default function NotificationsPage() {
                   <button
                     type="button"
                     onClick={() => setFilter("UNREAD")}
-                    className={`px-3 py-1 rounded-md transition-all font-medium cursor-pointer ${
+                    className={`px-3 py-1 rounded-md transition-colors duration-100 font-medium cursor-pointer ${
                       filter === "UNREAD"
                         ? "bg-white dark:bg-zinc-700 text-neutral-900 dark:text-zinc-100 shadow-2xs font-semibold"
                         : "text-neutral-500 hover:text-neutral-900 dark:text-zinc-400"
@@ -207,7 +207,7 @@ export default function NotificationsPage() {
                   <button
                     type="button"
                     onClick={() => setFilter("ACTION")}
-                    className={`px-3 py-1 rounded-md transition-all font-medium cursor-pointer ${
+                    className={`px-3 py-1 rounded-md transition-colors duration-100 font-medium cursor-pointer ${
                       filter === "ACTION"
                         ? "bg-white dark:bg-zinc-700 text-rose-600 dark:text-rose-400 shadow-2xs font-semibold"
                         : "text-neutral-500 hover:text-neutral-900 dark:text-zinc-400"
@@ -233,7 +233,7 @@ export default function NotificationsPage() {
                       <Card
                         key={n.id}
                         level="surface"
-                        className={`p-4 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 border ${
+                        className={`p-4 transition-colors duration-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border ${
                           n.read
                             ? "border-neutral-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 opacity-85"
                             : "border-indigo-200/80 dark:border-indigo-900/60 bg-indigo-50/20 dark:bg-indigo-950/20 shadow-2xs"
@@ -378,7 +378,7 @@ export default function NotificationsPage() {
                     </div>
 
                     <div className="pt-2 flex justify-end">
-                      <Button type="submit">{savedSettings ? "Saved ✓" : "Save Channel Routing"}</Button>
+                      <Button type="submit">{savedSettings ? "Saved" : "Save Channel Routing"}</Button>
                     </div>
                   </CardContent>
                 </Card>

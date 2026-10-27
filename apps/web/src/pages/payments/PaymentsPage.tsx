@@ -506,7 +506,7 @@ export default function PaymentsPage() {
                               aria-label={`Select payment for invoice ${p.invoiceNumber}`}
                             />
                           ) : (
-                            <span className="text-neutral-300 dark:text-zinc-700 select-none">—</span>
+                            <span className="text-neutral-400 dark:text-zinc-600 font-mono text-[10px] select-none">N/A</span>
                           )}
                         </div>
                       </TableCell>
@@ -594,7 +594,7 @@ export default function PaymentsPage() {
 
       {/* Sticky Bottom Batch Calculation Strip */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-neutral-900/95 dark:bg-zinc-800/95 text-white backdrop-blur-md px-5 py-3 rounded-xl shadow-2xl border border-neutral-700/60 dark:border-zinc-700 flex items-center gap-6 animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-neutral-900 dark:bg-zinc-850 text-white px-5 py-2.5 rounded-md border border-neutral-700 dark:border-zinc-700 flex items-center gap-6 animate-in fade-in slide-in-from-bottom-3 duration-150">
           <div className="flex items-center gap-2">
             <Wallet size={18} className="text-emerald-400" />
             <span className="text-body-sm font-medium">

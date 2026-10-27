@@ -27,7 +27,7 @@ export function Sheet({
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-neutral-950/50 dark:bg-zinc-950/75 backdrop-blur-sm transition-opacity duration-300" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/75 transition-opacity duration-200" />
         <DialogPrimitive.Content
           className={cn(
             "fixed inset-y-0 z-50 w-full sm:w-auto bg-white dark:bg-zinc-900 shadow-xl flex flex-col focus:outline-none transition-transform duration-300 ease-in-out",

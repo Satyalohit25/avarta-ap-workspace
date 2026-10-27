@@ -413,7 +413,7 @@ export function DocumentSourceCard({
               <button
                 type="button"
                 onClick={() => setViewMode("preview")}
-                className={`px-2.5 py-1 text-caption font-medium rounded-md transition-all ${
+                className={`px-2.5 py-1 text-caption font-medium rounded-md transition-colors duration-100 ${
                   viewMode === "preview"
                     ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-xs"
                     : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
@@ -425,7 +425,7 @@ export function DocumentSourceCard({
             <button
               type="button"
               onClick={() => setViewMode("voucher")}
-              className={`px-2.5 py-1 text-caption font-medium rounded-md transition-all ${
+              className={`px-2.5 py-1 text-caption font-medium rounded-md transition-colors duration-100 ${
                 viewMode === "voucher"
                   ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-xs"
                   : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
@@ -437,7 +437,7 @@ export function DocumentSourceCard({
               <button
                 type="button"
                 onClick={() => setViewMode("upload")}
-                className={`px-2.5 py-1 text-caption font-medium rounded-md transition-all ${
+                className={`px-2.5 py-1 text-caption font-medium rounded-md transition-colors duration-100 ${
                   viewMode === "upload"
                     ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-xs"
                     : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
@@ -916,7 +916,7 @@ export function DocumentSourceCard({
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`w-full max-w-md border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 ${
+              className={`w-full max-w-md border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors duration-100 duration-200 ${
                 isDragging
                   ? "border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/40 scale-[1.01]"
                   : "border-neutral-200 dark:border-zinc-800 hover:border-indigo-400 dark:hover:border-indigo-600 bg-white dark:bg-zinc-900"
@@ -1006,7 +1006,7 @@ export function DocumentSourceCard({
                     onMouseEnter={() => onHoverField(b.fieldKey)}
                     onMouseLeave={() => onHoverField(null)}
                     onClick={() => onSelectField(b.fieldKey)}
-                    className={`px-2 py-0.5 rounded text-micro font-mono border transition-all inline-flex items-center gap-1 shrink-0 whitespace-nowrap ${
+                    className={`px-2 py-0.5 rounded text-micro font-mono border transition-colors duration-100 inline-flex items-center gap-1 shrink-0 whitespace-nowrap ${
                       !isMatchFilter ? "opacity-40 hover:opacity-100" : ""
                     } ${
                       isSelected

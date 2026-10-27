@@ -143,7 +143,7 @@ export function APWorkstationGrid({
   function handleAuthorize(inv: BlockerInvoiceItem, e: React.MouseEvent) {
     e.stopPropagation();
     onAuthorizeRelease?.(inv.id, inv.amount);
-    setReleaseFeedback(`✔ Released ${formatCurrency(inv.amount, inv.currency)} → Ready to Pay`);
+    setReleaseFeedback(`Released ${formatCurrency(inv.amount, inv.currency)} → Ready to Pay`);
     setTimeout(() => setReleaseFeedback(null), 3500);
   }
 
@@ -325,7 +325,7 @@ export function APWorkstationGrid({
                     key={tab.key}
                     type="button"
                     onClick={() => setActiveQueueTab(tab.key)}
-                    className={`px-2 py-0.5 rounded-md transition-all ${
+                    className={`px-2 py-0.5 rounded-md transition-colors duration-100 ${
                       activeQueueTab === tab.key
                         ? "bg-white dark:bg-zinc-700 text-neutral-900 dark:text-zinc-100 shadow-2xs font-semibold"
                         : "text-neutral-500 hover:text-neutral-900 dark:text-zinc-400 dark:hover:text-zinc-200"
@@ -342,7 +342,7 @@ export function APWorkstationGrid({
               <button
                 type="button"
                 onClick={() => setActiveQueueTab("URGENT")}
-                className={`px-2 py-0.5 rounded-md text-[10.5px] font-semibold transition-all border ${
+                className={`px-2 py-0.5 rounded-md text-[10.5px] font-semibold transition-colors duration-100 border ${
                   activeQueueTab === "URGENT"
                     ? "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800"
                     : "text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/30"
@@ -350,7 +350,7 @@ export function APWorkstationGrid({
                 title="Priority filter — urgent items across both exceptions and approvals"
                 aria-pressed={activeQueueTab === "URGENT"}
               >
-                ⚡ Urgent ({urgentCount})
+                Urgent ({urgentCount})
               </button>
             </div>
           </div>
@@ -380,7 +380,7 @@ export function APWorkstationGrid({
                   <div
                     key={inv.id}
                     onClick={() => handleRowClick(inv)}
-                    className="py-2 px-3 rounded-lg border border-neutral-100 dark:border-zinc-800 bg-neutral-50/40 dark:bg-zinc-900/40 hover:bg-neutral-50 dark:hover:bg-zinc-800/60 hover:border-neutral-200 dark:hover:border-zinc-700 transition-all flex items-center justify-between gap-3 cursor-pointer group"
+                    className="py-2 px-3 rounded-lg border border-neutral-100 dark:border-zinc-800 bg-neutral-50/40 dark:bg-zinc-900/40 hover:bg-neutral-50 dark:hover:bg-zinc-800/60 hover:border-neutral-200 dark:hover:border-zinc-700 transition-colors duration-100 flex items-center justify-between gap-3 cursor-pointer group"
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => e.key === "Enter" && handleRowClick(inv)}
@@ -452,7 +452,7 @@ export function APWorkstationGrid({
                             e.stopPropagation();
                             handleRowClick(inv);
                           }}
-                          className="h-6 px-2 text-[10px] font-medium text-indigo-600 dark:text-indigo-400 border border-transparent group-hover:border-indigo-300 dark:group-hover:border-indigo-700 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950/40 rounded transition-all flex items-center gap-1"
+                          className="h-6 px-2 text-[10px] font-medium text-indigo-600 dark:text-indigo-400 border border-transparent group-hover:border-indigo-300 dark:group-hover:border-indigo-700 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950/40 rounded transition-colors duration-100 flex items-center gap-1"
                           aria-label={`Resolve ${inv.invoiceNumber}`}
                         >
                           <span>Resolve</span>
@@ -500,7 +500,7 @@ export function APWorkstationGrid({
                   key={tab.key}
                   type="button"
                   onClick={() => setActiveRightTab(tab.key)}
-                  className={`px-2.5 py-0.5 rounded-md transition-all shrink-0 ${
+                  className={`px-2.5 py-0.5 rounded-md transition-colors duration-100 shrink-0 ${
                     activeRightTab === tab.key
                       ? "bg-white dark:bg-zinc-700 text-neutral-900 dark:text-zinc-100 shadow-2xs font-semibold"
                       : "text-neutral-500 hover:text-neutral-900 dark:text-zinc-400 dark:hover:text-zinc-200"
@@ -529,7 +529,7 @@ export function APWorkstationGrid({
                         <button
                           type="button"
                           onClick={() => navigate(stg.path)}
-                          className={`w-full p-2 rounded-lg border text-left transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                          className={`w-full p-2 rounded-lg border text-left transition-colors duration-100 cursor-pointer flex items-center justify-between gap-2 ${
                             stg.isAlert && stg.count > 0
                               ? "border-amber-200 dark:border-amber-800/60 hover:border-amber-300"
                               : "border-neutral-100 dark:border-zinc-800 hover:border-indigo-300 dark:hover:border-indigo-800"
@@ -568,7 +568,7 @@ export function APWorkstationGrid({
                             <button
                               type="button"
                               onClick={() => navigate(exBranch.path)}
-                              className="flex-1 p-1.5 rounded-lg border border-amber-300 dark:border-amber-800/80 bg-amber-50/50 dark:bg-amber-950/30 hover:border-amber-400 transition-all cursor-pointer flex items-center justify-between gap-2 text-left"
+                              className="flex-1 p-1.5 rounded-lg border border-amber-300 dark:border-amber-800/80 bg-amber-50/50 dark:bg-amber-950/30 hover:border-amber-400 transition-colors duration-100 cursor-pointer flex items-center justify-between gap-2 text-left"
                               title="Exception branch — rejoins main flow after resolution"
                             >
                               <div className="flex items-center gap-1">
@@ -620,7 +620,7 @@ export function APWorkstationGrid({
                       14.2h
                     </span>
                     <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold" title="Within SLA target of 24h">
-                      SLA ✓
+                      SLA Met
                     </span>
                   </div>
                 </div>
@@ -651,7 +651,7 @@ export function APWorkstationGrid({
                 <button
                   type="button"
                   onClick={() => navigate("/invoices?status=EXCEPTION")}
-                  className="p-2 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/30 text-left hover:border-rose-400 transition-all cursor-pointer"
+                  className="p-2 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/30 text-left hover:border-rose-400 transition-colors duration-100 cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300 uppercase tracking-wider flex items-center gap-1">
@@ -673,7 +673,7 @@ export function APWorkstationGrid({
                 <button
                   type="button"
                   onClick={() => navigate("/payments")}
-                  className="p-2 rounded-lg border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/50 dark:bg-indigo-950/30 text-left hover:border-indigo-400 transition-all cursor-pointer"
+                  className="p-2 rounded-lg border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/50 dark:bg-indigo-950/30 text-left hover:border-indigo-400 transition-colors duration-100 cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider flex items-center gap-1">
@@ -688,14 +688,14 @@ export function APWorkstationGrid({
                     {formatCurrency(aging.dueIn7Days.totalAmount, "INR")}
                   </span>
                   <span className="text-[9.5px] text-emerald-600 dark:text-emerald-400 font-medium block mt-0.5">
-                    ⚡ Early discount available
+                    Early discount available
                   </span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => navigate("/payments")}
-                  className="p-2 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-neutral-50/60 dark:bg-zinc-900 text-left hover:border-neutral-300 dark:hover:border-zinc-700 transition-all cursor-pointer"
+                  className="p-2 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-neutral-50/60 dark:bg-zinc-900 text-left hover:border-neutral-300 dark:hover:border-zinc-700 transition-colors duration-100 cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-neutral-600 dark:text-zinc-300 uppercase tracking-wider">
@@ -714,7 +714,7 @@ export function APWorkstationGrid({
                 <button
                   type="button"
                   onClick={() => navigate("/invoices")}
-                  className="p-2 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-neutral-50/60 dark:bg-zinc-900 text-left hover:border-neutral-300 dark:hover:border-zinc-700 transition-all cursor-pointer"
+                  className="p-2 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-neutral-50/60 dark:bg-zinc-900 text-left hover:border-neutral-300 dark:hover:border-zinc-700 transition-colors duration-100 cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-neutral-600 dark:text-zinc-300 uppercase tracking-wider">

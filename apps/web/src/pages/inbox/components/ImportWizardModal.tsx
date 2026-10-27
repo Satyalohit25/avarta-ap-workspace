@@ -188,8 +188,8 @@ export function ImportWizardModal({ isOpen, onClose, onImportComplete }: ImportW
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && handleReset()}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs transition-opacity" />
-        <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 max-h-[90vh] w-full max-w-2xl translate-x-[-50%] translate-y-[-50%] overflow-y-auto rounded-2xl border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-2xl focus:outline-none">
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/80 transition-opacity" />
+        <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 max-h-[90vh] w-full max-w-2xl translate-x-[-50%] translate-y-[-50%] overflow-y-auto rounded-lg border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-lg focus:outline-none">
           <div className="flex items-center justify-between pb-4 border-b border-neutral-200 dark:border-zinc-800">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
@@ -226,7 +226,7 @@ export function ImportWizardModal({ isOpen, onClose, onImportComplete }: ImportW
                 <div className="grid grid-cols-2 gap-3">
                   <div
                     onClick={() => handleSourceSelect("csv")}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                    className={`p-4 rounded-xl border cursor-pointer transition-colors duration-100 ${
                       selectedSource === "csv"
                         ? "border-indigo-600 bg-indigo-50/30 dark:bg-indigo-950/20 ring-1 ring-indigo-500"
                         : "border-neutral-200 dark:border-zinc-800 hover:border-neutral-300"
@@ -243,7 +243,7 @@ export function ImportWizardModal({ isOpen, onClose, onImportComplete }: ImportW
 
                   <div
                     onClick={() => handleSourceSelect("tally")}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                    className={`p-4 rounded-xl border cursor-pointer transition-colors duration-100 ${
                       selectedSource === "tally"
                         ? "border-indigo-600 bg-indigo-50/30 dark:bg-indigo-950/20 ring-1 ring-indigo-500"
                         : "border-neutral-200 dark:border-zinc-800 hover:border-neutral-300"
@@ -378,7 +378,7 @@ export function ImportWizardModal({ isOpen, onClose, onImportComplete }: ImportW
                 </p>
                 <div className="w-full max-w-md mx-auto h-2 bg-neutral-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-indigo-600 rounded-full transition-all duration-300"
+                    className="h-full bg-indigo-600 rounded-full transition-colors duration-100 duration-300"
                     style={{ width: `${importProgress}%` }}
                   />
                 </div>

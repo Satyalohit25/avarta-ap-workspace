@@ -11,7 +11,7 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  Sparkles,
+  Cpu,
   RefreshCw,
 } from "lucide-react";
 import { testByokKey, fetchIntegrationsStatus, ByokTestResponse } from "../../../api/integrations";
@@ -107,13 +107,13 @@ export function ByokConfigCard() {
   const linkInfo = getProviderLink();
 
   return (
-    <Card level="surface" className="border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs">
+    <Card level="surface" className="border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
       <CardHeader
-        title="Bring Your Own Key (BYOK) — AI & OCR Engine"
+        title="Bring Your Own Key (BYOK): Private OCR Engine"
         description="Connect your private AI accounts with zero markup on model tokens and guaranteed data privacy."
         action={
-          <span className="inline-flex items-center gap-1.5 text-micro font-mono px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-semibold">
-            <Sparkles size={12} />
+          <span className="inline-flex items-center gap-1.5 text-micro font-mono px-2 py-0.5 rounded-sm bg-neutral-100 dark:bg-zinc-800 text-neutral-800 dark:text-zinc-200 border border-neutral-200 dark:border-zinc-700 font-semibold">
+            <Cpu size={12} />
             <span>Active: {activeStatus}</span>
           </span>
         }

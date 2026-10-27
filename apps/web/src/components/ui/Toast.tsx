@@ -56,7 +56,7 @@ export function Toast({ toast, onDismiss }: ToastProps) {
       role={toast.type === "error" ? "alert" : "status"}
       aria-live={toast.type === "error" ? "assertive" : "polite"}
       className={cn(
-        "pointer-events-auto flex items-start gap-3 w-full sm:w-96 p-3.5 rounded-lg border shadow-lg backdrop-blur-xs transition-all duration-200",
+        "pointer-events-auto flex items-start gap-3 w-full sm:w-96 p-3.5 rounded-md border shadow-md transition-opacity duration-150",
         style.bg,
         style.border,
       )}

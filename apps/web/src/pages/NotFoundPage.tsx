@@ -8,11 +8,11 @@ export default function NotFoundPage() {
 
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 text-center select-none">
-      <div className="w-16 h-16 rounded-2xl bg-neutral-100 dark:bg-zinc-800 flex items-center justify-center mb-6 text-neutral-400 dark:text-zinc-500 shadow-inner">
-        <FileQuestion size={36} strokeWidth={1.5} />
+      <div className="w-12 h-12 rounded-md bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 flex items-center justify-center mb-6 text-neutral-500 dark:text-zinc-400">
+        <FileQuestion size={28} strokeWidth={1.5} />
       </div>
 
-      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-mono text-caption font-semibold mb-3">
+      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 text-neutral-700 dark:text-zinc-300 font-mono text-caption font-medium mb-3">
         <span>ERROR 404</span>
       </div>
 

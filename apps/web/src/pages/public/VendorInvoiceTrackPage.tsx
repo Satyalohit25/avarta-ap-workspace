@@ -102,7 +102,7 @@ export default function VendorInvoiceTrackPage() {
             Loading real-time invoice status...
           </div>
         ) : !data ? (
-          <div className="p-8 rounded-2xl border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-center space-y-2">
+          <div className="p-8 rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-center space-y-2">
             <HelpCircle size={32} className="mx-auto text-neutral-400" />
             <h2 className="text-h3 font-semibold">
               {errorMessage?.includes("expired") ? "Tracking Link Expired" : "Tracking Record Not Found"}
@@ -112,7 +112,7 @@ export default function VendorInvoiceTrackPage() {
             </p>
           </div>
         ) : (
-          <div className="relative p-6 sm:p-8 rounded-2xl border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm space-y-6 overflow-hidden">
+          <div className="relative p-6 sm:p-8 rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-6 overflow-hidden">
             <AvartaCrest variant="watermark" className="opacity-[0.035] dark:opacity-[0.05]" />
             {/* Header info */}
             <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-neutral-100 dark:border-zinc-800">
@@ -163,7 +163,7 @@ export default function VendorInvoiceTrackPage() {
                   return (
                     <div
                       key={s.stage}
-                      className={`p-3 rounded-xl border transition-all ${
+                      className={`p-3 rounded-xl border transition-colors duration-100 ${
                         isCurrent
                           ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-900 dark:text-indigo-200 shadow-2xs"
                           : isCompleted

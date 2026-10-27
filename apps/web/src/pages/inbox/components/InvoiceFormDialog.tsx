@@ -33,12 +33,12 @@ export function InvoiceFormDialog({
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/80 backdrop-blur-sm transition-opacity duration-200" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/80 transition-opacity duration-200" />
         <DialogPrimitive.Content
           className={cn(
             "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
-            "bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-xl",
-            "p-6 w-[96vw] max-h-[92vh] overflow-y-auto shadow-2xl space-y-5 focus:outline-none transition-all duration-200",
+            "bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg",
+            "p-6 w-[96vw] max-h-[92vh] overflow-y-auto shadow-lg space-y-5 focus:outline-none duration-150",
             isCreate ? "max-w-4xl" : "max-w-5xl"
           )}
         >

@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 export default function RefundPolicyPage() {
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-zinc-950 text-neutral-900 dark:text-zinc-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto space-y-8 bg-white dark:bg-zinc-900 p-8 sm:p-12 rounded-2xl border border-neutral-200/80 dark:border-zinc-800 shadow-sm">
+      <div className="max-w-4xl mx-auto space-y-8 bg-white dark:bg-zinc-900 p-8 sm:p-12 rounded-lg border border-neutral-200/80 dark:border-zinc-800">
         <div className="flex items-center justify-between border-b border-neutral-100 dark:border-zinc-800 pb-6">
           <Link
             to="/login"

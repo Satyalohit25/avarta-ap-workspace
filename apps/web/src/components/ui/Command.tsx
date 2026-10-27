@@ -87,14 +87,14 @@ export function Command({ isOpen, onClose }: CommandProps) {
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/80 backdrop-blur-xs transition-opacity duration-150" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/80 transition-opacity duration-150" />
         <DialogPrimitive.Content
           aria-label="Command Search Palette"
           className="fixed left-1/2 top-16 sm:top-20 z-50 -translate-x-1/2 max-w-2xl w-full p-4 focus:outline-none"
         >
           <CommandPrimitive
             className={cn(
-              "relative bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-xl shadow-2xl overflow-hidden flex flex-col transition-all duration-150 max-h-[82vh]"
+              "relative bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg shadow-lg overflow-hidden flex flex-col duration-150 max-h-[82vh]"
             )}
           >
             {/* Search Input Bar */}

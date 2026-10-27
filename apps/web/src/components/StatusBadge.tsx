@@ -128,27 +128,27 @@ export const VARIANT_CLASSES: Record<
 > = {
   success: {
     badge:
-      "bg-success-50/80 dark:bg-zinc-900 text-success-700 dark:text-success-300 border border-success-500/20 dark:border-success-500/30",
-    dot: "bg-success-500",
+      "bg-neutral-100/90 dark:bg-zinc-800/90 text-neutral-800 dark:text-zinc-200 border border-neutral-200 dark:border-zinc-700",
+    dot: "bg-emerald-600 dark:bg-emerald-500",
   },
   warning: {
     badge:
-      "bg-warning-50/80 dark:bg-zinc-900 text-warning-700 dark:text-warning-300 border border-warning-500/20 dark:border-warning-500/30",
-    dot: "bg-warning-500 animate-pulse",
+      "bg-neutral-100/90 dark:bg-zinc-800/90 text-neutral-800 dark:text-zinc-200 border border-neutral-200 dark:border-zinc-700",
+    dot: "bg-amber-500 dark:bg-amber-400",
   },
   error: {
     badge:
-      "bg-error-50/80 dark:bg-zinc-900 text-error-700 dark:text-error-300 border border-error-500/20 dark:border-error-500/30",
-    dot: "bg-error-500",
+      "bg-neutral-100/90 dark:bg-zinc-800/90 text-neutral-800 dark:text-zinc-200 border border-neutral-200 dark:border-zinc-700",
+    dot: "bg-rose-600 dark:bg-rose-500",
   },
   info: {
     badge:
-      "bg-neutral-100 dark:bg-zinc-900 text-neutral-800 dark:text-zinc-200 border border-neutral-200 dark:border-zinc-800",
-    dot: "bg-zinc-400 dark:bg-zinc-400",
+      "bg-neutral-100/90 dark:bg-zinc-800/90 text-neutral-800 dark:text-zinc-200 border border-neutral-200 dark:border-zinc-700",
+    dot: "bg-blue-600 dark:bg-blue-400",
   },
   neutral: {
     badge:
-      "bg-neutral-100/80 dark:bg-zinc-900 text-neutral-600 dark:text-zinc-300 border border-neutral-200/60 dark:border-zinc-800/60",
+      "bg-neutral-100/90 dark:bg-zinc-800/90 text-neutral-700 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-700",
     dot: "bg-neutral-400 dark:bg-zinc-500",
   },
 };
@@ -175,23 +175,14 @@ export function StatusBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-md font-medium ${
+      className={`inline-flex items-center gap-1.5 rounded-sm font-medium tabular-nums ${
         size === "sm" ? "px-2 py-0.5 text-micro" : "px-2.5 py-1 text-label"
       } ${styleConfig.badge}`}
     >
-      {IconComponent && IconComponent !== CircleDot ? (
-        <IconComponent
-          size={size === "sm" ? 11 : 12}
-          strokeWidth={1.75}
-          className="shrink-0"
-          aria-hidden="true"
-        />
-      ) : (
-        <span
-          className={`h-1.5 w-1.5 rounded-full shrink-0 ${styleConfig.dot}`}
-          aria-hidden="true"
-        />
-      )}
+      <span
+        className={`h-1.5 w-1.5 rounded-full shrink-0 ${styleConfig.dot}`}
+        aria-hidden="true"
+      />
       <span className="font-mono tracking-tight">{label}</span>
     </span>
   );

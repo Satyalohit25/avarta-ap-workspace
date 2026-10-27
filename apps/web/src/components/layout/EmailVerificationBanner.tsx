@@ -81,7 +81,7 @@ export function EmailVerificationBanner() {
             className="px-2 py-1 text-micro font-mono rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-200 transition-colors"
             title="Dev: Mark verified"
           >
-            ✓ Verify Now (Dev)
+            Verify Now (Dev)
           </button>
         )}
 

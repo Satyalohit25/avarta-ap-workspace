@@ -92,13 +92,13 @@ export function InvoiceActionBar({
   return (
     <aside
       aria-label="Invoice Workflow Controls"
-      className="sticky bottom-4 z-30 p-2.5 sm:px-4 sm:py-3 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-xl border border-neutral-200 dark:border-zinc-800 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all"
+      className="sticky bottom-4 z-30 p-2.5 sm:px-4 sm:py-3 bg-white dark:bg-zinc-900 rounded-md border border-neutral-300 dark:border-zinc-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors duration-100"
     >
       {/* Left: Queue Triage & Quick Navigation (Replaces repeating the ID/status/stage) */}
       <div className="flex items-center gap-2.5 min-w-0">
         <Link
           to="/invoices"
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-body-sm font-medium text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-100 hover:bg-neutral-100 dark:hover:bg-zinc-800 transition-colors shrink-0"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-body-sm font-medium text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-100 hover:bg-neutral-100 dark:hover:bg-zinc-800 transition-colors shrink-0"
           title="Back to All Invoices Queue"
         >
           <ArrowLeft size={14} />
@@ -245,7 +245,7 @@ export function InvoiceActionBar({
             size="md"
             onClick={() => onAction(primaryAction.actionKey)}
             disabled={isActionPending}
-            className="h-9 px-5 text-body-sm font-bold gap-2 shadow-sm hover:shadow-md rounded-lg transition-all"
+            className="h-9 px-5 text-body-sm font-bold gap-2 shadow-sm hover:shadow-md rounded-lg transition-colors duration-100"
           >
             {renderActionIcon(primaryAction.actionKey)}
             <span>{isActionPending ? "Executing..." : primaryAction.label}</span>

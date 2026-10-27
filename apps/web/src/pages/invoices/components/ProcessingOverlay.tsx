@@ -66,9 +66,9 @@ export function ProcessingOverlay({
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && onClose?.()}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/80 backdrop-blur-sm" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/80" />
         <DialogPrimitive.Content
-          className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg p-6 max-w-lg w-full shadow-2xl focus:outline-none"
+          className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg p-6 max-w-lg w-full shadow-lg focus:outline-none"
           onEscapeKeyDown={(e) => e.preventDefault()}
           onPointerDownOutside={(e) => e.preventDefault()}
         >
@@ -103,7 +103,7 @@ export function ProcessingOverlay({
                   {/* Connector Line + Icon */}
                   <div className="flex flex-col items-center">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-500 ${
+                      className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors duration-100 duration-500 ${
                         isCompleted
                           ? "bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800"
                           : isActive

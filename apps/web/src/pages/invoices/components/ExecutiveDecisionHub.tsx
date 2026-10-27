@@ -113,7 +113,7 @@ export function ExecutiveDecisionHub({
               onChangeViewMode("split");
               document.getElementById("executive-decision-hub")?.scrollIntoView({ behavior: "smooth" });
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold transition-colors duration-100 cursor-pointer ${
               viewMode === "split"
                 ? "bg-white dark:bg-zinc-900 text-indigo-700 dark:text-indigo-300 shadow-xs border border-neutral-200 dark:border-zinc-700"
                 : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
@@ -131,7 +131,7 @@ export function ExecutiveDecisionHub({
               onChangeViewMode("threeway");
               document.getElementById("section-matching")?.scrollIntoView({ behavior: "smooth" });
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold transition-colors duration-100 cursor-pointer ${
               viewMode === "threeway"
                 ? "bg-white dark:bg-zinc-900 text-indigo-700 dark:text-indigo-300 shadow-xs border border-neutral-200 dark:border-zinc-700"
                 : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
@@ -152,7 +152,7 @@ export function ExecutiveDecisionHub({
               onChangeViewMode("audit");
               document.getElementById("section-audit")?.scrollIntoView({ behavior: "smooth" });
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold transition-colors duration-100 cursor-pointer ${
               viewMode === "audit"
                 ? "bg-white dark:bg-zinc-900 text-indigo-700 dark:text-indigo-300 shadow-xs border border-neutral-200 dark:border-zinc-700"
                 : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"

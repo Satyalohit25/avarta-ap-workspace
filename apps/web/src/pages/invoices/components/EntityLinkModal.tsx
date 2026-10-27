@@ -163,7 +163,7 @@ export function EntityLinkModal({
                     setSelectedId(id);
                     setSelectedName(name);
                   }}
-                  className={`p-3 rounded-lg border text-body-sm cursor-pointer transition-all flex items-center justify-between gap-3 ${
+                  className={`p-3 rounded-lg border text-body-sm cursor-pointer transition-colors duration-100 flex items-center justify-between gap-3 ${
                     isSelected
                       ? "border-indigo-600 bg-indigo-50/60 dark:bg-indigo-950/40 text-neutral-900 dark:text-zinc-100 shadow-2xs"
                       : "border-neutral-200 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-800/60 text-neutral-800 dark:text-zinc-200"

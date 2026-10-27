@@ -552,7 +552,7 @@ export default function ExceptionsPage() {
                   }`}
                 >
                   {resolutionNote.trim().length >= 10
-                    ? `✓ ${resolutionNote.trim().length} chars (valid)`
+                    ? `${resolutionNote.trim().length} chars (valid)`
                     : `${resolutionNote.trim().length}/10 min chars`}
                 </span>
               </div>

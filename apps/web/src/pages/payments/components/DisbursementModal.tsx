@@ -691,7 +691,7 @@ Avarta AP Workspace Maker-Checker Governance Protocol (Section 44AA / Rule 56).
                       key={rail.id}
                       type="button"
                       onClick={() => setSelectedRailId(rail.id)}
-                      className={`p-3 rounded-lg border text-left transition-all relative ${
+                      className={`p-3 rounded-lg border text-left transition-colors duration-100 relative ${
                         isSelected
                           ? "border-indigo-600 dark:border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/40 shadow-xs ring-1 ring-indigo-500/20"
                           : "border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 hover:bg-neutral-50 dark:hover:bg-zinc-800/60"

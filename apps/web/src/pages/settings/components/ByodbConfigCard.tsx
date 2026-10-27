@@ -94,7 +94,7 @@ export function ByodbConfigCard() {
           <button
             type="button"
             onClick={() => setMode("MANAGED")}
-            className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+            className={`p-4 rounded-xl border text-left transition-colors duration-100 cursor-pointer ${
               mode === "MANAGED"
                 ? "border-indigo-600 dark:border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 ring-1 ring-indigo-500"
                 : "border-neutral-200 dark:border-zinc-800 bg-neutral-50/40 dark:bg-zinc-800/40 hover:bg-neutral-100 dark:hover:bg-zinc-800"
@@ -114,7 +114,7 @@ export function ByodbConfigCard() {
           <button
             type="button"
             onClick={() => setMode("CUSTOM")}
-            className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+            className={`p-4 rounded-xl border text-left transition-colors duration-100 cursor-pointer ${
               mode === "CUSTOM"
                 ? "border-indigo-600 dark:border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 ring-1 ring-indigo-500"
                 : "border-neutral-200 dark:border-zinc-800 bg-neutral-50/40 dark:bg-zinc-800/40 hover:bg-neutral-100 dark:hover:bg-zinc-800"

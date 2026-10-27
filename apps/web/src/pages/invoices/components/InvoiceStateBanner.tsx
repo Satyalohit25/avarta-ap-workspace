@@ -52,19 +52,15 @@ export function InvoiceStateBanner({
 
   const statusTheme = {
     warning: {
-      leftBorder: "border-l-amber-500 dark:border-l-amber-400",
       actionBtn: "hover:border-amber-400 dark:hover:border-amber-500 hover:text-amber-700 dark:hover:text-amber-300",
     },
     error: {
-      leftBorder: "border-l-rose-500 dark:border-l-rose-400",
       actionBtn: "hover:border-rose-400 dark:hover:border-rose-500 hover:text-rose-700 dark:hover:text-rose-300",
     },
     success: {
-      leftBorder: "border-l-emerald-500 dark:border-l-emerald-400",
       actionBtn: "hover:border-emerald-400 dark:hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300",
     },
     info: {
-      leftBorder: "border-l-indigo-500 dark:border-l-indigo-400",
       actionBtn: "hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-300",
     },
   }[bannerType];
@@ -90,7 +86,7 @@ export function InvoiceStateBanner({
 
   return (
     <div
-      className={`rounded-xl border border-neutral-200/80 dark:border-zinc-800 border-l-4 ${statusTheme.leftBorder} bg-white dark:bg-zinc-900 shadow-2xs transition-all`}
+      className="rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden"
     >
       {/* ── Compact Stage 4/8 Strip ── */}
       <div className="flex items-center justify-between gap-3 px-4 py-2 sm:px-5 sm:py-2">
@@ -106,7 +102,7 @@ export function InvoiceStateBanner({
               {WORKFLOW_STAGES.map((s) => (
                 <div
                   key={s.step}
-                  className={`h-1.5 rounded-full transition-all ${
+                  className={`h-1.5 rounded-full transition-colors duration-100 ${
                     s.step < stageNumber
                       ? "w-3.5 bg-indigo-600 dark:bg-indigo-400"
                       : s.step === stageNumber

@@ -201,7 +201,7 @@ export function PaymentGatewayConfigCard() {
                     setSelectedProvider(option.id);
                     setTestResult(null);
                   }}
-                  className={`p-3.5 rounded-xl border text-left transition-all relative ${
+                  className={`p-3.5 rounded-xl border text-left transition-colors duration-100 relative ${
                     isSelected
                       ? "border-indigo-600 dark:border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 ring-1 ring-indigo-600 dark:ring-indigo-500"
                       : "border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700 bg-white dark:bg-zinc-900"

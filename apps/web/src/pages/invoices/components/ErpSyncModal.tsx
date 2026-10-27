@@ -406,7 +406,7 @@ export function ErpSyncModal({
                     <span className="col-span-2 text-right font-mono font-semibold text-neutral-900 dark:text-zinc-100 tabular-nums">
                       {formatCurrency(netAmount, currency)}
                     </span>
-                    <span className="col-span-3 text-right font-mono text-neutral-400">—</span>
+                    <span className="col-span-3 text-right font-mono text-neutral-400 tabular-nums">0.00</span>
                   </div>
 
                   {/* Line 2: Input GST Tax Credit (Debit) */}
@@ -420,7 +420,7 @@ export function ErpSyncModal({
                     <span className="col-span-2 text-right font-mono font-semibold text-neutral-900 dark:text-zinc-100 tabular-nums">
                       {formatCurrency(taxAmount, currency)}
                     </span>
-                    <span className="col-span-3 text-right font-mono text-neutral-400">—</span>
+                    <span className="col-span-3 text-right font-mono text-neutral-400 tabular-nums">0.00</span>
                   </div>
 
                   {/* Line 3: Accounts Payable (Credit) */}
@@ -431,7 +431,7 @@ export function ErpSyncModal({
                       </p>
                       <p className="text-micro text-neutral-500">Net Liability Payable to {vendorName}</p>
                     </div>
-                    <span className="col-span-2 text-right font-mono text-neutral-400">—</span>
+                    <span className="col-span-2 text-right font-mono text-neutral-400 tabular-nums">0.00</span>
                     <span className="col-span-3 text-right font-mono font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
                       {formatCurrency(numTotal, currency)}
                     </span>

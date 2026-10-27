@@ -33,7 +33,7 @@ export function FilterTokenBar({
       role="region"
       aria-label="Active filters"
       className={cn(
-        "flex flex-wrap items-center gap-2 py-1.5 px-3 rounded-lg bg-neutral-50 dark:bg-zinc-900/60 border border-neutral-200/70 dark:border-zinc-800 text-body-sm transition-all",
+        "flex flex-wrap items-center gap-2 py-1.5 px-3 rounded-lg bg-neutral-50 dark:bg-zinc-900/60 border border-neutral-200/70 dark:border-zinc-800 text-body-sm transition-colors duration-100",
         className
       )}
     >

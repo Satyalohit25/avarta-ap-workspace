@@ -98,12 +98,12 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/80 backdrop-blur-sm transition-opacity duration-200" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-neutral-950/70 dark:bg-zinc-950/80 transition-opacity duration-150" />
         <DialogPrimitive.Content
           className={cn(
             "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
-            "bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-2xl",
-            "max-w-3xl w-[95vw] max-h-[90vh] flex flex-col shadow-2xl focus:outline-none transition-all duration-200 overflow-hidden"
+            "bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg",
+            "max-w-3xl w-[95vw] max-h-[90vh] flex flex-col shadow-lg focus:outline-none transition-opacity duration-150 overflow-hidden"
           )}
         >
           {/* Background Crest Watermark */}
@@ -213,7 +213,7 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
                       key={s.num}
                       type="button"
                       onClick={() => setActiveStep(idx)}
-                      className={`flex flex-col items-center py-2 px-1 rounded-lg text-center transition-all cursor-pointer ${
+                      className={`flex flex-col items-center py-2 px-1 rounded-lg text-center transition-colors duration-100 cursor-pointer ${
                         isActive
                           ? "bg-white dark:bg-zinc-900 shadow-xs text-indigo-600 dark:text-indigo-400 font-semibold scale-102"
                           : "text-neutral-500 hover:text-neutral-800 dark:text-zinc-400 hover:bg-neutral-200/50 dark:hover:bg-zinc-700/50"
@@ -233,10 +233,10 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
               {(() => {
                 const cur = steps[activeStep];
                 return (
-                  <div className="p-5 rounded-2xl border border-indigo-100 dark:border-indigo-950 bg-gradient-to-br from-indigo-50/40 via-white to-neutral-50/50 dark:from-indigo-950/20 dark:via-zinc-900 dark:to-zinc-900 shadow-xs relative overflow-hidden">
+                  <div className="p-5 rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 relative overflow-hidden">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-body-md shadow-xs">
+                        <div className="w-9 h-9 rounded-md bg-slate-900 dark:bg-zinc-800 text-white flex items-center justify-center font-bold text-body-sm">
                           {cur.num}
                         </div>
                         <div>
@@ -377,20 +377,20 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
           {/* TAB 3: AI CONFIDENCE BANDS */}
           {activeTab === "ai" && (
             <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-900/60">
+              <div className="p-4 rounded-md bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700">
                 <div className="flex items-center gap-2 mb-1">
-                  <ShieldCheck size={18} className="text-indigo-600 dark:text-indigo-400" />
-                  <h4 className="font-semibold text-body-md text-indigo-950 dark:text-indigo-200">
-                    The Non-Negotiable Rule: AI Suggests, Humans Decide
+                  <ShieldCheck size={18} className="text-neutral-800 dark:text-zinc-200" />
+                  <h4 className="font-semibold text-body-md text-neutral-900 dark:text-zinc-100">
+                    Deterministic Governance: AI Suggests, Humans Decide
                   </h4>
                 </div>
                 <p className="text-body-sm text-neutral-700 dark:text-zinc-300 leading-relaxed">
-                  Unlike black-box automated accounting tools that post phantom transactions, no confidence level, ever, causes AI to write a ledger value or advance workflow state without an explicit human click.
+                  Deterministic 3-way invoice matching with line-level audit provenance. No confidence level, ever, causes AI to post a ledger value or advance workflow state without explicit human verification and confirmation.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="p-4 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/30 dark:bg-emerald-950/20">
+                <div className="p-4 rounded-sm border border-neutral-200 dark:border-zinc-750 bg-neutral-50 dark:bg-zinc-850">
                   <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-1">
                     High Confidence (≥ 95%)
                   </div>
@@ -398,11 +398,11 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
                     Pre-fill + 1-Click Accept
                   </h5>
                   <p className="text-caption text-neutral-600 dark:text-zinc-400">
-                    Field is pre-populated in green. The human reviewer verifies and clicks once to accept.
+                    Field is pre-populated. Human reviewer verifies and clicks once to confirm.
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/30 dark:bg-amber-950/20">
+                <div className="p-4 rounded-sm border border-neutral-200 dark:border-zinc-750 bg-neutral-50 dark:bg-zinc-850">
                   <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-1">
                     Medium Confidence (80–94%)
                   </div>
@@ -410,12 +410,12 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
                     Recommended Suggestion
                   </h5>
                   <p className="text-caption text-neutral-600 dark:text-zinc-400">
-                    Field is marked with an amber badge. Requires explicit human confirmation of value.
+                    Field is marked with amber badge. Requires explicit human confirmation of value.
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/30 dark:bg-rose-950/20">
-                  <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 mb-1">
+                <div className="p-4 rounded-sm border border-neutral-200 dark:border-zinc-750 bg-neutral-50 dark:bg-zinc-850">
+                  <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-700 dark:text-zinc-400 mb-1">
                     Low Confidence (&lt; 80%)
                   </div>
                   <h5 className="font-semibold text-body-sm text-neutral-900 dark:text-zinc-100 mb-1">
@@ -449,13 +449,13 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
                   key={item.name}
                   to={item.to}
                   onClick={onClose}
-                  className="p-3 rounded-xl border border-neutral-200/80 dark:border-zinc-800 hover:border-indigo-300 dark:hover:border-indigo-700 bg-neutral-50/50 dark:bg-zinc-800/40 hover:bg-white dark:hover:bg-zinc-850 transition-all group flex flex-col justify-between"
+                  className="p-3 rounded-sm border border-neutral-200 dark:border-zinc-800 bg-neutral-50/50 dark:bg-zinc-850/50 hover:bg-neutral-100 dark:hover:bg-zinc-800 transition-colors duration-100 group flex flex-col justify-between"
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-body-sm text-neutral-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    <span className="font-semibold text-body-sm text-neutral-900 dark:text-zinc-100">
                       {item.name}
                     </span>
-                    <ChevronRight size={14} className="text-neutral-400 group-hover:translate-x-0.5 transition-transform" />
+                    <ChevronRight size={14} className="text-neutral-400" />
                   </div>
                   <span className="text-caption text-neutral-500 dark:text-zinc-400">
                     {item.desc}

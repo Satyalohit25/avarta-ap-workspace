@@ -166,7 +166,7 @@ export function AttachmentsPanel({
                     key={tag}
                     type="button"
                     onClick={() => setSelectedTag(tag)}
-                    className={`px-2.5 py-1 text-micro font-semibold rounded-md transition-all cursor-pointer border ${
+                    className={`px-2.5 py-1 text-micro font-semibold rounded-md transition-colors duration-100 cursor-pointer border ${
                       selectedTag === tag
                         ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs ring-2 ring-indigo-500/20"
                         : "bg-white dark:bg-zinc-850 text-neutral-600 dark:text-zinc-400 border-neutral-200 dark:border-zinc-700 hover:border-neutral-300"
@@ -183,7 +183,7 @@ export function AttachmentsPanel({
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${
+              className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors duration-100 ${
                 isDragging
                   ? "border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/30"
                   : "border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700 bg-neutral-50/40 dark:bg-zinc-900/40"

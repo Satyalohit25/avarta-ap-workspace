@@ -95,13 +95,12 @@ workflow decisions. The workflow engine contains no HTTP code.
 
 ## Design system quick reference
 
-Accent: Indigo `#4F46E5`. Status: success `#16A34A`, warning `#D97706`,
+Accent: Indigo `#4F46E5`. Primary: Slate-900 `#0F172A`. Interactive focus: Cobalt `#1D4ED8`. Status: success `#16A34A`, warning `#D97706`,
 error `#DC2626`, info `#2563EB`, neutral `#6B7280` — color is never the
 only status indicator, always paired with text/icon. Type: Inter, weights
-400/500/600 only, tabular figures for all money. Spacing: 4px grid. Radius:
-4/6/8/12px scale. No decorative motion — animation only communicates state
-change. WCAG 2.2 AA is the accessibility floor. Full spec:
-`docs/08-design-system.md`.
+400/500/600 only, strict `tabular-nums` for all money, codes, and figures. Spacing: 4px grid. Radius:
+clamped scale `sm: 4px`, `md: 6px`, `lg: 8px` (hard max 8px; radii ≥ 12px prohibited). Elevation: zero drop shadows on static surfaces; elevation is communicated via 1px hairline borders (`border-neutral-200 dark:border-zinc-800`). Zero liquid glass (`backdrop-blur` prohibited). Zero Unicode emojis or `<Sparkles />` icons. No decorative motion — animation only communicates state change (`transition-colors duration-100`). Double-entry fallbacks use `0.00` rather than em-dashes. WCAG 2.2 AA is the accessibility floor. Full spec:
+`docs/08-design-system.md` & `docs/adr/ADR-004-institutional-ledger-design-constraints.md`.
 
 ## Full spec set
 

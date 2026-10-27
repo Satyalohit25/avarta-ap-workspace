@@ -23,7 +23,15 @@ export default defineConfig({
       output: {
         manualChunks: {
           "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-radix": [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-select",
+            "@radix-ui/react-tabs",
+            "@radix-ui/react-separator",
+            "@radix-ui/react-tooltip",
+          ],
           "vendor-icons": ["lucide-react"],
+          "vendor-utils": ["zod", "clsx", "tailwind-merge", "class-variance-authority"],
         },
       },
     },

@@ -53,7 +53,7 @@ export function TopNav({ onOpenMobileMenu }: TopNavProps) {
 
   return (
     <>
-      <header className="h-16 shrink-0 sticky top-0 z-40 border-b border-neutral-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 transition-colors gap-3">
+      <header className="h-16 shrink-0 sticky top-0 z-40 border-b border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between px-4 sm:px-6 transition-colors duration-100 gap-3">
         <div className="flex items-center gap-2 flex-1 max-w-md">
           {/* Mobile & Tablet Hamburger Menu Toggle (< 1024px) */}
           <button

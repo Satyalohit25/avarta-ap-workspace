@@ -786,7 +786,7 @@ export default function PurchaseOrdersPage() {
                       </div>
                       <div className="w-full bg-neutral-100 dark:bg-zinc-800 h-2 rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-300 ${
+                          className={`h-full rounded-full transition-colors duration-100 duration-300 ${
                             pct >= 100
                               ? "bg-rose-500"
                               : pct > 80

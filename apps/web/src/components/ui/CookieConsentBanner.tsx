@@ -44,11 +44,11 @@ export function CookieConsentBanner() {
   return (
     <aside
       aria-label="Cookie consent banner"
-      className="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:max-w-lg z-50 p-4 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-xl text-neutral-900 dark:text-zinc-100 space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-300 contain-layout contain-paint will-change-transform"
+      className="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:max-w-lg z-50 p-4 rounded-md border border-neutral-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 space-y-3 shadow-md animate-in fade-in slide-in-from-bottom-3 duration-200"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 shrink-0">
+          <div className="p-2 rounded-sm bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-700 shrink-0">
             <Cookie size={18} aria-hidden="true" />
           </div>
           <div>

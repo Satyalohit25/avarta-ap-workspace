@@ -76,13 +76,15 @@ export const tokens = {
     16: "64px",
   },
 
-  // Locked Radius Scale (§6.3)
+  // Clamped Institutional Radius Scale (4px-8px max for containers)
   radius: {
-    sm: "4px",
-    md: "6px",
-    lg: "8px",
-    xl: "12px",
-    full: "9999px",
+    none: "0px",
+    xs: "2px",
+    sm: "4px", // Inputs, buttons, status chips, kbd
+    md: "6px", // Standard cards, table wrappers, dropdowns
+    lg: "8px", // Modals, dialogs, command palette (Max allowed radius)
+    xl: "8px", // Clamped from 12px to 8px
+    full: "9999px", // Reserved strictly for 6px status indicator dots
   },
 
   // Inter Typography Scale (§5.3)
@@ -104,8 +106,27 @@ export const tokens = {
   chartSeries: ["#4F46E5", "#0EA5E9", "#16A34A", "#D97706", "#DC2626", "#6366F1", "#6B7280"],
 } as const;
 
+export const radii = {
+  none: "0px",
+  xs: "2px",
+  sm: "4px",
+  md: "6px",
+  lg: "8px",
+  full: "9999px",
+} as const;
+
+export const shadows = {
+  // Enterprise flat-border architecture: static cards & badges have zero drop-shadow
+  none: "none",
+  surface: "none",
+  card: "none",
+  badge: "none",
+  // Reserved strictly for floating modal & select popover overlays
+  overlay: "0 4px 16px -2px rgba(15, 23, 42, 0.08), 0 1px 3px 0 rgba(15, 23, 42, 0.04)",
+} as const;
+
 export const classNameVariants = {
-  tableCard: "bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-xl shadow-2xs overflow-hidden",
+  tableCard: "bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-md overflow-hidden",
   moneyText: "text-right font-mono tabular-nums text-neutral-900 dark:text-zinc-100 font-semibold",
-  codeBadge: "text-micro font-mono bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400 px-2 py-0.5 rounded-full inline-block",
+  codeBadge: "text-micro font-mono bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 px-1.5 py-0.5 rounded-sm border border-neutral-200 dark:border-zinc-700 inline-block",
 } as const;

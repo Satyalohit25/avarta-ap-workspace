@@ -45,10 +45,10 @@ export function Dialog({
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/80 backdrop-blur-sm transition-opacity duration-200" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-neutral-950/70 dark:bg-zinc-950/80 transition-opacity duration-150" />
         <DialogPrimitive.Content
           className={cn(
-            "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-7 w-[95vw] max-h-[90vh] flex flex-col shadow-2xl focus:outline-none transition-all duration-200 overflow-hidden",
+            "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg p-6 sm:p-7 w-[95vw] max-h-[90vh] flex flex-col shadow-lg focus:outline-none transition-opacity duration-150 overflow-hidden",
             SIZE_CLASSES[size],
             className
           )}
@@ -70,7 +70,7 @@ export function Dialog({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 text-neutral-400 hover:text-neutral-700 dark:hover:text-zinc-200 rounded-lg hover:bg-neutral-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0 -mr-1.5 -mt-1"
+                className="p-1.5 text-neutral-400 hover:text-neutral-700 dark:hover:text-zinc-200 rounded-sm hover:bg-neutral-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0 -mr-1.5 -mt-1"
                 aria-label="Close dialog"
               >
                 <span className="text-lg leading-none font-bold select-none">&times;</span>

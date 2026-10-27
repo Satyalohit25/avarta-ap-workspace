@@ -141,7 +141,7 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
             }
           }}
           onClick={() => batchFileInputRef.current?.click()}
-          className={`flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 min-h-[240px] ${
+          className={`flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors duration-100 duration-200 min-h-[240px] ${
             isBatchDragging
               ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/30 scale-[1.01]"
               : "border-neutral-200 dark:border-zinc-800 hover:border-indigo-300 dark:hover:border-indigo-700 bg-neutral-50/40 dark:bg-zinc-900/40"
@@ -181,7 +181,7 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
                     e.stopPropagation();
                     handleLoadDemoFiles();
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-zinc-700 bg-neutral-50 dark:bg-zinc-800 hover:bg-neutral-100 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-200 text-micro font-medium transition-all shadow-2xs cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-zinc-700 bg-neutral-50 dark:bg-zinc-800 hover:bg-neutral-100 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-200 text-micro font-medium transition-colors duration-100 shadow-2xs cursor-pointer"
                 >
                   <FileText size={13} className="text-neutral-500 dark:text-zinc-400" />
                   <span>Load Standard Invoices</span>

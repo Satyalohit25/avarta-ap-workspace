@@ -228,12 +228,12 @@ export function AIExtractedDetailsCard({
         onClick={() => {
           if (!isEditing) onSelectField?.(fieldKey);
         }}
-        className={`group flex items-center justify-between px-4 py-2.5 transition-all duration-150 border-l-2 ${
+        className={`group flex items-center justify-between px-4 py-2.5 transition-colors duration-100 ${
           isActive
-            ? "bg-indigo-50/90 dark:bg-indigo-950/50 border-indigo-600 dark:border-indigo-400"
+            ? "bg-neutral-100 dark:bg-zinc-800"
             : isHighlighted
-            ? "bg-neutral-50/50 dark:bg-zinc-900/50 border-transparent hover:bg-neutral-100/70 dark:hover:bg-zinc-800/50"
-            : "border-transparent hover:bg-neutral-50/60 dark:hover:bg-zinc-800/40"
+            ? "bg-neutral-50/80 dark:bg-zinc-850 hover:bg-neutral-100/70 dark:hover:bg-zinc-800"
+            : "hover:bg-neutral-50/70 dark:hover:bg-zinc-800/50"
         }`}
       >
         <div className="flex flex-col min-w-0 pr-2">

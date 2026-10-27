@@ -115,10 +115,10 @@ export function TeamManagementCard() {
   return (
     <div className="space-y-6">
       {/* Team Quota Header */}
-      <div className="p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-neutral-200/80 dark:border-zinc-800 shadow-xs space-y-4">
+      <div className="p-6 rounded-md bg-white dark:bg-zinc-900 border border-neutral-200/80 dark:border-zinc-800 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/50">
+            <div className="p-2.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/50">
               <Users size={22} />
             </div>
             <div>
@@ -152,7 +152,7 @@ export function TeamManagementCard() {
       {isInviteOpen && (
         <form
           onSubmit={handleInviteSubmit}
-          className="p-5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/80 dark:border-indigo-800/80 shadow-xs space-y-4"
+          className="p-5 rounded-md bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/80 dark:border-indigo-800/80 space-y-4"
         >
           <div className="flex items-center justify-between border-b border-indigo-200/50 dark:border-indigo-800/50 pb-3">
             <span className="font-semibold text-body-sm text-neutral-900 dark:text-zinc-100">
@@ -225,7 +225,7 @@ export function TeamManagementCard() {
       )}
 
       {/* Team Roster Table */}
-      <div className="p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-neutral-200/80 dark:border-zinc-800 shadow-xs space-y-4">
+      <div className="p-6 rounded-md bg-white dark:bg-zinc-900 border border-neutral-200/80 dark:border-zinc-800 space-y-4">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-body-sm">
             <thead>
@@ -270,7 +270,7 @@ export function TeamManagementCard() {
                         <span>Deactivate</span>
                       </button>
                     ) : (
-                      <span className="text-micro text-neutral-400 dark:text-zinc-500">—</span>
+                      <span className="font-mono text-micro text-neutral-400 dark:text-zinc-500">N/A</span>
                     )}
                   </td>
                 </tr>

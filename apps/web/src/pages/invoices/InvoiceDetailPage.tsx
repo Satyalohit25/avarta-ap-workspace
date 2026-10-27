@@ -1516,7 +1516,7 @@ export default function InvoiceDetailPage() {
               totalAmount={invoice.totalAmount}
               currency={invoice.currency}
               supplierName={invoice.supplier?.name}
-              supplierGstin={invoice.supplier?.gstin || "—"}
+              supplierGstin={invoice.supplier?.gstin || "N/A"}
               purchaseOrderId={invoice.purchaseOrderId}
               linesCount={invoice.lines?.length ?? 3}
               extractedAtDate={

@@ -289,7 +289,7 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                         cx={pt.x}
                         cy={pt.y}
                         r="3.5"
-                        className="fill-amber-500 stroke-white dark:stroke-zinc-900 transition-all hover:r-5 cursor-pointer"
+                        className="fill-amber-500 stroke-white dark:stroke-zinc-900 transition-colors duration-100 hover:r-5 cursor-pointer"
                         strokeWidth="1.5"
                         onMouseEnter={() => setHoveredBar(pt.item)}
                         onMouseLeave={() => setHoveredBar(null)}
@@ -328,7 +328,7 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                             cx={pt.x}
                             cy={pt.y}
                             r={isHovered ? "5.5" : "4.5"}
-                            className="fill-indigo-600 stroke-white dark:stroke-zinc-900 transition-all shadow-md"
+                            className="fill-indigo-600 stroke-white dark:stroke-zinc-900 transition-colors duration-100 shadow-md"
                             strokeWidth="2"
                           />
                         </g>
@@ -383,7 +383,7 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                 </div>
                 <div className="h-2 w-full bg-neutral-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                   <div
-                    className={`h-full ${exc.colorClass} rounded-full transition-all duration-300`}
+                    className={`h-full ${exc.colorClass} rounded-full transition-colors duration-100 duration-300`}
                     style={{ width: `${exc.percentage}%` }}
                   />
                 </div>

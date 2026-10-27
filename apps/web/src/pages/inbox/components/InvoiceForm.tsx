@@ -1144,7 +1144,7 @@ export function InvoiceForm({
           />
           <span className="text-[11px] text-neutral-500 dark:text-zinc-400 block truncate">
             {purchaseOrderId !== "none" && selectedPo
-              ? `✓ 3-Way line matching against ${selectedPo.poNumber}`
+              ? `3-Way line matching against ${selectedPo.poNumber}`
               : "Direct GL routing (Non-PO 2-way approval)"}
           </span>
         </div>

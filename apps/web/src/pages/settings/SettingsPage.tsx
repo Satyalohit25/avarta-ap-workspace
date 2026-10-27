@@ -491,7 +491,7 @@ export default function SettingsPage() {
                     {approvalRules.map((rule) => (
                       <div
                         key={rule.id}
-                        className={`p-4 rounded-xl border transition-all ${
+                        className={`p-4 rounded-xl border transition-colors duration-100 ${
                           rule.active
                             ? "border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs"
                             : "border-dashed border-neutral-200 dark:border-zinc-800 bg-neutral-50/60 dark:bg-zinc-900/40 opacity-60"
@@ -559,8 +559,8 @@ export default function SettingsPage() {
 
                 {/* Add Custom Rule Modal */}
                 {showAddRuleModal && (
-                  <div className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/80 backdrop-blur-xs flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-xl p-6 max-w-md w-full shadow-xl space-y-4">
+                  <div className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/80 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg p-6 max-w-md w-full shadow-lg space-y-4">
                       <div className="border-b border-neutral-100 dark:border-zinc-800 pb-3">
                         <h3 className="text-h3 text-neutral-900 dark:text-zinc-100 font-semibold">
                           Configure New Approval Policy Rule
