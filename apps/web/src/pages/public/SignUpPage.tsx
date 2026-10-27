@@ -1,7 +1,8 @@
-import { FormEvent, useState, useMemo } from "react";
+import { FormEvent, useState, useMemo, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, Building2, User, Mail } from "lucide-react";
 import { useAuth } from "../../app/AuthContext";
+import { fetchAuthConfig } from "../../api/auth";
 import { ApiRequestError } from "../../api/client";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
@@ -32,6 +33,9 @@ export default function SignUpPage() {
   const { signup } = useAuth();
   const navigate = useNavigate();
 
+  const [signupEnabled, setSignupEnabled] = useState<boolean | null>(null);
+  const [loadingConfig, setLoadingConfig] = useState(true);
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,6 +43,26 @@ export default function SignUpPage() {
   const [country, setCountry] = useState("IN");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchAuthConfig()
+      .then((cfg) => {
+        if (mounted) {
+          setSignupEnabled(cfg.signupEnabled);
+          setLoadingConfig(false);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setSignupEnabled(true);
+          setLoadingConfig(false);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const [fullNameError, setFullNameError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -162,19 +186,43 @@ export default function SignUpPage() {
           className="relative border border-neutral-200/80 dark:border-zinc-800/90 bg-white/95 dark:bg-zinc-900/85 backdrop-blur-md shadow-xl rounded-2xl overflow-hidden"
         >
           <CardContent className="p-6 md:p-8">
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-              {error && (
-                <Alert type="error">
-                  <div className="flex flex-col gap-1">
-                    <span>{error}</span>
-                    {isDuplicateEmail && (
-                      <Link to="/login" className="font-semibold underline hover:text-indigo-600">
-                        Sign in to existing account →
-                      </Link>
-                    )}
-                  </div>
+            {loadingConfig ? (
+              <div className="py-12 flex flex-col items-center justify-center gap-3 text-neutral-400 dark:text-zinc-500">
+                <div className="w-6 h-6 border-2 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                <span className="text-body-sm">Checking workspace availability...</span>
+              </div>
+            ) : signupEnabled === false ? (
+              <div className="space-y-5 py-2 text-center" data-testid="signup-disabled-container">
+                <Alert type="info">
+                  <span className="text-body-sm text-neutral-800 dark:text-zinc-200">
+                    Self-service signup is not available. Contact your administrator for an invitation.
+                  </span>
                 </Alert>
-              )}
+                <div className="pt-2">
+                  <Button
+                    type="button"
+                    onClick={() => navigate("/login")}
+                    className="w-full h-10 font-semibold text-body-sm rounded-md"
+                  >
+                    Back to sign in
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                {error && (
+                  <Alert type="error">
+                    <div className="flex flex-col gap-2">
+                      <span>{error}</span>
+                      <Link
+                        to="/login"
+                        className="font-semibold underline hover:text-indigo-600 dark:hover:text-indigo-400 text-body-sm inline-flex items-center gap-1"
+                      >
+                        Back to sign in →
+                      </Link>
+                    </div>
+                  </Alert>
+                )}
 
               <Input
                 id="signupFullName"
@@ -349,6 +397,7 @@ export default function SignUpPage() {
                 </span>
               </div>
             </form>
+          )}
           </CardContent>
         </Card>
 

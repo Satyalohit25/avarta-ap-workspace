@@ -1,7 +1,8 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../../app/AuthContext";
+import { fetchAuthConfig } from "../../api/auth";
 import { ApiRequestError } from "../../api/client";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
@@ -16,10 +17,25 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [signupEnabled, setSignupEnabled] = useState<boolean | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchAuthConfig()
+      .then((cfg) => {
+        if (mounted) setSignupEnabled(cfg.signupEnabled);
+      })
+      .catch(() => {
+        if (mounted) setSignupEnabled(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -167,14 +183,16 @@ export default function LoginPage() {
                 {submitting ? "Signing in..." : "Sign in"}
               </Button>
 
-              <div className="text-center pt-1">
-                <span className="text-body-sm text-neutral-500 dark:text-zinc-400">
-                  New to Avarta?{" "}
-                  <Link to="/signup" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
-                    Create a workspace
-                  </Link>
-                </span>
-              </div>
+              {signupEnabled !== false && (
+                <div className="text-center pt-1" data-testid="create-workspace-link-container">
+                  <span className="text-body-sm text-neutral-500 dark:text-zinc-400">
+                    New to Avarta?{" "}
+                    <Link to="/signup" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
+                      Create a workspace
+                    </Link>
+                  </span>
+                </div>
+              )}
 
               {import.meta.env.DEV && (
                 <div className="pt-2">

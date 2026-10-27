@@ -10,6 +10,7 @@ import {
   deactivateTeamHandler,
   forgotPasswordHandler,
   resetPasswordHandler,
+  authConfigHandler,
 } from "./controller";
 import { requireAuth } from "../../middleware/auth";
 import { requireRole } from "../../middleware/permissions";
@@ -18,6 +19,7 @@ import { enforceSeatLimit } from "../billing/middleware";
 
 export const authRoutes = Router();
 
+authRoutes.get("/config", authConfigHandler);
 authRoutes.post("/signup", authRateLimiter, signupHandler);
 authRoutes.post("/login", authRateLimiter, loginHandler);
 authRoutes.post("/refresh", authRateLimiter, refreshHandler);

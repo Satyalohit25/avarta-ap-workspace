@@ -2,11 +2,42 @@ import { NextFunction, Request, Response } from "express";
 import { loginSchema, signupSchema } from "./validation";
 import * as authService from "./service";
 import { ApiError } from "../../lib/errors";
+import { prisma } from "../../config/database";
+
+export async function isSignupAllowed(): Promise<{ allowed: boolean; reason?: string; currentCount: number; maxCount: number }> {
+  if (process.env.ALLOW_PUBLIC_SIGNUP === "false") {
+    return {
+      allowed: false,
+      reason: "Public signup is disabled in this environment. Contact your administrator for access.",
+      currentCount: 0,
+      maxCount: 0,
+    };
+  }
+
+  const maxCount = parseInt(process.env.MAX_PUBLIC_SIGNUPS || "2", 10);
+  const currentCount = await prisma.organization.count();
+
+  if (currentCount >= maxCount) {
+    return {
+      allowed: false,
+      reason: `Public signup limit reached (maximum ${maxCount} workspaces). Self-service registration is now closed.`,
+      currentCount,
+      maxCount,
+    };
+  }
+
+  return {
+    allowed: true,
+    currentCount,
+    maxCount,
+  };
+}
 
 export async function signupHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    if (process.env.NODE_ENV === "production" && process.env.ALLOW_PUBLIC_SIGNUP !== "true") {
-      throw ApiError.forbidden("Public signup is disabled in production. Initial administrators must be provisioned via the secure CLI tool.");
+    const check = await isSignupAllowed();
+    if (!check.allowed) {
+      throw ApiError.forbidden(check.reason!);
     }
     const body = signupSchema.parse(req.body);
     const result = await authService.signup(body);
@@ -120,6 +151,19 @@ export async function resetPasswordHandler(req: Request, res: Response, next: Ne
     const { token, newPassword } = req.body;
     const result = await authService.resetPassword(token, newPassword);
     res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function authConfigHandler(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const check = await isSignupAllowed();
+    res.json({
+      signupEnabled: check.allowed,
+      currentWorkspaces: check.currentCount,
+      maxWorkspaces: check.maxCount,
+    });
   } catch (err) {
     next(err);
   }

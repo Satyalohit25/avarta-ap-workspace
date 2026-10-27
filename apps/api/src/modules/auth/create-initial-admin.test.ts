@@ -5,7 +5,7 @@ import {
   getDatabaseHost,
   provisionInitialAdmin,
 } from "../../../scripts/create-initial-admin";
-import { signupHandler } from "./controller";
+import { signupHandler, authConfigHandler } from "./controller";
 import { ApiError } from "../../lib/errors";
 
 describe("Production Gate Item C: Initial Admin CLI & Signup Lock", () => {
@@ -163,10 +163,9 @@ describe("Production Gate Item C: Initial Admin CLI & Signup Lock", () => {
     });
   });
 
-  describe("Production Signup Lock Guard", () => {
-    it("returns 403 Forbidden in production when ALLOW_PUBLIC_SIGNUP is unset or false", async () => {
-      process.env.NODE_ENV = "production";
-      delete process.env.ALLOW_PUBLIC_SIGNUP;
+  describe("Production Signup Lock Guard & Workspace Cap", () => {
+    it("returns 403 Forbidden when ALLOW_PUBLIC_SIGNUP=false", async () => {
+      process.env.ALLOW_PUBLIC_SIGNUP = "false";
 
       let caughtError: any = null;
       const req: any = { body: {} };
@@ -179,12 +178,12 @@ describe("Production Gate Item C: Initial Admin CLI & Signup Lock", () => {
 
       expect(caughtError).toBeInstanceOf(ApiError);
       expect(caughtError.status).toBe(403);
-      expect(caughtError.message).toContain("Public signup is disabled in production");
+      expect(caughtError.message).toContain("Public signup is disabled");
     });
 
-    it("allows signup to proceed in production if ALLOW_PUBLIC_SIGNUP=true", async () => {
-      process.env.NODE_ENV = "production";
-      process.env.ALLOW_PUBLIC_SIGNUP = "true";
+    it("allows signup to proceed when workspace limit is not reached", async () => {
+      delete process.env.ALLOW_PUBLIC_SIGNUP;
+      process.env.MAX_PUBLIC_SIGNUPS = "999"; // High ceiling ensures below limit in test DB
 
       let caughtError: any = null;
       const req: any = { body: { invalid: true } }; // invalid payload triggers Zod 400, proving it passed the 403 guard
@@ -199,9 +198,9 @@ describe("Production Gate Item C: Initial Admin CLI & Signup Lock", () => {
       expect(caughtError.status).not.toBe(403); // It passed the guard and failed at validation
     });
 
-    it("allows signup to proceed when NODE_ENV is development or test", async () => {
-      process.env.NODE_ENV = "test";
+    it("rejects signup with 403 when workspace limit is reached", async () => {
       delete process.env.ALLOW_PUBLIC_SIGNUP;
+      process.env.MAX_PUBLIC_SIGNUPS = "0"; // Zero ceiling forces limit reached
 
       let caughtError: any = null;
       const req: any = { body: {} };
@@ -212,8 +211,85 @@ describe("Production Gate Item C: Initial Admin CLI & Signup Lock", () => {
 
       await signupHandler(req, res, next);
 
-      expect(caughtError).toBeDefined();
-      expect(caughtError.status).not.toBe(403); // Passed guard
+      expect(caughtError).toBeInstanceOf(ApiError);
+      expect(caughtError.status).toBe(403);
+      expect(caughtError.message).toContain("Public signup limit reached");
+    });
+  });
+
+  describe("Public Signup 2-Workspace Cap (Admin + Client Showcase)", () => {
+    it("allows signup when workspace count is below the limit", async () => {
+      process.env.MAX_PUBLIC_SIGNUPS = "999";
+      delete process.env.ALLOW_PUBLIC_SIGNUP;
+
+      let responseData: any = null;
+      const req: any = {};
+      const res: any = {
+        json: (data: any) => {
+          responseData = data;
+        },
+      };
+      const next = (err: any) => {
+        if (err) throw err;
+      };
+
+      await authConfigHandler(req, res, next);
+
+      expect(responseData.signupEnabled).toBe(true);
+      expect(responseData.maxWorkspaces).toBe(999);
+    });
+
+    it("blocks signup when workspace count reaches the limit (count >= 2)", async () => {
+      process.env.MAX_PUBLIC_SIGNUPS = "0"; // forces limit reached
+      delete process.env.ALLOW_PUBLIC_SIGNUP;
+
+      let responseData: any = null;
+      const req: any = {};
+      const res: any = {
+        json: (data: any) => {
+          responseData = data;
+        },
+      };
+      const next = (err: any) => {
+        if (err) throw err;
+      };
+
+      await authConfigHandler(req, res, next);
+
+      expect(responseData.signupEnabled).toBe(false);
+
+      // Verify signupHandler rejects with 403
+      let caughtError: any = null;
+      const signupReq: any = { body: {} };
+      const signupRes: any = {};
+      const signupNext = (err: any) => {
+        caughtError = err;
+      };
+
+      await signupHandler(signupReq, signupRes, signupNext);
+
+      expect(caughtError).toBeInstanceOf(ApiError);
+      expect(caughtError.status).toBe(403);
+      expect(caughtError.message).toContain("Public signup limit reached");
+    });
+
+    it("explicit ALLOW_PUBLIC_SIGNUP=false immediately locks signup", async () => {
+      process.env.ALLOW_PUBLIC_SIGNUP = "false";
+
+      let responseData: any = null;
+      const req: any = {};
+      const res: any = {
+        json: (data: any) => {
+          responseData = data;
+        },
+      };
+      const next = (err: any) => {
+        if (err) throw err;
+      };
+
+      await authConfigHandler(req, res, next);
+
+      expect(responseData.signupEnabled).toBe(false);
     });
   });
 });

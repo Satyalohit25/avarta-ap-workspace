@@ -20,6 +20,14 @@ export interface SignupPayload {
   termsAccepted: boolean;
 }
 
+export interface AuthConfig {
+  signupEnabled: boolean;
+}
+
+export async function fetchAuthConfig(): Promise<AuthConfig> {
+  return await apiRequest<AuthConfig>("/auth/config");
+}
+
 export async function signup(payload: SignupPayload): Promise<CurrentUser> {
   const result = await apiRequest<{ user: CurrentUser; accessToken: string; refreshToken?: string }>("/auth/signup", {
     method: "POST",
