@@ -429,7 +429,7 @@ export default function PaymentsPage() {
                   }
                 : {
                     label: "Connect ERP / Bank Rails",
-                    onClick: () => navigate("/settings?tab=integrations"),
+                    onClick: () => navigate("/settings?tab=payment-gateway"),
                   }
             }
           />

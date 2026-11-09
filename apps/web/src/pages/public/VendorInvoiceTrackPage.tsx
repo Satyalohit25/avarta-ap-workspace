@@ -10,6 +10,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { formatCurrency, formatDate } from "../../lib/formatters";
+import { API_URL } from "../../api/client";
 import { getVendorFacingStatus } from "../../components/StatusBadge";
 import { AvartaCrest } from "../../components/brand/AvartaCrest";
 
@@ -54,7 +55,7 @@ export default function VendorInvoiceTrackPage() {
 
     setLoading(true);
     setErrorMessage(null);
-    fetch(`/api/v1/public/invoices/track/${encodeURIComponent(token)}`)
+    fetch(`${API_URL}/public/invoices/track/${encodeURIComponent(token)}`)
       .then(async (res) => {
         const resData = await res.json();
         if (res.status === 410) {

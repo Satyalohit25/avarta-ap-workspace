@@ -35,6 +35,7 @@ import {
   updateInvoice,
   getInvoiceTracking,
 } from "../../api/invoices";
+import { API_URL, getAccessToken } from "../../api/client";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SkeletonRows } from "../../components/Skeleton";
 import { Button } from "../../components/ui/Button";
@@ -1027,36 +1028,41 @@ export default function InvoiceDetailPage() {
 
   function handleExportPdf() {
     if (!invoice) return;
-    if (invoice.documents && invoice.documents[0]?.id) {
-      window.open(
-        `/api/v1/invoices/${invoice.id}/document/${invoice.documents[0].id}`,
-        "_blank",
-      );
-    } else {
+    const document = invoice.documents?.[0];
+    if (!document?.id) {
       window.print();
+      return;
     }
-    toast.success(
-      "PDF Voucher Ready",
-      `Statutory voucher generated for ${invoice.invoiceNumber}`,
-    );
+
+    const token = getAccessToken();
+    void fetch(`${API_URL}/invoices/${invoice.id}/documents/${document.id}/file`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: "include",
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error(`Document download failed with HTTP ${res.status}`);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        toast.success(
+          "PDF Voucher Ready",
+          `Statutory voucher generated for ${invoice.invoiceNumber}`,
+        );
+      })
+      .catch(() => {
+        toast.error(
+          "PDF Voucher Unavailable",
+          `The stored document for ${invoice.invoiceNumber} could not be downloaded.`,
+        );
+      });
   }
 
   function handleExportCsv() {
     if (!invoice) return;
-    const rawLines = (
-      invoice.lines && invoice.lines.length > 0
-        ? invoice.lines
-        : [
-            {
-              lineNo: 1,
-              description: "Procured Items & Services",
-              quantity: 1,
-              unitPrice: invoice.totalAmount,
-              lineAmount: invoice.totalAmount,
-              hsnCode: "8471",
-            },
-          ]
-    ) as Array<{
+    const rawLines = (invoice.lines ?? []) as Array<{
       lineNo?: number;
       description?: string;
       hsnCode?: string;
@@ -1064,6 +1070,14 @@ export default function InvoiceDetailPage() {
       unitPrice?: number | string;
       lineAmount?: number | string;
     }>;
+    if (rawLines.length === 0) {
+      toast.info(
+        "No Line Items",
+        `Invoice ${invoice.invoiceNumber} has no extracted line items to export yet.`,
+      );
+      return;
+    }
+
     const headers = [
       "Invoice Number",
       "Vendor",
@@ -1078,13 +1092,13 @@ export default function InvoiceDetailPage() {
     const rows = rawLines.map((l, idx) => [
       `"${invoice.invoiceNumber}"`,
       `"${invoice.supplier?.name || ""}"`,
-      l.lineNo || idx + 1,
+      l.lineNo ?? idx + 1,
       `"${(l.description || "").replace(/"/g, '""')}"`,
       `"${l.hsnCode || ""}"`,
-      l.quantity || 1,
-      l.unitPrice || invoice.totalAmount,
+      l.quantity ?? "",
+      l.unitPrice ?? "",
       `"${invoice.currency || "INR"}"`,
-      l.lineAmount || invoice.totalAmount,
+      l.lineAmount ?? "",
     ]);
     const csvContent = [
       headers.join(","),

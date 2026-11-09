@@ -131,6 +131,7 @@ instance).
 cp .env.example .env
 # Set NODE_ENV=development, DATABASE_URL, DIRECT_URL, JWT_SECRET,
 # APP_ENCRYPTION_KEY (64 hex chars), and WEB_ORIGIN.
+# Self-service signup is off unless ENABLE_PUBLIC_SIGNUP="true" is set.
 
 # 2. Start PostgreSQL (optional if using a cloud database)
 docker compose up -d
@@ -155,7 +156,11 @@ pnpm typecheck   # TypeScript across apps/api and apps/web
 pnpm lint        # ESLint, zero errors required
 pnpm test        # Vitest unit and integration suite
 pnpm test:e2e    # Playwright end-to-end suite
+pnpm --filter @ap-saas/api probe:security   # Live HTTP CORS/SSRF probes
 ```
+
+Release acceptance is tracked in
+[`docs/25-user-acceptance-test-plan.md`](docs/25-user-acceptance-test-plan.md).
 
 ## Repo layout
 
