@@ -33,5 +33,10 @@ apps/web/e2e/*.cjs
 **/*.log
 audit-output/
 audit-screenshots/
+**/audit-screenshots/
 pm-audit-output/
 **/pm-audit-output/
+docs/audit/walkthrough/screenshots/
+
+# Ad-hoc diagnostic scripts
+apps/api/scripts/*.js

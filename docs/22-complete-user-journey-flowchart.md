@@ -2,9 +2,8 @@
 
 **Version:** 1.0 (Corrected Canonical Architecture)  
 **Artifact References:**
-- Raw Mermaid Source: [`avarta-journey-corrected.mermaid`](file:///d:/Antigravity/ap-saas/docs/avarta-journey-corrected.mermaid) (also at workspace root [`avarta-journey-corrected.mermaid`](file:///d:/Antigravity/ap-saas/avarta-journey-corrected.mermaid))
+- Raw Mermaid Source: [`avarta-journey-corrected.mermaid`](file:///d:/Antigravity/ap-saas/docs/avarta-journey-corrected.mermaid)
 - Rendered Vector Graphic: [`avarta-journey.svg`](file:///d:/Antigravity/ap-saas/docs/avarta-journey.svg)
-- Rendered High-Resolution Preview: [`avarta-journey.png`](file:///d:/Antigravity/ap-saas/docs/avarta-journey.png)
 
 ---
 
@@ -16,7 +15,7 @@ This document records the fully corrected end-to-end user journey and architectu
 The flowchart syntax has been compiled, parsed, and rendered cleanly in a headless Chromium browser environment via Mermaid.js v10 without syntax errors:
 - **Render Status:** `success: true`
 - **Generated SVG Payload:** `132,387 bytes`
-- **Output Artifacts:** [avarta-journey.svg](file:///d:/Antigravity/ap-saas/docs/avarta-journey.svg) & [avarta-journey.png](file:///d:/Antigravity/ap-saas/docs/avarta-journey.png)
+- **Output Artifact:** [avarta-journey.svg](file:///d:/Antigravity/ap-saas/docs/avarta-journey.svg)
 
 ---
 
