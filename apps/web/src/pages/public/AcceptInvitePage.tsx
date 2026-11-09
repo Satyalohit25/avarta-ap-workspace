@@ -1,3 +1,4 @@
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Shield, Lock, CheckCircle2, UserCheck, Mail } from "lucide-react";
@@ -6,10 +7,13 @@ import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
 import { Badge } from "../../components/ui/Badge";
+import { acceptInvite } from "../../api/auth";
 
 export default function AcceptInvitePage() {
+  useDocumentTitle("Accept Invitation", "Accept organization invite and join your team's Avarta AP Workspace.");
   const [searchParams] = useSearchParams();
-  const email = searchParams.get("email") || "member@company.com";
+  const token = searchParams.get("token") || "";
+  const email = searchParams.get("email") || "your invited email";
   const role = searchParams.get("role") || "FINANCE_EXECUTIVE";
 
   const [fullName, setFullName] = useState("");
@@ -19,12 +23,16 @@ export default function AcceptInvitePage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters long.");
+    if (!token) {
+      setError("This invitation link is missing its token. Ask your administrator for a new invite.");
+      return;
+    }
+    if (password.length < 12) {
+      setError("Password must be at least 12 characters long.");
       return;
     }
     if (password !== confirmPassword) {
@@ -33,11 +41,14 @@ export default function AcceptInvitePage() {
     }
 
     setSubmitting(true);
-    // Complete invitation acceptance
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      await acceptInvite({ token, fullName, password });
       setSuccess(true);
-    }, 600);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not accept the invitation. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -118,7 +129,7 @@ export default function AcceptInvitePage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Minimum 8 characters"
+                  placeholder="Minimum 12 characters"
                   leftIcon={<Lock size={16} />}
                 />
 

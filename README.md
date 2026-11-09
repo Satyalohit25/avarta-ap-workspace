@@ -1,155 +1,168 @@
 # Avarta AP Workspace
 
-An Accounts Payable workspace for SMEs (10–500 employees) — built from a locked
-product blueprint. Complements existing accounting ERPs (QuickBooks, Xero, Tally, SAP, Oracle).
+An Accounts Payable workspace for SMEs (10–500 employees), built from a locked
+product blueprint. It complements existing accounting ERPs (QuickBooks, Xero,
+Tally, SAP, Oracle) rather than replacing them.
 
 > *आत्मानं विद्धि • Know Thyself*
 
-## 🌐 Live Showcase & Cloud Deployment
+## Deployment
 
-- **Live Web Application**: [https://avarta-ap-workspace-web-beryl.vercel.app](https://avarta-ap-workspace-web-beryl.vercel.app/)
-- **Backend API (Render)**: [https://avarta-api.onrender.com](https://avarta-api.onrender.com/)
-- **Database (Neon Serverless PostgreSQL)**: Connected & pre-seeded with 8 enterprise vendors, POs, and invoices.
+- **Web application:** [https://avarta-ap-workspace-web-beryl.vercel.app](https://avarta-ap-workspace-web-beryl.vercel.app/)
+- **API (Render):** [https://avarta-api.onrender.com](https://avarta-api.onrender.com/)
+- **Database:** PostgreSQL (Neon serverless in the hosted setup).
 
-## Quick Demo Credentials
+## Getting access
 
-All demo roles share password: `password123`
+Public self-service signup creates a workspace through `/signup`. Additional
+team members join through a single-use invitation link sent by an
+Administrator or Finance Manager from Settings → Team. There are no shared or
+pre-seeded demo passwords in this repository.
 
-- **Finance Manager (Primary)**: `manager@avarta.dev`
-- **Approver**: `approver@avarta.dev`
-- **Finance Executive (Invoice Clerk)**: `executive@avarta.dev`
-- **Administrator**: `admin@avarta.dev`
+If a workspace must be provisioned from the command line, an operator can run
+`pnpm create-admin` and follow the interactive, host-confirmed prompts.
 
-*(On the login screen, you can also use the **⚡ 1-Tap Demo Buttons** on mobile or desktop without typing).*
+## Public pages
 
-## 🧭 Interactive Onboarding & Product Tour
+| Route | Purpose |
+| :--- | :--- |
+| `/login` | Email/password sign-in with refresh-cookie rotation. |
+| `/signup` | Create a workspace (public signup is capped and can be disabled). |
+| `/forgot-password` | Request a time-limited password reset link. |
+| `/reset-password` | Consume the reset token and set a new 12+ character password. |
+| `/accept-invite` | Accept a team invitation and set a password. |
+| `/track/:token` | Read-only vendor invoice tracking portal. |
+| `/privacy`, `/terms`, `/dpa`, `/subprocessors`, `/refund` | Legal and compliance pages. |
 
-Avarta includes a built-in **"Tour Guide" (`?`)** in the top navigation bar designed for zero-learning-curve onboarding. Clicking it launches an interactive walkthrough covering:
-1. **60-Second Linear AP Lifecycle**: Interactive 7-stage stepper from Ingest to 8-Year Archive.
-2. **Team Roles & Permissions**: Complete breakdown of what each persona can do.
-3. **AI Governance**: Visual guide to confidence bands (High/Medium/Low) and the rule *"AI suggests, humans decide"*.
-4. **Quick Navigation Directory**: 1-click jumps to any operational workstation.
+## Capabilities
 
-## 📋 Master Capabilities Directory (Supported & Present)
+### 1. Invoice intake, OCR and verification
+- Batch digital ingest at `/inbox` with PDF/PNG/TIFF validation.
+- Side-by-side source document and extracted line items.
+- AI confidence bands (High ≥95%, Medium 80–94%, Low <80%).
+- AI suggests, humans decide — no value is written and no state advances
+  without an explicit human action.
+- Manual non-PO entry for service and utility bills.
 
-### 1. Invoice Intake, OCR & Verification
-- **Batch Digital Ingest (`/inbox`)** — Drag-and-drop intake for multi-page PDF/scanned invoices.
-- **Side-by-Side Verification** — Split-screen workspace displaying the original document directly alongside extracted line items.
-- **AI Confidence Bands** — Visual trust tiers (High ≥95%, Medium 80–94%, Low <80%) with 1-click pre-fill acceptance.
-- **"AI Suggests, Humans Decide" Rule** — AI never writes values or advances workflow states without an explicit human click.
-- **Non-PO Invoice Entry** — Dedicated intake form for service and utility bills that do not require an upstream PO.
+### 2. Purchase orders and 3-way matching
+- Purchase order creation with cost centers, delivery locations, tolerances,
+  and multi-line items.
+- Line-level matching against PO quantities and prices with variance badges.
+- Committed spend, invoiced utilization, and remaining balance from server
+  values.
+- GRNI / unbilled goods-receipt visibility.
 
-### 2. Purchase Orders & 3-Way Matching
-- **Purchase Order Creation (`/purchase-orders`)** — Complete PO creation with cost center tags, delivery locations, commercial tolerances, and multi-line items.
-- **Automated 3-Way Line Matching** — Compares invoice line items against PO quantities and unit prices with real-time variance badges.
-- **Committed Spend Tracking** — Live tracking of committed PO budgets vs. invoiced amounts vs. remaining balance.
-- **GRNI / Unbilled Support** — Identifies goods received and open commitments that have not yet been billed by suppliers.
+### 3. Exceptions
+- The 14 canonical exception types, including `MISSING_PO`, `UNKNOWN_VENDOR`,
+  `DUPLICATE_INVOICE`, `TAX_DIFFERENCE`, `PRICE_DIFFERENCE`,
+  `QUANTITY_DIFFERENCE`, `INVALID_GST`, `FRAUD_RISK`, and `MANUAL_REVIEW`.
+- Temporary branching that always rejoins the main workflow.
+- Mandatory documented resolution before an invoice can proceed.
 
-### 3. Discrepancy & Exception Engine
-- **14 Canonical Exception Resolvers (`/exceptions`)** — Automated routing for: `PRICE_DIFFERENCE`, `QUANTITY_DIFFERENCE`, `MISSING_PO`, `UNKNOWN_VENDOR`, `DUPLICATE_INVOICE`, `DUPLICATE_AMOUNT`, `TAX_DIFFERENCE`, `CURRENCY_MISMATCH`, `MISSING_SIGNATURE`, `INVALID_GST`, `LOW_AI_CONFIDENCE`, `MISSING_REQUIRED_FIELD`, `FRAUD_RISK`, and `MANUAL_REVIEW`.
-- **Temporary Branching Workflow** — Discrepancies branch into isolated resolution queues without blocking the rest of the clean pipeline.
-- **Blocked Invoice Governance** — Visual blocked badges that require documented resolution before invoices can proceed to payment.
+### 4. Approvals
+- Role-based approval routing by amount and organization policy.
+- Line-item review with PO comparison before authorization.
+- Mandatory rejection reasons.
+- A single-owner workflow engine — only
+  `apps/api/src/workflow/` changes invoice state.
 
-### 4. Approval Hierarchy & Governance
-- **Multi-Tier Approval Hub (`/approvals`)** — Role-based approval routing based on dollar/currency thresholds and department responsibility.
-- **Line-Item Sign-Off** — Approvers review complete invoice breakdowns with PO comparison before authorizing disbursement.
-- **Mandatory Rejection Audits** — Approvers must log documented rejection reasons so purchasers and suppliers receive clear explanations.
-- **Single-Owner Workflow Engine** — Only the deterministic workflow engine can change state; prevents race conditions and duplicate approvals.
+### 5. Payments
+- Payment pipeline across `AWAITING_SCHEDULE`, `SCHEDULED`, `PROCESSING`,
+  `PAID`, `FAILED`, and `ON_HOLD`.
+- Server-confirmed execution with idempotency keys; no optimistic ledger
+  updates.
+- Payment advice/receipt generated from the confirmed `Payment` record,
+  showing UTR and clearing data only when the server returns them.
+- NACHA ACH and bank CSV exports generated by the API.
+- Bring your own payment gateway (RazorpayX, Cashfree, Stripe, or manual
+  bank transfer). Gateway adapters are currently simulated against provider
+  APIs; live payout credentials and webhook confirmation are configured per
+  tenant.
 
-### 5. Treasury, Payments & Wire Disbursements
-- **Payment Pipeline Tracking (`/payments`)** — Real-time ledger tracking payables across `AWAITING_SCHEDULE`, `SCHEDULED`, `PROCESSING`, and `PAID`.
-- **Disbursement Modal & Receipts** — Host-to-Host (H2H) settlement advice generator creating unique payment references (`H2H-DISB-XXXXXXXX`).
-- **Multi-Currency Settlement** — Native handling of global currencies: **INR (₹), USD ($), EUR (€), GBP (£), and CAD ($)**.
-- **Payment Batch Scheduling** — Batch scheduling of due payables to optimize working capital and capture early-payment discounts.
+### 6. Suppliers and vendor portal
+- Supplier master with GSTIN, PAN, MSME status, payment terms, and encrypted
+  bank account coordinates.
+- Masked account display; full numbers are AES-256-GCM encrypted at rest.
+- Tokenized public tracker at `/track/:token` for payment status and UTR.
 
-### 6. Vendor Management & Stakeholder Portal
-- **Vendor Master Directory (`/suppliers`)** — Comprehensive profiles storing legal names, tax/GSTIN registrations, bank wire instructions, payment terms, and balances.
-- **Self-Serve Vendor Tracker (`/track/:invoiceId`)** — Dedicated public portal allowing suppliers to check real-time payment status self-serve, eliminating query emails.
-- **Vendor Compliance Status** — Instant status flags (`ACTIVE`, `BLOCKED`, `PENDING_COMPLIANCE`) preventing payments to unverified suppliers.
-- **Internal Comment Drawer** — Contextual chat and note threads attached directly to invoices for finance and procurement collaboration.
+### 7. ERP sync
+- Adapters for Tally, QuickBooks, Xero, SAP, and NetSuite.
+- Only `PAID` invoices are eligible for synchronization.
+- Idempotency locks prevent duplicate postings.
+- Live OAuth connections remain stubbed; file/XML export works today.
 
-### 7. ERP Sync & Month-End Closing
-- **ERP Integration Gateway (`ErpSyncModal.tsx`)** — Ready export modals for **Tally, SAP, QuickBooks, Xero, and NetSuite**.
-- **Sync-Locking Safeguards** — Prevents duplicate postings to accounting general ledgers with idempotency locks.
-- **Matrix GL Coding** — Prepares line-item allocations (GL Account, Department, Cost Center) for clean month-end ledger consolidation.
+### 8. Audit, controls, and compliance
+- Append-only `AuditLog` with actor, action, entity, before/after data, and
+  timestamp.
+- Archive instead of delete across every entity.
+- Five canonical roles: `Administrator`, `Finance Manager`,
+  `Finance Executive`, `Approver`, `Read Only`.
+- Tenant isolation enforced by a Prisma query guard and an AST source
+  scanner.
 
-### 8. Audit Trails, Controls & Compliance
-- **Immutable Audit Log** — Every user click, status change, timestamp, and IP address is permanently logged in a tamper-proof audit trail.
-- **8-Year Statutory Legal Archive (`/archive`)** — Compliant digital record repository for long-term audit inspections.
-- **Role-Based Access Control (RBAC)** — Strict separation of duties across 5 canonical roles: `Administrator`, `Finance Manager`, `Finance Executive`, `Approver`, and `Read Only`.
-- **Zero Entity Deletion** — Entities are archived, deactivated, or revoked, never permanently deleted.
+### 9. Reporting
+- Operational overview with processing velocity and stage counts.
+- AP aging buckets and 7/14/30-day cash outflow forecasts.
+- Operational KPIs such as cycle time and touchless processing rate.
 
-### 9. Intelligence, Metrics & CFO Analytics
-- **Operational Overview (`/overview`)** — Live dashboard showing processing velocity, open bottlenecks, and stage counts with zero clutter.
-- **Financial Horizon Strip** — Real-time metrics showing Days Payable Outstanding (DPO), total cash outflow due in 7/14/30 days, and discount capture.
-- **CFO ROI Simulator (`/reports`)** — Interactive calculator demonstrating AP team hours saved, early discount capture, and cost-per-invoice reduction.
+### 10. Bring-your-own infrastructure
+- **BYOK AI:** Supply a Gemini, OpenAI, or AWS Textract key. Keys are tested
+  before save and encrypted with AES-256-GCM.
+- **BYODB:** Verify a PostgreSQL/Supabase/RDS/Neon connection. Avarta stores
+  an encrypted profile and verifies reachability; live record routing is
+  completed during managed onboarding. Tenant-scoped CSV exports for
+  invoices, suppliers, and payments are available immediately and are
+  audit-logged.
+- **Email:** SMTP (nodemailer) or Resend, SendGrid, Postmark, and Mailgun over
+  HTTP. Invitations, password resets, and test messages use the tenant
+  connector.
+- **API keys:** `apk_` keys are shown once, stored as SHA-256 hashes, inherit
+  the creator's role, and are blocked from auth, billing, settings,
+  integrations, organization, API-key, demo, notification-preference, and
+  data-export routes.
 
-### 10. Multi-Device Experience & Live Showcase
-- **⚡ 1-Tap Quick Demo Sign-In** — Touch pill buttons on the login screen (`Finance Manager`, `Approver`, `Executive`, `Admin`) for instant sign-in with zero typing.
-- **Responsive Multi-Device Layout** — Auto-collapsing icon rail on tablets/iPads, slide-out drawer on mobile phones, and data-dense dual-pane on laptops.
-- **Heraldic Institutional Branding** — Avarta heraldic crest watermark, Chomsky typography, and high-contrast tabular figures for rapid financial scanning.
+## Running locally
 
-## Running Locally
-
-**Prerequisites:** Node.js 20+, pnpm, Docker (for local Postgres) or Neon Cloud PostgreSQL.
+**Prerequisites:** Node.js 20+, pnpm, and PostgreSQL (Docker or a cloud
+instance).
 
 ```bash
-# 1. Start local Postgres (optional if using cloud database)
+# 1. Create the local environment file
+cp .env.example .env
+# Set NODE_ENV=development, DATABASE_URL, DIRECT_URL, JWT_SECRET,
+# APP_ENCRYPTION_KEY (64 hex chars), and WEB_ORIGIN.
+
+# 2. Start PostgreSQL (optional if using a cloud database)
 docker compose up -d
 
-# 2. Database Migration & Seed
+# 3. Install, migrate, and seed
+pnpm install
 pnpm db:setup
 
-# 3. Start development servers
+# 4. Start the development servers
 pnpm dev:api   # API: http://localhost:4000
 pnpm dev:web   # Web: http://localhost:5173
 ```
 
-Seeded invoices start in `Received` status. Open one and click **Run
-Capture, Validation & Matching** to push it through the pipeline — it'll
-either reach `Waiting Approval` or land in `Exception` depending on the
-mock validation rules in `apps/api/src/modules/invoices/service.ts`.
+Seed data is for local development only. Seeded invoices start in `Received`;
+open one and run capture, validation, and matching to move it through the
+pipeline.
 
-## A note on this sandbox vs. your machine
+## Verification
 
-This project was scaffolded and verified (dependencies installed,
-`tsc --noEmit` clean, frontend production build clean) in a sandboxed
-environment without general internet access. One step could not be
-verified here: `npx prisma generate` needs to download engine binaries
-from `binaries.prisma.sh`, which this sandbox's network doesn't allow.
-That will work normally on your machine or inside Antigravity, which has
-full internet access — just run `npm run db:generate` as the setup steps
-above show. Everything else (the schema itself, every route, the
-workflow engine, the entire frontend) was actually installed, compiled,
-and built successfully, not just written and assumed correct.
-
-## Continuing in Antigravity
-
-Open this folder as the workspace root. Point Antigravity's agents at
-`AGENTS.md` — it's written specifically as agent-readable context,
-condensing every locked product decision (roles, navigation, state
-machine, exception types, AI confidence rules, design tokens) so agents
-don't have to rediscover or accidentally contradict them. The full
-detail behind every rule in `AGENTS.md` is in `docs/`, referenced by
-document number, if an agent needs to go deeper than the summary.
-
-Suggested next tasks, in the order `docs/16-roadmap.md` recommends:
-
-1. Purchase Orders module (schema already exists — build the API + page)
-2. Real OCR/AI provider behind `apps/api/src/ai/` (currently mocked
-   inline in `invoices/service.ts` — extract it into its own module first)
-3. Settings (Doc 06.12) — organization, users, approval rules
-4. Reports (Doc 06.11) — the only place charts are allowed
-5. Background job queue to replace the synchronous `processInvoice` call
-   with the real async pipeline Doc 09/12 describe
+```bash
+pnpm typecheck   # TypeScript across apps/api and apps/web
+pnpm lint        # ESLint, zero errors required
+pnpm test        # Vitest unit and integration suite
+pnpm test:e2e    # Playwright end-to-end suite
+```
 
 ## Repo layout
 
 ```
 apps/api     Express + TypeScript + Prisma + PostgreSQL
 apps/web     React + TypeScript + Vite + Tailwind
-docs/        The locked product blueprint (design system + reconciliation
-             docs included in full; others referenced by number — ask for
-             any of them in full if an agent needs the complete text)
-AGENTS.md    Start here
+docs/        Locked product blueprint, ADRs, and design system
+AGENTS.md    Agent-readable product and engineering rules
+CODEMAP.md   Architecture, module, route, and capability map
 ```

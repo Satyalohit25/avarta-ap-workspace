@@ -15,7 +15,12 @@ function evaluatePasswordStrength(pass: string): {
   label: string;
   colorCls: string;
 } {
-  if (!pass) return { score: 0, label: "Enter password", colorCls: "bg-neutral-200 dark:bg-zinc-700" };
+  if (!pass)
+    return {
+      score: 0,
+      label: "Enter password",
+      colorCls: "bg-neutral-200 dark:bg-zinc-700",
+    };
   let s = 0;
   if (pass.length >= 8) s += 1;
   if (pass.length >= 12) s += 1;
@@ -29,7 +34,13 @@ function evaluatePasswordStrength(pass: string): {
   return { score: 4, label: "Strong", colorCls: "bg-emerald-500" };
 }
 
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
+
 export default function SignUpPage() {
+  useDocumentTitle(
+    "Sign Up",
+    "Create an Avarta Accounts Payable Workspace organization.",
+  );
   const { signup } = useAuth();
   const navigate = useNavigate();
 
@@ -55,7 +66,7 @@ export default function SignUpPage() {
       })
       .catch(() => {
         if (mounted) {
-          setSignupEnabled(true);
+          setSignupEnabled(false);
           setLoadingConfig(false);
         }
       });
@@ -73,7 +84,10 @@ export default function SignUpPage() {
   const [isDuplicateEmail, setIsDuplicateEmail] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const strength = useMemo(() => evaluatePasswordStrength(password), [password]);
+  const strength = useMemo(
+    () => evaluatePasswordStrength(password),
+    [password],
+  );
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -111,13 +125,15 @@ export default function SignUpPage() {
     if (!password) {
       setPasswordError("Password is required");
       hasValidationErr = true;
-    } else if (password.length < 8) {
-      setPasswordError("Password must be at least 8 characters");
+    } else if (password.length < 12) {
+      setPasswordError("Password must be at least 12 characters");
       hasValidationErr = true;
     }
 
     if (!termsAccepted) {
-      setTermsError("You must accept the Terms of Service and Privacy Policy to create a workspace");
+      setTermsError(
+        "You must accept the Terms of Service and Privacy Policy to create a workspace",
+      );
       hasValidationErr = true;
     }
 
@@ -137,14 +153,19 @@ export default function SignUpPage() {
       navigate("/overview");
     } catch (err) {
       if (err instanceof ApiRequestError) {
-        if (err.status === 409 || err.message.toLowerCase().includes("already exists")) {
+        if (
+          err.status === 409 ||
+          err.message.toLowerCase().includes("already exists")
+        ) {
           setIsDuplicateEmail(true);
           setError("An account with this email already exists.");
         } else {
           setError(err.message);
         }
       } else {
-        setError("Unable to create workspace. Please check your details and try again.");
+        setError(
+          "Unable to create workspace. Please check your details and try again.",
+        );
       }
     } finally {
       setSubmitting(false);
@@ -154,7 +175,7 @@ export default function SignUpPage() {
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-background text-foreground px-4 py-12 sm:py-16 pb-28 md:pb-16 select-none overflow-x-hidden overflow-y-auto">
       {/* ── Atmospheric Heraldic Crest Background Watermark ── */}
-      <div 
+      <div
         className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden z-0"
         aria-hidden="true"
       >
@@ -166,7 +187,7 @@ export default function SignUpPage() {
       {/* ── Foreground Content ── */}
       <div className="relative z-10 w-full max-w-md">
         <div className="text-center mb-6">
-          <h1 
+          <h1
             className="font-old-english text-5xl sm:text-6xl text-neutral-900 dark:text-zinc-50 font-normal leading-none mb-1 tracking-wide"
             style={{ letterSpacing: "0.06em" }}
           >
@@ -180,21 +201,27 @@ export default function SignUpPage() {
           </p>
         </div>
 
-        <Card 
-          level="surface" 
+        <Card
+          level="surface"
           className="relative border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-md overflow-hidden"
         >
           <CardContent className="p-6 md:p-8">
             {loadingConfig ? (
               <div className="py-12 flex flex-col items-center justify-center gap-3 text-neutral-400 dark:text-zinc-500">
                 <div className="w-6 h-6 border-2 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                <span className="text-body-sm">Checking workspace availability...</span>
+                <span className="text-body-sm">
+                  Checking workspace availability...
+                </span>
               </div>
             ) : signupEnabled === false ? (
-              <div className="space-y-5 py-2 text-center" data-testid="signup-disabled-container">
+              <div
+                className="space-y-5 py-2 text-center"
+                data-testid="signup-disabled-container"
+              >
                 <Alert type="info">
                   <span className="text-body-sm text-neutral-800 dark:text-zinc-200">
-                    Self-service signup is not available. Contact your administrator for an invitation.
+                    Public registration is disabled. Self-service signup is not
+                    available. Contact your administrator for an invitation.
                   </span>
                 </Alert>
                 <div className="pt-2">
@@ -223,206 +250,255 @@ export default function SignUpPage() {
                   </Alert>
                 )}
 
-              <Input
-                id="signupFullName"
-                name="fullName"
-                type="text"
-                autoComplete="name"
-                label="Full Name"
-                value={fullName}
-                onChange={(e) => {
-                  setFullName(e.target.value);
-                  if (fullNameError) setFullNameError(null);
-                }}
-                error={fullNameError ?? undefined}
-                placeholder="Ramesh Iyer"
-                leftIcon={<User size={16} />}
-                required
-              />
-
-              <Input
-                id="signupEmail"
-                name="email"
-                type="email"
-                autoComplete="email"
-                label="Work Email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (emailError) setEmailError(null);
-                  if (isDuplicateEmail) setIsDuplicateEmail(false);
-                }}
-                error={emailError ?? undefined}
-                placeholder="ramesh@company.com"
-                leftIcon={<Mail size={16} />}
-                required
-              />
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input
-                  id="signupCompanyName"
-                  name="companyName"
+                  id="signupFullName"
+                  name="fullName"
                   type="text"
-                  autoComplete="organization"
-                  label="Company Name"
-                  value={companyName}
+                  autoComplete="name"
+                  label="Full Name"
+                  value={fullName}
                   onChange={(e) => {
-                    setCompanyName(e.target.value);
-                    if (companyError) setCompanyError(null);
+                    setFullName(e.target.value);
+                    if (fullNameError) setFullNameError(null);
                   }}
-                  error={companyError ?? undefined}
-                  placeholder="Apex Industrials"
-                  leftIcon={<Building2 size={16} />}
+                  error={fullNameError ?? undefined}
+                  placeholder="Ramesh Iyer"
+                  leftIcon={<User size={16} />}
                   required
                 />
 
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="signupCountry" className="text-body-sm font-medium text-neutral-700 dark:text-zinc-300">
-                    Country
-                  </label>
-                  <div className="relative">
-                    <select
-                      id="signupCountry"
-                      value={country}
-                      onChange={(e) => setCountry(e.target.value)}
-                      className="w-full h-10 px-3 pr-8 rounded-lg border border-neutral-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-body-sm text-neutral-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
-                    >
-                      <option value="IN">India (₹ INR / GST)</option>
-                      <option value="US">United States ($ USD)</option>
-                      <option value="GB">United Kingdom (£ GBP / VAT)</option>
-                      <option value="EU">European Union (€ EUR / VAT)</option>
-                      <option value="SG">Singapore (S$ SGD)</option>
-                      <option value="AE">UAE (AED / VAT)</option>
-                    </select>
-                  </div>
-                  <span className="text-[10px] text-neutral-500 dark:text-zinc-400">
-                    Sets default currency and tax rules
-                  </span>
-                </div>
-              </div>
-
-              <div>
                 <Input
-                  id="signupPassword"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  label="Password"
-                  value={password}
+                  id="signupEmail"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  label="Work Email"
+                  value={email}
                   onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (passwordError) setPasswordError(null);
+                    setEmail(e.target.value);
+                    if (emailError) setEmailError(null);
+                    if (isDuplicateEmail) setIsDuplicateEmail(false);
                   }}
-                  error={passwordError ?? undefined}
-                  rightIcon={
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      className="text-neutral-400 hover:text-neutral-600 dark:text-zinc-500 dark:hover:text-zinc-300 focus:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400 rounded p-0.5 transition-colors"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  }
-                  placeholder="At least 8 characters"
+                  error={emailError ?? undefined}
+                  placeholder="ramesh@company.com"
+                  leftIcon={<Mail size={16} />}
                   required
                 />
 
-                {/* Password strength bar */}
-                {password && (
-                  <div className="mt-2 space-y-1">
-                    <div className="flex items-center justify-between text-micro text-neutral-500 dark:text-zinc-400">
-                      <span>Password strength:</span>
-                      <span className="font-semibold text-neutral-700 dark:text-zinc-200">{strength.label}</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-neutral-100 dark:bg-zinc-800 rounded-full overflow-hidden flex gap-0.5">
-                      {[1, 2, 3, 4].map((step) => (
-                        <div
-                          key={step}
-                          className={`flex-1 transition-colors duration-100 duration-300 ${
-                            strength.score >= step ? strength.colorCls : "bg-transparent"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Consent checkbox */}
-              <div className="pt-1">
-                <label className="flex items-start gap-2.5 cursor-pointer text-[12px] text-neutral-600 dark:text-zinc-400">
-                  <input
-                    type="checkbox"
-                    checked={termsAccepted}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Input
+                    id="signupCompanyName"
+                    name="companyName"
+                    type="text"
+                    autoComplete="organization"
+                    label="Company Name"
+                    value={companyName}
                     onChange={(e) => {
-                      setTermsAccepted(e.target.checked);
-                      if (termsError) setTermsError(null);
+                      setCompanyName(e.target.value);
+                      if (companyError) setCompanyError(null);
                     }}
-                    className="mt-0.5 rounded border-neutral-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500 h-4 w-4 shrink-0"
+                    error={companyError ?? undefined}
+                    placeholder="Apex Industrials"
+                    leftIcon={<Building2 size={16} />}
                     required
                   />
-                  <span>
-                    I agree to the{" "}
-                    <Link to="/terms" target="_blank" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
-                      Terms of Service
+
+                  <div className="flex flex-col gap-1.5">
+                    <label
+                      htmlFor="signupCountry"
+                      className="text-body-sm font-medium text-neutral-700 dark:text-zinc-300"
+                    >
+                      Country
+                    </label>
+                    <div className="relative">
+                      <select
+                        id="signupCountry"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        className="w-full h-10 px-3 pr-8 rounded-lg border border-neutral-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-body-sm text-neutral-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
+                      >
+                        <option value="IN">India (₹ INR / GST)</option>
+                        <option value="US">United States ($ USD)</option>
+                        <option value="GB">United Kingdom (£ GBP / VAT)</option>
+                        <option value="EU">European Union (€ EUR / VAT)</option>
+                        <option value="SG">Singapore (S$ SGD)</option>
+                        <option value="AE">UAE (AED / VAT)</option>
+                      </select>
+                    </div>
+                    <span className="text-[10px] text-neutral-500 dark:text-zinc-400">
+                      Sets default currency and tax rules
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <Input
+                    id="signupPassword"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    label="Password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (passwordError) setPasswordError(null);
+                    }}
+                    error={passwordError ?? undefined}
+                    rightIcon={
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        className="text-neutral-400 hover:text-neutral-600 dark:text-zinc-500 dark:hover:text-zinc-300 focus:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400 rounded p-0.5 transition-colors"
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                      >
+                        {showPassword ? (
+                          <EyeOff size={16} />
+                        ) : (
+                          <Eye size={16} />
+                        )}
+                      </button>
+                    }
+                    placeholder="At least 12 characters"
+                    required
+                  />
+
+                  {/* Password strength bar */}
+                  {password && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center justify-between text-micro text-neutral-500 dark:text-zinc-400">
+                        <span>Password strength:</span>
+                        <span className="font-semibold text-neutral-700 dark:text-zinc-200">
+                          {strength.label}
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-neutral-100 dark:bg-zinc-800 rounded-full overflow-hidden flex gap-0.5">
+                        {[1, 2, 3, 4].map((step) => (
+                          <div
+                            key={step}
+                            className={`flex-1 transition-colors duration-100 duration-300 ${
+                              strength.score >= step
+                                ? strength.colorCls
+                                : "bg-transparent"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Consent checkbox */}
+                <div className="pt-1">
+                  <label className="flex items-start gap-2.5 cursor-pointer text-[12px] text-neutral-600 dark:text-zinc-400">
+                    <input
+                      type="checkbox"
+                      checked={termsAccepted}
+                      onChange={(e) => {
+                        setTermsAccepted(e.target.checked);
+                        if (termsError) setTermsError(null);
+                      }}
+                      className="mt-0.5 rounded border-neutral-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500 h-4 w-4 shrink-0"
+                      required
+                    />
+                    <span>
+                      I agree to the{" "}
+                      <Link
+                        to="/terms"
+                        target="_blank"
+                        className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                      >
+                        Terms of Service
+                      </Link>
+                      ,{" "}
+                      <Link
+                        to="/privacy"
+                        target="_blank"
+                        className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                      >
+                        Privacy Policy
+                      </Link>
+                      , and{" "}
+                      <Link
+                        to="/dpa"
+                        target="_blank"
+                        className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                      >
+                        DPA
+                      </Link>
+                      .
+                    </span>
+                  </label>
+                  {termsError && (
+                    <p className="text-micro text-rose-600 dark:text-rose-400 mt-1 font-medium">
+                      {termsError}
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full h-10 font-semibold text-body-sm rounded-md mt-2"
+                >
+                  {submitting ? "Creating workspace..." : "Create Workspace"}
+                </Button>
+
+                <div className="text-center pt-2">
+                  <span className="text-body-sm text-neutral-500 dark:text-zinc-400">
+                    Already have a workspace?{" "}
+                    <Link
+                      to="/login"
+                      className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+                    >
+                      Sign in
                     </Link>
-                    ,{" "}
-                    <Link to="/privacy" target="_blank" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
-                      Privacy Policy
-                    </Link>
-                    , and{" "}
-                    <Link to="/dpa" target="_blank" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
-                      DPA
-                    </Link>
-                    .
                   </span>
-                </label>
-                {termsError && (
-                  <p className="text-micro text-rose-600 dark:text-rose-400 mt-1 font-medium">{termsError}</p>
-                )}
-              </div>
-
-              <Button type="submit" disabled={submitting} className="w-full h-10 font-semibold text-body-sm rounded-md mt-2">
-                {submitting ? "Creating workspace..." : "Create Workspace"}
-              </Button>
-
-              <div className="text-center pt-2">
-                <span className="text-body-sm text-neutral-500 dark:text-zinc-400">
-                  Already have a workspace?{" "}
-                  <Link to="/login" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
-                    Sign in
-                  </Link>
-                </span>
-              </div>
-            </form>
-          )}
+                </div>
+              </form>
+            )}
           </CardContent>
         </Card>
 
         {/* Footer Links */}
         <div className="flex flex-wrap items-center justify-center gap-3 text-micro text-neutral-400 dark:text-zinc-500 pt-4">
-          <Link to="/privacy" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+          <Link
+            to="/privacy"
+            className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+          >
             Privacy Policy
           </Link>
           <span>•</span>
-          <Link to="/terms" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+          <Link
+            to="/terms"
+            className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+          >
             Terms of Service
           </Link>
           <span>•</span>
-          <Link to="/dpa" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+          <Link
+            to="/dpa"
+            className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+          >
             DPA
           </Link>
           <span>•</span>
-          <Link to="/subprocessors" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+          <Link
+            to="/subprocessors"
+            className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+          >
             Subprocessors
           </Link>
           <span>•</span>
-          <Link to="/refund" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+          <Link
+            to="/refund"
+            className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+          >
             Refund Policy
           </Link>
           <span>•</span>
-          <span>© 2026 Avarta AP Workspace</span>
+          <span>© {new Date().getFullYear()} Avarta AP Workspace</span>
         </div>
       </div>
     </div>

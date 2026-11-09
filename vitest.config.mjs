@@ -15,5 +15,6 @@ export default defineConfig({
     ],
     setupFiles: [path.resolve(__dirname, "apps/api/src/test/setup.ts")],
     fileParallelism: false,
+    maxWorkers: 1,
   },
 });

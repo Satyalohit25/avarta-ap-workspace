@@ -17,6 +17,8 @@ export default defineConfig({
     screenshot: "only-on-failure",
     video: "retain-on-failure",
     viewport: { width: 1440, height: 900 },
+    // @ts-expect-error Playwright page.goto option or custom fixture
+    waitUntil: "domcontentloaded",
   },
   projects: [
     {

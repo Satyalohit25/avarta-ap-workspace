@@ -1,3 +1,4 @@
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { Server, ArrowLeft, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -48,6 +49,7 @@ const SUBPROCESSORS: SubprocessorEntry[] = [
 ];
 
 export default function SubprocessorsPage() {
+  useDocumentTitle("Subprocessors & Infrastructure", "Authorized third-party infrastructure and AI model subprocessors for Avarta AP Workspace.");
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-zinc-950 text-neutral-900 dark:text-zinc-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-8 bg-white dark:bg-zinc-900 p-8 sm:p-12 rounded-lg border border-neutral-200/80 dark:border-zinc-800">

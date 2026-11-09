@@ -25,6 +25,26 @@ export const ORG_SCOPED_MODELS = new Set([
   "AuditLog",
   "GoodsReceipt",
   "IdempotencyKey",
+  "Item",
+  "SampleRecord",
+  "BankAccount",
+  "OrganizationIntegration",
+  "Subscription",
+  "BillingReceipt",
+  "ApiKey",
+]);
+
+// Models scoped through a parent that carries organizationId. They have no
+// organizationId column of their own, so the parent relation must be filtered.
+export const RELATION_SCOPED_MODELS = new Map<string, string[]>([
+  ["InvoiceLine", ["invoice"]],
+  ["Document", ["invoice"]],
+  ["Validation", ["invoice"]],
+  ["Approval", ["invoice"]],
+  ["Comment", ["invoice"]],
+  ["GoodsReceiptLine", ["goodsReceipt"]],
+  ["WorkflowInstance", ["invoice"]],
+  ["WorkflowTransition", ["workflowInstance"]],
 ]);
 
 // Actions guarded by tenant isolation
@@ -59,6 +79,19 @@ export function runWithTrackingLookupBypass<T>(fn: () => Promise<T>): Promise<T>
 }
 export function isTrackingLookupContext(): boolean {
   return trackingStorage.getStore()?.isTrackingLookup === true;
+}
+
+const apiKeyStorage = new AsyncLocalStorage<{ isApiKeyLookup: boolean }>();
+export function runWithApiKeyLookupBypass<T>(fn: () => Promise<T>): Promise<T> {
+  // Prisma returns lazy PrismaPromises that only start executing when they
+  // are awaited or `.then`-ed. Evaluating `fn` directly would return that
+  // deferred promise and let the query begin after this async context has
+  // already exited. Awaiting inside the context keeps the store visible to
+  // the guard middleware.
+  return apiKeyStorage.run({ isApiKeyLookup: true }, async () => await fn());
+}
+export function isApiKeyLookupContext(): boolean {
+  return apiKeyStorage.getStore()?.isApiKeyLookup === true;
 }
 
 const systemJobStorage = new AsyncLocalStorage<{ jobName: string }>();
@@ -141,8 +174,11 @@ export function checkWhereHasTenantFilter(where: Record<string, unknown> | null 
   }
 
   // 2. Nested parent relation scoping (e.g., { invoice: { organizationId } })
-  if (where.invoice && typeof where.invoice === "object" && checkWhereHasTenantFilter(where.invoice as Record<string, unknown>)) {
-    return true;
+  for (const relation of ["invoice", "goodsReceipt", "workflowInstance", "purchaseOrder", "supplier"]) {
+    const nested = where[relation];
+    if (nested && typeof nested === "object" && checkWhereHasTenantFilter(nested as Record<string, unknown>)) {
+      return true;
+    }
   }
 
   // 3. Compound unique selector objects
@@ -226,7 +262,10 @@ export function registerGuardMiddleware(prisma: {
 
     // ── 2. Tenant Guard ───────────────────────────────────────────────
     // Enforce organizationId on all org-scoped models across all query actions
-    if (params.model && ORG_SCOPED_MODELS.has(params.model)) {
+    const isDirectScopedModel = params.model ? ORG_SCOPED_MODELS.has(params.model) : false;
+    const isRelationScopedModel = params.model ? RELATION_SCOPED_MODELS.has(params.model) : false;
+
+    if (params.model && (isDirectScopedModel || isRelationScopedModel)) {
       // Named Bypass Exemption: Seeder context
       if (isSeederContext()) {
         return next(params);
@@ -234,6 +273,13 @@ export function registerGuardMiddleware(prisma: {
 
       // Named Bypass Exemption: Backfill context
       if (isBackfillContext()) {
+        return next(params);
+      }
+
+      // Named Bypass Exemption: Workflow engine context. The engine resolves
+      // invoices by globally unique id and is the only component allowed to
+      // advance workflow state; its caller has already authorized the invoice.
+      if (isEngineContext()) {
         return next(params);
       }
 
@@ -256,8 +302,23 @@ export function registerGuardMiddleware(prisma: {
         return next(params);
       }
 
-      // Creation Guard: Direct row creation must carry organizationId
-      if (params.action === "create") {
+      // Named Bypass Exemption: API key authentication. The key hash is a
+      // globally unique credential, looked up before the tenant is known.
+      if (
+        params.model === "ApiKey" &&
+        (params.action === "findFirst" || params.action === "findUnique") &&
+        params.args?.where &&
+        isApiKeyLookupContext() &&
+        Object.keys(params.args.where).length === 1 &&
+        "keyHash" in params.args.where
+      ) {
+        return next(params);
+      }
+
+      // Creation Guard: Direct row creation must carry organizationId.
+      // Relation-scoped models inherit tenancy from their parent, and the
+      // parent id is validated by the service before the child is created.
+      if (isDirectScopedModel && params.action === "create") {
         const data = params.args?.data;
         if (!data || typeof data !== "object" || !("organizationId" in data) || !data.organizationId) {
           console.error(
@@ -272,7 +333,7 @@ export function registerGuardMiddleware(prisma: {
         return next(params);
       }
 
-      if (params.action === "createMany") {
+      if (isDirectScopedModel && params.action === "createMany") {
         const dataArr = params.args?.data;
         const valid =
           Array.isArray(dataArr) &&
@@ -309,7 +370,7 @@ export function registerGuardMiddleware(prisma: {
         }
 
         // For upsert, additionally verify create data carries organizationId
-        if (params.action === "upsert") {
+        if (isDirectScopedModel && params.action === "upsert") {
           const createData = params.args?.create;
           if (!createData || !("organizationId" in createData)) {
             console.error(

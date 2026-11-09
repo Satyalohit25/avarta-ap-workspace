@@ -1,3 +1,4 @@
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { listPayments, executePayment, PaymentRow } from "../../api/payments";
@@ -26,6 +27,7 @@ import { Wallet, CheckCircle2, ArrowRight, Search, X, Download } from "lucide-re
 import { DisbursementModal } from "./components/DisbursementModal";
 
 export default function PaymentsPage() {
+  useDocumentTitle("Payments & Disbursements", "Schedule, batch, and execute vendor disbursements and payment orders.");
   const navigate = useNavigate();
   const { toast } = useToast();
   const [rows, setRows] = useState<PaymentRow[]>([]);
@@ -189,73 +191,40 @@ export default function PaymentsPage() {
       return;
     }
 
-    if (format === "CSV") {
-      const headers = [
-        "Payment ID",
-        "Invoice Number",
-        "Beneficiary Name",
-        "Payment Amount",
-        "Currency",
-        "Status",
-        "Due Date",
-        "Clearing Date",
-        "Settlement UTR",
-        "Corporate Account",
-      ];
-      const csvRows = listToExport.map((p) => [
-        `"${p.id}"`,
-        `"${p.invoiceNumber}"`,
-        `"${p.vendor.replace(/"/g, '""')}"`,
-        p.amount,
-        `"${p.currency ?? "INR"}"`,
-        `"${p.status}"`,
-        `"${p.dueDate ?? ""}"`,
-        `"${p.clearingDate ?? ""}"`,
-        `"${p.utrNumber ?? ""}"`,
-        `"HDFC-CORP-98124001"`,
-      ]);
-      const csvContent = [headers.join(","), ...csvRows.map((r) => r.join(","))].join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const idsParam = listToExport.map((p) => p.id).join(",");
+    const apiFormat = format === "NACHA" ? "nacha" : "csv";
+    try {
+      const token = getAccessToken();
+      const res = await fetch(
+        `${API_URL}/payments/export-file?format=${apiFormat}&paymentIds=${encodeURIComponent(idsParam)}`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      );
+      if (!res.ok) {
+        throw new Error(`Failed to export ${format} bank file (HTTP ${res.status})`);
+      }
+      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `bank_disbursement_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.download =
+        format === "NACHA"
+          ? `nacha_ach_batch_${new Date().toISOString().slice(0, 10)}.txt`
+          : `bank_disbursement_${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       toast.success(
-        "Bank File Exported",
-        `Disbursement file for ${listToExport.length} record(s) downloaded for host-to-host corporate banking.`
+        format === "NACHA" ? "NACHA ACH Batch File Exported" : "Bank File Exported",
+        `${format === "NACHA" ? "ACH batch" : "Disbursement"} file generated for ${listToExport.length} record(s).`
       );
-    } else if (format === "NACHA") {
-      const idsParam = listToExport.map((p) => p.id).join(",");
-      try {
-        const token = getAccessToken();
-        const res = await fetch(
-          `${API_URL}/payments/export-file?format=nacha&paymentIds=${encodeURIComponent(idsParam)}`,
-          {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          }
-        );
-        if (!res.ok) {
-          throw new Error(`Failed to export NACHA batch file (HTTP ${res.status})`);
-        }
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `nacha_ach_batch_${new Date().toISOString().slice(0, 10)}.txt`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        toast.success(
-          "NACHA ACH Batch File Exported",
-          `94-character fixed-width ACH batch file generated for ${listToExport.length} disbursement(s) (C8-4).`
-        );
-      } catch (err: unknown) {
-        toast.error("Export Failed", err instanceof Error ? err.message : "Failed to download ACH file");
-      }
+    } catch (err: unknown) {
+      toast.error(
+        "Export Failed",
+        err instanceof Error ? err.message : "Failed to download bank file"
+      );
     }
   }
 
@@ -282,14 +251,16 @@ export default function PaymentsPage() {
   );
   const activeDisbursementCurrency = activeDisbursementPayments[0]?.currency ?? primaryCurrency;
 
-  async function handleConfirmDisburse(_account: string, _rail: string) {
+  async function handleConfirmDisburse(): Promise<PaymentRow | null> {
     setBatchExecuting(true);
+    let lastExecuted: PaymentRow | null = null;
     try {
       const sessionKey = disbursementModalState.batchSessionKey || `sess-${Date.now()}`;
       for (const p of disbursementModalState.payments) {
         // Enforce per-transaction client idempotency key tied to modal session
         const idempotencyKey = `pay-${p.id}-${sessionKey}`;
-        await executePayment(p.id, undefined, idempotencyKey);
+        const result = await executePayment(p.id, undefined, idempotencyKey);
+        lastExecuted = result.data ?? null;
       }
       const executedIds = new Set(disbursementModalState.payments.map((p) => p.id));
       setSelectedIds((prev) => prev.filter((id) => !executedIds.has(id)));
@@ -303,6 +274,7 @@ export default function PaymentsPage() {
         title: "Disbursement Finalized & Settled",
         message: `Direct banking disbursement completed for ${disbursementModalState.payments.length} invoice(s). Ledgers updated to PAID.`,
       });
+      return lastExecuted;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Electronic disbursement failed.";
       toast.error("Disbursement Failed", msg);
@@ -311,6 +283,8 @@ export default function PaymentsPage() {
         title: "Disbursement Execution Failed",
         message: msg,
       });
+      // The modal owns the failed state and retry affordance.
+      throw err;
     } finally {
       setBatchExecuting(false);
     }

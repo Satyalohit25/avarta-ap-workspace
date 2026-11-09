@@ -1,5 +1,6 @@
 import fs from "fs";
 import zlib from "zlib";
+import { OUTBOUND_TIMEOUTS } from "../config/timeouts";
 
 export type ConfidenceBand = "HIGH" | "MEDIUM" | "LOW";
 
@@ -204,6 +205,7 @@ Return ONLY valid JSON matching this schema:
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(OUTBOUND_TIMEOUTS.AI_EXTRACTION_MS),
       body: JSON.stringify({
         contents: [
           {
@@ -260,6 +262,7 @@ async function extractWithOpenAI(
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
+    signal: AbortSignal.timeout(OUTBOUND_TIMEOUTS.AI_EXTRACTION_MS),
     body: JSON.stringify({
       model: "gpt-4o-mini",
       response_format: { type: "json_object" },

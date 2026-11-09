@@ -11,6 +11,7 @@ import {
   Send,
   Settings,
   Layers,
+  FileDown,
 } from "lucide-react";
 import {
   testErpConnection,
@@ -32,10 +33,10 @@ const DEFAULT_CONNECTORS: ErpConnectorMeta[] = [
   {
     id: "tally",
     name: "Tally Prime ERP",
-    category: "Accounting & GST Vouchers",
+    category: "Voucher File Export",
     status: "CONNECTED",
-    lastSync: "Today, 10:12 AM",
-    description: "Bi-directional XML sync of purchase vouchers, GST ledgers (CGST/SGST/IGST), and payment status.",
+    lastSync: "Export Ready",
+    description: "Tally XML / Excel Voucher Export for standard General Ledger and GST voucher batch import into Tally Prime.",
   },
   {
     id: "quickbooks",
@@ -44,14 +45,6 @@ const DEFAULT_CONNECTORS: ErpConnectorMeta[] = [
     status: "STANDBY",
     lastSync: "3 days ago",
     description: "Automated Bill generation, supplier master linkage, and bank feed clearing references via Intuit API.",
-  },
-  {
-    id: "xero",
-    name: "Xero Accounting",
-    category: "Cloud Accounting",
-    status: "STANDBY",
-    lastSync: "Never connected",
-    description: "Direct sync of Accounts Payable (ACCPAY) bills, invoice attachments, and tracking categories.",
   },
   {
     id: "csv",
@@ -71,12 +64,9 @@ export function ErpConnectorsCard() {
   const [configModalId, setConfigModalId] = useState<string | null>(null);
 
   // Modal form states
-  const [tallyGatewayUrl, setTallyGatewayUrl] = useState("http://localhost:9000");
-  const [tallyCompanyName, setTallyCompanyName] = useState("Acme Manufacturing Pvt Ltd");
+  const [tallyExportFormat, setTallyExportFormat] = useState<"XML" | "EXCEL">("XML");
   const [qboRealmId, setQboRealmId] = useState("");
   const [qboAccessToken, setQboAccessToken] = useState("");
-  const [xeroTenantId, setXeroTenantId] = useState("");
-  const [xeroAccessToken, setXeroAccessToken] = useState("");
 
   const [testResult, setTestResult] = useState<{ id: string; res: ErpTestResponse } | null>(null);
 
@@ -107,15 +97,17 @@ export function ErpConnectorsCard() {
   }
 
   async function handleTest(providerId: string, save = false) {
+    if (providerId === "tally") {
+      toast.success("Tally Export Options Saved", `Export format configured as ${tallyExportFormat === "XML" ? "Tally XML" : "Excel Sheet"}.`);
+      setConfigModalId(null);
+      return;
+    }
+
     setTestingId(providerId);
     let config: Record<string, string> = {};
 
-    if (providerId === "tally") {
-      config = { gatewayUrl: tallyGatewayUrl, companyName: tallyCompanyName };
-    } else if (providerId === "quickbooks") {
+    if (providerId === "quickbooks") {
       config = { realmId: qboRealmId, accessToken: qboAccessToken };
-    } else if (providerId === "xero") {
-      config = { tenantId: xeroTenantId, accessToken: xeroAccessToken };
     }
 
     try {
@@ -149,9 +141,10 @@ export function ErpConnectorsCard() {
     setIsSyncing(true);
     try {
       const res = await triggerErpSync();
+      const failureSuffix = res.failedCount > 0 ? ` ${res.failedCount} failed and remain unsynced.` : "";
       toast.success(
         "ERP Batch Synchronized",
-        `Dispatched ${res.syncedCount} approved invoice records via ${res.format} ledger batch (${res.batchReference}).`
+        `Dispatched ${res.syncedCount} paid invoice records via ${res.format} ledger batch (${res.batchReference}).${failureSuffix}`
       );
       await loadStatus();
     } catch (err: unknown) {
@@ -227,27 +220,41 @@ export function ErpConnectorsCard() {
               )}
 
               <div className="pt-2 border-t border-neutral-100 dark:border-zinc-800 flex items-center justify-between text-micro font-mono text-neutral-500">
-                <span>Last Sync: {erp.lastSync}</span>
+                <span>{erp.id === "tally" ? `Format: ${tallyExportFormat === "XML" ? "Tally XML" : "Excel Sheet"}` : `Last Sync: ${erp.lastSync}`}</span>
                 <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleTest(erp.id, false)}
-                    disabled={testingId === erp.id}
-                    className="h-7 text-micro font-medium gap-1"
-                  >
-                    <RefreshCw size={11} className={testingId === erp.id ? "animate-spin" : ""} />
-                    <span>Ping</span>
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setConfigModalId(erp.id)}
-                    className="h-7 text-micro font-medium gap-1"
-                  >
-                    <Settings size={11} />
-                    <span>Configure</span>
-                  </Button>
+                  {erp.id === "tally" ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setConfigModalId("tally")}
+                      className="h-7 text-micro font-medium gap-1"
+                    >
+                      <FileDown size={11} />
+                      <span>Voucher Export Options</span>
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleTest(erp.id, false)}
+                        disabled={testingId === erp.id}
+                        className="h-7 text-micro font-medium gap-1"
+                      >
+                        <RefreshCw size={11} className={testingId === erp.id ? "animate-spin" : ""} />
+                        <span>Ping</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setConfigModalId(erp.id)}
+                        className="h-7 text-micro font-medium gap-1"
+                      >
+                        <Settings size={11} />
+                        <span>Configure</span>
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -269,21 +276,39 @@ export function ErpConnectorsCard() {
               </div>
 
               {configModalId === "tally" && (
-                <div className="space-y-3">
-                  <Input
-                    label="Tally XML Gateway URL"
-                    value={tallyGatewayUrl}
-                    onChange={(e) => setTallyGatewayUrl(e.target.value)}
-                    placeholder="http://localhost:9000 or http://192.168.1.100:9000"
-                  />
-                  <Input
-                    label="Tally Company Name"
-                    value={tallyCompanyName}
-                    onChange={(e) => setTallyCompanyName(e.target.value)}
-                    placeholder="e.g. Acme Manufacturing Pvt Ltd"
-                  />
-                  <div className="p-2.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50 text-caption">
-                    Ensure Tally Prime is running and ODBC/XML Server is active in <strong>F1: Help ➔ Settings ➔ Connectivity</strong>.
+                <div className="space-y-3.5">
+                  <div className="p-3 rounded-lg border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/50 dark:bg-indigo-950/30 text-caption text-neutral-700 dark:text-zinc-300 space-y-1.5">
+                    <div className="flex items-center gap-1.5 font-semibold text-indigo-900 dark:text-indigo-200">
+                      <FileDown size={15} />
+                      <span>Tally XML / Excel Voucher Export</span>
+                    </div>
+                    <p className="text-micro text-neutral-600 dark:text-zinc-400">
+                      Live gateway sync has been disabled for security and network hardening. Avarta generates authentic Tally XML purchase vouchers and Excel batch spreadsheets for offline import.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-caption font-semibold text-neutral-800 dark:text-zinc-200">
+                      Voucher Export Format
+                    </label>
+                    <select
+                      value={tallyExportFormat}
+                      onChange={(e) => setTallyExportFormat(e.target.value as "XML" | "EXCEL")}
+                      className="w-full text-caption rounded-md border border-neutral-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-neutral-900 dark:text-zinc-100"
+                    >
+                      <option value="XML">Tally Prime XML Purchase Voucher (.xml) — Native Import</option>
+                      <option value="EXCEL">Excel Multi-Column Voucher Sheet (.xlsx) — Batch Import</option>
+                    </select>
+                  </div>
+
+                  <div className="p-3 rounded bg-neutral-50 dark:bg-zinc-800 text-caption text-neutral-600 dark:text-zinc-300 space-y-1">
+                    <p className="font-semibold text-neutral-900 dark:text-zinc-100">How to import vouchers into Tally Prime:</p>
+                    <ol className="list-decimal list-inside space-y-0.5 text-micro text-neutral-500 dark:text-zinc-400">
+                      <li>Export vouchers as {tallyExportFormat === "XML" ? "Tally XML" : "Excel Sheet"}.</li>
+                      <li>Open Tally Prime and select your Company.</li>
+                      <li>Press <kbd className="px-1 py-0.5 bg-neutral-200 dark:bg-zinc-700 rounded font-mono text-[10px]">Alt + O</kbd> (Import) ➔ <strong>Transactions (Vouchers)</strong>.</li>
+                      <li>Select the downloaded voucher file to post directly into your General Ledger.</li>
+                    </ol>
                   </div>
                 </div>
               )}
@@ -306,24 +331,6 @@ export function ErpConnectorsCard() {
                 </div>
               )}
 
-              {configModalId === "xero" && (
-                <div className="space-y-3">
-                  <Input
-                    label="Xero Tenant ID"
-                    value={xeroTenantId}
-                    onChange={(e) => setXeroTenantId(e.target.value)}
-                    placeholder="e.g. e4b0f987-1234-5678-abcd"
-                  />
-                  <Input
-                    label="OAuth 2.0 Access Token"
-                    type="password"
-                    value={xeroAccessToken}
-                    onChange={(e) => setXeroAccessToken(e.target.value)}
-                    placeholder="Paste Xero Bearer Token"
-                  />
-                </div>
-              )}
-
               {configModalId === "csv" && (
                 <div className="p-3 rounded bg-neutral-50 dark:bg-zinc-800 text-caption text-neutral-600 dark:text-zinc-300 space-y-1">
                   <p className="font-semibold text-neutral-900 dark:text-zinc-100">Standard Double-Entry Format Active</p>
@@ -337,11 +344,25 @@ export function ErpConnectorsCard() {
                 </Button>
                 <Button
                   variant="primary"
-                  onClick={() => handleTest(configModalId, true)}
+                  onClick={() => {
+                    if (configModalId === "tally") {
+                      toast.success(
+                        "Tally Export Options Saved",
+                        `Export format configured as ${tallyExportFormat === "XML" ? "Tally XML" : "Excel Voucher"}.`
+                      );
+                      setConfigModalId(null);
+                    } else {
+                      handleTest(configModalId, true);
+                    }
+                  }}
                   disabled={testingId === configModalId}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
-                  {testingId === configModalId ? "Verifying..." : "Save & Verify Connection"}
+                  {configModalId === "tally"
+                    ? "Save Export Options"
+                    : testingId === configModalId
+                    ? "Verifying..."
+                    : "Save & Verify Connection"}
                 </Button>
               </div>
             </div>

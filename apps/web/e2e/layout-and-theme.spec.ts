@@ -6,7 +6,9 @@ test.describe("Layout, Global Search & Theme System", () => {
     await loginAs(page);
   });
 
-  test("renders canonical 12-item sidebar navigation in correct order", async ({ page }) => {
+  test("renders canonical 11-item sidebar navigation in correct order", async ({
+    page,
+  }) => {
     const expectedItems = [
       "Overview",
       "Inbox",
@@ -17,7 +19,6 @@ test.describe("Layout, Global Search & Theme System", () => {
       "Suppliers",
       "Purchase Orders",
       "Items",
-      "Bank Accounts",
       "Reports",
       "Archive",
     ];
@@ -28,9 +29,13 @@ test.describe("Layout, Global Search & Theme System", () => {
     }
   });
 
-  test("opens and closes global Ctrl+K search palette modal", async ({ page }) => {
+  test("opens and closes global Ctrl+K search palette modal", async ({
+    page,
+  }) => {
     await page.click("text=Search invoices, suppliers, or PO numbers...");
-    const searchInput = page.locator('input[aria-label="Command search input"]');
+    const searchInput = page.locator(
+      'input[aria-label="Command search input"]',
+    );
     await expect(searchInput).toBeVisible();
 
     await page.keyboard.press("Escape");
@@ -42,7 +47,9 @@ test.describe("Layout, Global Search & Theme System", () => {
     const themeButton = page.locator('button[aria-label="Toggle Theme"]');
 
     await expect(themeButton).toBeVisible();
-    const isDarkInitially = await htmlElement.evaluate((el) => el.classList.contains("dark"));
+    const isDarkInitially = await htmlElement.evaluate((el) =>
+      el.classList.contains("dark"),
+    );
 
     await themeButton.click();
     if (isDarkInitially) {

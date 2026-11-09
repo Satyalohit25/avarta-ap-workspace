@@ -1,3 +1,5 @@
+import { OUTBOUND_TIMEOUTS } from "../../config/timeouts";
+
 export type PaymentGatewayProvider =
   | "RAZORPAYX"
   | "CASHFREE"
@@ -79,18 +81,17 @@ export class RazorpayXAdapter implements IPaymentGatewayAdapter {
           Authorization: `Basic ${authHeader}`,
           "Content-Type": "application/json",
         },
+        signal: AbortSignal.timeout(OUTBOUND_TIMEOUTS.KEY_TEST_MS),
       });
 
       if (!res.ok && res.status !== 401 && res.status !== 403) {
-        // Handle non-credential response or sandbox testing
+        // Credentials were accepted by the API gateway but no balance is
+        // retrieved during a connection test, so none is reported.
         if (config.environment === "sandbox") {
           return {
             success: true,
             provider: this.provider,
-            message: "RazorpayX Sandbox credentials validated successfully.",
-            accountName: "Avarta Current Account (Sandbox)",
-            balanceCurrency: "INR",
-            availableBalance: 5000000,
+            message: "RazorpayX Sandbox credentials accepted. Balance is not read during connection testing.",
             latencyMs: Date.now() - start,
           };
         }
@@ -108,10 +109,7 @@ export class RazorpayXAdapter implements IPaymentGatewayAdapter {
       return {
         success: true,
         provider: this.provider,
-        message: "RazorpayX Corporate Account connected and authenticated.",
-        accountName: "Primary Current Account",
-        balanceCurrency: "INR",
-        availableBalance: 2450000,
+        message: "RazorpayX Corporate Account authenticated.",
         latencyMs: Date.now() - start,
       };
     } catch {
@@ -120,8 +118,7 @@ export class RazorpayXAdapter implements IPaymentGatewayAdapter {
         return {
           success: true,
           provider: this.provider,
-          message: "RazorpayX Test Gateway configured and active.",
-          accountName: "Sandbox Testing Account",
+          message: "RazorpayX test credentials accepted locally; no live API response was received.",
           latencyMs: 14,
         };
       }
@@ -166,15 +163,58 @@ export class CashfreeAdapter implements IPaymentGatewayAdapter {
       };
     }
 
-    return {
-      success: true,
-      provider: this.provider,
-      message: "Cashfree Payouts API verified and ready for automatic bank transfers.",
-      accountName: "Cashfree Corporate Balance",
-      balanceCurrency: "INR",
-      availableBalance: 1800000,
-      latencyMs: Date.now() - start,
-    };
+    try {
+      const res = await fetch("https://api.cashfree.com/payout/v1/getBalance", {
+        method: "GET",
+        headers: {
+          "x-client-id": config.apiKey,
+          "x-client-secret": config.apiSecret,
+        },
+        signal: AbortSignal.timeout(OUTBOUND_TIMEOUTS.KEY_TEST_MS),
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        return {
+          success: false,
+          provider: this.provider,
+          message: "Authentication failed. Invalid Cashfree Client ID or Client Secret.",
+          latencyMs: Date.now() - start,
+        };
+      }
+
+      if (!res.ok) {
+        return {
+          success: false,
+          provider: this.provider,
+          message: `Cashfree Payouts API returned HTTP ${res.status}. Credentials were not confirmed.`,
+          latencyMs: Date.now() - start,
+        };
+      }
+
+      const body = (await res.json().catch(() => null)) as
+        | { data?: { availableBalance?: unknown; currency?: unknown } }
+        | null;
+      const balance = Number(body?.data?.availableBalance);
+      const currency =
+        typeof body?.data?.currency === "string" ? body.data.currency : undefined;
+
+      return {
+        success: true,
+        provider: this.provider,
+        message: "Cashfree Payouts API authenticated.",
+        ...(Number.isFinite(balance)
+          ? { availableBalance: balance, balanceCurrency: currency }
+          : {}),
+        latencyMs: Date.now() - start,
+      };
+    } catch {
+      return {
+        success: false,
+        provider: this.provider,
+        message: "Network error connecting to the Cashfree Payouts API endpoint.",
+        latencyMs: Date.now() - start,
+      };
+    }
   }
 
   async initiatePayout(config: PaymentGatewayConfig, params: PayoutParams): Promise<PayoutResult> {
@@ -209,14 +249,57 @@ export class StripeAdapter implements IPaymentGatewayAdapter {
       };
     }
 
-    return {
-      success: true,
-      provider: this.provider,
-      message: "Stripe Treasury / Connect authentication verified.",
-      accountName: "Stripe Treasury Account",
-      balanceCurrency: "USD",
-      latencyMs: Date.now() - start,
-    };
+    try {
+      const res = await fetch("https://api.stripe.com/v1/balance", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${config.apiSecret}` },
+        signal: AbortSignal.timeout(OUTBOUND_TIMEOUTS.KEY_TEST_MS),
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        return {
+          success: false,
+          provider: this.provider,
+          message: "Authentication failed. Invalid Stripe Secret Key.",
+          latencyMs: Date.now() - start,
+        };
+      }
+
+      if (!res.ok) {
+        return {
+          success: false,
+          provider: this.provider,
+          message: `Stripe API returned HTTP ${res.status}. Credentials were not confirmed.`,
+          latencyMs: Date.now() - start,
+        };
+      }
+
+      const body = (await res.json().catch(() => null)) as
+        | {
+            available?: Array<{ amount?: unknown; currency?: unknown }>;
+          }
+        | null;
+      const first = body?.available?.[0];
+      const amount = Number(first?.amount);
+      const currency = typeof first?.currency === "string" ? first.currency.toUpperCase() : undefined;
+
+      return {
+        success: true,
+        provider: this.provider,
+        message: "Stripe API authenticated.",
+        ...(Number.isFinite(amount)
+          ? { availableBalance: amount / 100, balanceCurrency: currency }
+          : {}),
+        latencyMs: Date.now() - start,
+      };
+    } catch {
+      return {
+        success: false,
+        provider: this.provider,
+        message: "Network error connecting to the Stripe API endpoint.",
+        latencyMs: Date.now() - start,
+      };
+    }
   }
 
   async initiatePayout(config: PaymentGatewayConfig, params: PayoutParams): Promise<PayoutResult> {

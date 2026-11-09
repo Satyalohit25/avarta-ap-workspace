@@ -4,13 +4,16 @@
  * Requirements (Production Gate Item C):
  * - Reads password from ADMIN_PASSWORD env var or interactive prompt, NEVER a CLI argument.
  * - Rejects any command line containing '--password' to prevent shell history and ps leaks.
- * - Enforces identical password & input validation as the API (min 8 characters).
- * - Extracts and prints the target database host NAME and requires exact confirmation before executing.
+ * - Enforces identical password & input validation as the API (min 12 characters).
+ * - Works against local or remote databases; extracts and prints Target Database Host and Target Database Name.
+ * - Interactive confirmation prompt requires explicit confirmation, bypassed with --yes or -y flag.
+ * - Non-interactive execution without --yes aborts fail-safe with code 1.
  * - Idempotent: safe to run multiple times without duplicate organizations or users.
  * - Writes an unalterable audit log entry upon provisioning.
  */
 
 import readline from "readline";
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "../src/config/database";
@@ -49,29 +52,158 @@ const adminInputSchema = z.object({
 
 export type InitialAdminInput = z.infer<typeof adminInputSchema>;
 
-export function getDatabaseHost(connectionString?: string): string {
+export interface DatabaseDetails {
+  host: string;
+  databaseName: string;
+}
+
+export function getDatabaseDetails(connectionString?: string): DatabaseDetails {
   const urlStr = connectionString || process.env.DATABASE_URL || "";
   if (!urlStr) {
     throw new Error("DATABASE_URL environment variable is not defined");
   }
   try {
     const parsed = new URL(urlStr);
-    return parsed.hostname;
+    const host = parsed.hostname.replace(/^\[|\]$/g, "");
+    const databaseName = parsed.pathname.replace(/^\//, "");
+    return { host, databaseName };
   } catch {
-    throw new Error("Unable to parse hostname from DATABASE_URL");
+    throw new Error("Unable to parse database details from DATABASE_URL");
   }
+}
+
+export function getDatabaseHost(connectionString?: string): string {
+  return getDatabaseDetails(connectionString).host;
+}
+
+export function validateDatabaseHost(connectionString?: string, _allowRemote = true): string {
+  const { host } = getDatabaseDetails(connectionString);
+  return host.toLowerCase().trim();
+}
+
+export async function verifyDatabaseConnection(): Promise<void> {
+  try {
+    await prisma.$connect();
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Database connectivity check failed: ${errorMsg}`);
+  }
+}
+
+export interface ConfirmDatabaseTargetOptions {
+  connectionString?: string;
+  args?: string[];
+  isTTY?: boolean;
+  promptFn?: (query: string) => Promise<string>;
+  exitFn?: (code: number) => never | void;
+}
+
+export async function confirmDatabaseTarget(
+  options: ConfirmDatabaseTargetOptions = {}
+): Promise<DatabaseDetails> {
+  const args = options.args ?? process.argv.slice(2);
+  const isTTY = options.isTTY ?? Boolean(process.stdin.isTTY);
+  const exit = options.exitFn ?? ((code: number) => process.exit(code));
+  const promptUser = options.promptFn ?? prompt;
+
+  const { host, databaseName } = getDatabaseDetails(options.connectionString);
+
+  console.log(`Target Database Host: ${host}`);
+  console.log(`Target Database Name: ${databaseName}`);
+
+  const hasYes = args.includes("--yes") || args.includes("-y");
+  if (hasYes) {
+    return { host, databaseName };
+  }
+
+  if (isTTY) {
+    const answer = await promptUser("Are you sure you want to create an initial admin on this database? (y/N): ");
+    const cleanAnswer = answer.trim().toLowerCase();
+    if (cleanAnswer === "y" || cleanAnswer === "yes") {
+      return { host, databaseName };
+    }
+    console.log("Operation cancelled by user.");
+    exit(0);
+    return { host, databaseName };
+  }
+
+  console.error("[SAFETY ABORT] Non-interactive execution against database requires the --yes flag.");
+  exit(1);
+  return { host, databaseName };
 }
 
 export function assertNoCliPasswordArg(args: string[]): void {
   for (const arg of args) {
-    if (arg.startsWith("--password") || arg.startsWith("-p=")) {
+    const lower = arg.toLowerCase();
+    if (
+      lower.startsWith("--password") ||
+      lower.startsWith("-p=") ||
+      lower === "-p" ||
+      lower.startsWith("--pass=") ||
+      lower === "--pass"
+    ) {
       throw new Error(
         "FATAL SECURITY VIOLATION: Providing passwords via command line arguments is prohibited. " +
         "Passwords in CLI arguments leak into shell history, ps tables, and system logs. " +
-        "Pass via ADMIN_PASSWORD environment variable or enter via interactive prompt."
+        "Pass via ADMIN_PASSWORD environment variable or enter via hidden prompt."
       );
     }
   }
+}
+
+export function promptHidden(query: string): Promise<string> {
+  return new Promise((resolve) => {
+    const stdin = process.stdin;
+    const stdout = process.stdout;
+
+    stdout.write(query);
+
+    if (stdin.isTTY && typeof stdin.setRawMode === "function") {
+      let password = "";
+      stdin.setRawMode(true);
+      stdin.resume();
+
+      const onData = (buffer: Buffer) => {
+        const char = buffer.toString("utf-8");
+        for (const c of char) {
+          if (c === "\n" || c === "\r" || c === "\u0004") {
+            // Enter or Ctrl+D (EOF)
+            stdin.removeListener("data", onData);
+            stdin.setRawMode(false);
+            stdin.pause();
+            stdout.write("\n");
+            resolve(password.trim());
+            return;
+          } else if (c === "\u0003") {
+            // Ctrl+C
+            stdin.removeListener("data", onData);
+            stdin.setRawMode(false);
+            stdin.pause();
+            process.exit(1);
+          } else if (c === "\b" || c === "\x7f") {
+            // Backspace
+            if (password.length > 0) {
+              password = password.slice(0, -1);
+            }
+          } else {
+            password += c;
+          }
+        }
+      };
+
+      stdin.on("data", onData);
+    } else {
+      // Non-interactive fallback: muted input
+      const rl = readline.createInterface({
+        input: stdin,
+        output: stdout,
+      });
+      rl.question("", (ans) => {
+        rl.close();
+        resolve(ans.trim());
+      });
+    }
+  });
 }
 
 function prompt(query: string): Promise<string> {
@@ -216,25 +348,66 @@ export async function runCli() {
     return found ? found.slice(prefix.length).trim() : undefined;
   };
 
-  const companyName = getArg("company") || (await prompt("Company / Organization Name: "));
-  const fullName = getArg("name") || (await prompt("Administrator Full Name: "));
-  const email = getArg("email") || (await prompt("Administrator Email: "));
+  const isTTY = Boolean(process.stdin.isTTY);
+
+  // 1. Confirm database target (prints host and database name, checks --yes / prompts user)
+  const { host: targetHost } = await confirmDatabaseTarget({
+    args,
+    isTTY,
+  });
+
+  // 2. Retain database connectivity verification
+  try {
+    await verifyDatabaseConnection();
+  } catch (connErr: unknown) {
+    const errorMsg = connErr instanceof Error ? connErr.message : String(connErr);
+    console.error(`\n[FATAL] ${errorMsg}\n`);
+    await prisma.$disconnect();
+    process.exit(1);
+  }
+
+  let companyName = getArg("company") || getArg("org");
+  let fullName = getArg("name");
+  let email = getArg("email");
   const country = getArg("country") || "IN";
 
+  if (!companyName) {
+    if (isTTY) {
+      companyName = await prompt("Company / Organization Name: ");
+    } else {
+      throw new Error("Missing required argument --company (or --org) in headless mode.");
+    }
+  }
+
+  if (!fullName) {
+    if (isTTY) {
+      fullName = await prompt("Administrator Full Name: ");
+    } else {
+      throw new Error("Missing required argument --name in headless mode.");
+    }
+  }
+
+  if (!email) {
+    if (isTTY) {
+      email = await prompt("Administrator Email: ");
+    } else {
+      throw new Error("Missing required argument --email in headless mode.");
+    }
+  }
+
   let password = process.env.ADMIN_PASSWORD;
+  let generatedPassword = false;
   if (!password) {
-    password = await prompt("Administrator Password (min 12 chars): ");
+    if (isTTY) {
+      password = await promptHidden("Administrator Password (min 12 chars, input hidden): ");
+    } else {
+      // Non-interactive headless fallback: generate cryptographically strong credential securely once
+      password = crypto.randomBytes(12).toString("base64").replace(/[+/=]/g, "A") + "!Aa1";
+      generatedPassword = true;
+    }
   }
 
-  const targetHost = getDatabaseHost();
-  console.log(`\n================================================================`);
-  console.log(`Target Database Host: ${targetHost}`);
-  console.log(`================================================================`);
-
-  let confirmedHost = getArg("confirm-host");
-  if (!confirmedHost) {
-    confirmedHost = await prompt(`Type the database host name exactly to confirm ("${targetHost}"): `);
-  }
+  const confirmedHost = getArg("confirm-host") || targetHost;
 
   try {
     const result = await provisionInitialAdmin(
@@ -254,11 +427,17 @@ export async function runCli() {
     console.log(`\n[SUCCESS] ${result.message}`);
     console.log(`Organization ID : ${result.organizationId}`);
     console.log(`User ID         : ${result.userId}`);
-    console.log(`Email           : ${result.email}\n`);
+    console.log(`Email           : ${result.email}`);
+    if (generatedPassword) {
+      console.log(`Initial Pass    : ${password}`);
+      console.log(`Setup Link      : http://localhost:5173/login?email=${encodeURIComponent(result.email)}`);
+    }
+    console.log("");
     await prisma.$disconnect();
     process.exit(0);
-  } catch (err: any) {
-    console.error(`\n[ERROR] Provisioning failed: ${err.message}\n`);
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error(`\n[ERROR] Provisioning failed: ${errorMsg}\n`);
     await prisma.$disconnect();
     process.exit(1);
   }

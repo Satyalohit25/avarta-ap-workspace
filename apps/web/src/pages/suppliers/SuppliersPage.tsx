@@ -1,3 +1,4 @@
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useEffect, useState, FormEvent, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -55,6 +56,7 @@ import {
 import { exportToCsv } from "../../lib/exportCsv";
 
 export default function SuppliersPage() {
+  useDocumentTitle("Suppliers & Vendors", "Manage master vendor records, statutory GST/PAN compliance, payment terms, and banking details.");
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -682,7 +684,7 @@ export default function SuppliersPage() {
                         {enrich.stpMatchRate}
                       </span>
                       <span className="text-[10px] text-neutral-400 block">
-                        High touchless
+                        Touchless processing
                       </span>
                     </div>
                     <div className="p-3 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-center space-y-1">
@@ -703,8 +705,8 @@ export default function SuppliersPage() {
                       <span className="text-h3 font-mono font-bold text-neutral-900 dark:text-zinc-100 block">
                         {enrich.disputeRate}
                       </span>
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block font-semibold">
-                        Low Risk
+                      <span className="text-[10px] text-neutral-400 dark:text-neutral-500 block font-semibold">
+                        {enrich.disputeRate === "Not Available" ? "Not Assessed" : "Recorded"}
                       </span>
                     </div>
                   </div>
@@ -808,9 +810,18 @@ export default function SuppliersPage() {
                         <span className="text-micro text-neutral-400 dark:text-zinc-500 block">
                           Finance Billing Email
                         </span>
-                        <span className="text-caption font-medium text-neutral-900 dark:text-zinc-100">
-                          {enrich.billingEmail}
-                        </span>
+                        {enrich.billingEmail && enrich.billingEmail !== "Not Provided" ? (
+                          <a
+                            href={`mailto:${enrich.billingEmail}`}
+                            className="text-caption font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                          >
+                            {enrich.billingEmail}
+                          </a>
+                        ) : (
+                          <span className="text-caption font-medium text-neutral-900 dark:text-zinc-100">
+                            {enrich.billingEmail}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
@@ -821,9 +832,18 @@ export default function SuppliersPage() {
                         <span className="text-micro text-neutral-400 dark:text-zinc-500 block">
                           Phone / WhatsApp
                         </span>
-                        <span className="text-caption font-medium text-neutral-900 dark:text-zinc-100">
-                          {enrich.phone}
-                        </span>
+                        {enrich.phone && enrich.phone !== "Not Provided" ? (
+                          <a
+                            href={`tel:${enrich.phone.replace(/[^\d+]/g, "")}`}
+                            className="text-caption font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                          >
+                            {enrich.phone}
+                          </a>
+                        ) : (
+                          <span className="text-caption font-medium text-neutral-900 dark:text-zinc-100">
+                            {enrich.phone}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-start gap-3">

@@ -1,6 +1,13 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { CurrentUser, SignupPayload, fetchCurrentUser, login as apiLogin, logout as apiLogout, signup as apiSignup } from "../api/auth";
-import { getAccessToken } from "../api/client";
+import {
+  CurrentUser,
+  SignupPayload,
+  fetchCurrentUser,
+  login as apiLogin,
+  logout as apiLogout,
+  refreshAuthToken,
+  signup as apiSignup,
+} from "../api/auth";
 
 interface AuthContextValue {
   user: CurrentUser | null;
@@ -19,15 +26,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     async function restoreSession() {
-      if (!getAccessToken()) {
-        setLoading(false);
-        return;
-      }
+      // The access token lives in memory only, so on a page reload the only
+      // way back in is the httpOnly refresh cookie. Refresh first, then
+      // confirm the session with /auth/me. A missing/expired cookie simply
+      // means the visitor is signed out — not an error to surface.
       try {
+        await refreshAuthToken();
         const current = await fetchCurrentUser();
         setUser(current);
       } catch {
-        apiLogout();
+        setUser(null);
       } finally {
         setLoading(false);
       }

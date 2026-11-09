@@ -6,3 +6,7 @@ if (!process.env.DATABASE_URL || !isTestDatabaseUrl(process.env.DATABASE_URL)) {
 }
 
 assertTestDatabase(process.env.DATABASE_URL);
+
+if (process.env.NODE_ENV === "test" && process.env.ENABLE_PUBLIC_SIGNUP === undefined) {
+  process.env.ENABLE_PUBLIC_SIGNUP = "true";
+}

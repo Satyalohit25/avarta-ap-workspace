@@ -11,6 +11,7 @@ export default [
       "**/playwright-report/**",
       "**/test-results/**",
       "apps/api/prisma/dev.db",
+      "docs/audit/**",
       "*.log",
       ".eslintcache",
     ],

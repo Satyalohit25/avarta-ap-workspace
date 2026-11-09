@@ -1,3 +1,4 @@
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useState, useEffect } from "react";
 import { Mail, Copy, Check, Plus, Database } from "lucide-react";
 import {
@@ -23,6 +24,7 @@ import { InvoiceFormValues } from "./validation";
 import { useAuth } from "../../app/AuthContext";
 
 export default function InboxPage() {
+  useDocumentTitle("Inbox", "Inbound multi-channel invoice capture, OCR extraction, and intake queues.");
   const { user } = useAuth();
   const { toast } = useToast();
   const inboundEmail = user?.organizationId

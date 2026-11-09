@@ -88,4 +88,73 @@ describe("Universal ERP Connectors", () => {
     expect(result.content).toContain("EntryNumber,PostingDate,Reference,AccountCode");
     expect(result.content).toContain("JE-2026-001,2026-10-13");
   });
+
+  describe("Tally SSRF Guard & ALLOW_LOCAL_TALLY Configuration", () => {
+    it("strictly blocks loopback probe http://127.0.0.1:54321 with loopback SSRF rejection", async () => {
+      const adapter = new TallyPrimeAdapter();
+      const result = await adapter.testConnection({ gatewayUrl: "http://127.0.0.1:54321" });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toBe("SSRF Rejection: Loopback address prohibited: 127.0.0.1");
+    });
+
+    it("blocks http://localhost:9000 by default when ALLOW_LOCAL_TALLY is unset", async () => {
+      const oldVal = process.env.ALLOW_LOCAL_TALLY;
+      delete process.env.ALLOW_LOCAL_TALLY;
+      try {
+        const adapter = new TallyPrimeAdapter();
+        const result = await adapter.testConnection({ gatewayUrl: "http://localhost:9000" });
+
+        expect(result.success).toBe(false);
+        expect(result.message).toBe("SSRF Rejection: Host 'localhost' is prohibited (SSRF Protection).");
+      } finally {
+        if (oldVal !== undefined) process.env.ALLOW_LOCAL_TALLY = oldVal;
+      }
+    });
+
+    it("blocks http://127.0.0.1:9000 by default when ALLOW_LOCAL_TALLY is unset", async () => {
+      const oldVal = process.env.ALLOW_LOCAL_TALLY;
+      delete process.env.ALLOW_LOCAL_TALLY;
+      try {
+        const adapter = new TallyPrimeAdapter();
+        const result = await adapter.testConnection({ gatewayUrl: "http://127.0.0.1:9000" });
+
+        expect(result.success).toBe(false);
+        expect(result.message).toBe("SSRF Rejection: Loopback address prohibited: 127.0.0.1");
+      } finally {
+        if (oldVal !== undefined) process.env.ALLOW_LOCAL_TALLY = oldVal;
+      }
+    });
+
+    it("permits local dev exception for port 9000 only when ALLOW_LOCAL_TALLY === 'true'", async () => {
+      const oldVal = process.env.ALLOW_LOCAL_TALLY;
+      process.env.ALLOW_LOCAL_TALLY = "true";
+      try {
+        const adapter = new TallyPrimeAdapter();
+        const result = await adapter.testConnection({ gatewayUrl: "http://localhost:9000" });
+
+        // SSRF guard bypassed; connection error returned because no live Tally is running
+        expect(result.message).not.toContain("SSRF Rejection");
+        expect(result.message).toContain("Could not reach Tally Gateway at http://localhost:9000");
+      } finally {
+        if (oldVal !== undefined) process.env.ALLOW_LOCAL_TALLY = oldVal;
+        else delete process.env.ALLOW_LOCAL_TALLY;
+      }
+    });
+
+    it("continues to block loopback port 54321 even when ALLOW_LOCAL_TALLY === 'true'", async () => {
+      const oldVal = process.env.ALLOW_LOCAL_TALLY;
+      process.env.ALLOW_LOCAL_TALLY = "true";
+      try {
+        const adapter = new TallyPrimeAdapter();
+        const result = await adapter.testConnection({ gatewayUrl: "http://127.0.0.1:54321" });
+
+        expect(result.success).toBe(false);
+        expect(result.message).toBe("SSRF Rejection: Loopback address prohibited: 127.0.0.1");
+      } finally {
+        if (oldVal !== undefined) process.env.ALLOW_LOCAL_TALLY = oldVal;
+        else delete process.env.ALLOW_LOCAL_TALLY;
+      }
+    });
+  });
 });

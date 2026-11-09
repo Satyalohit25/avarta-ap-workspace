@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardHeader, CardContent } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
+import { Alert } from "../../../components/ui/Alert";
 import { useToast } from "../../../components/ui/ToastContext";
 import {
   Database,
@@ -12,8 +13,16 @@ import {
   Server,
   RefreshCw,
   Activity,
+  Download,
 } from "lucide-react";
 import { testByodbConnection, fetchIntegrationsStatus, ByodbTestResponse } from "../../../api/integrations";
+import { downloadDataExport, ExportDataset } from "../../../api/dataExport";
+
+const EXPORT_DATASETS: Array<{ id: ExportDataset; label: string }> = [
+  { id: "invoices", label: "Invoice register" },
+  { id: "suppliers", label: "Supplier master" },
+  { id: "payments", label: "Payment register" },
+];
 
 export function ByodbConfigCard() {
   const { toast } = useToast();
@@ -22,8 +31,10 @@ export function ByodbConfigCard() {
   const [showUrl, setShowUrl] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [maskedUrl, setMaskedUrl] = useState<string | undefined>();
-  const [latencyMs, setLatencyMs] = useState<number>(12);
+  const [connectionStatus, setConnectionStatus] = useState<string>("MANAGED");
+  const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const [lastTestResult, setLastTestResult] = useState<ByodbTestResponse | null>(null);
+  const [exporting, setExporting] = useState<ExportDataset | null>(null);
 
   useEffect(() => {
     loadStatus();
@@ -35,10 +46,11 @@ export function ByodbConfigCard() {
       if (data?.byodb) {
         setMode(data.byodb.mode);
         setMaskedUrl(data.byodb.maskedUrl);
-        if (data.byodb.latencyMs) setLatencyMs(data.byodb.latencyMs);
+        setConnectionStatus(data.byodb.status);
+        if (typeof data.byodb.latencyMs === "number") setLatencyMs(data.byodb.latencyMs);
       }
     } catch {
-      // Offline fallback
+      // Status is informational; keep the honest default until it loads.
     }
   }
 
@@ -59,7 +71,7 @@ export function ByodbConfigCard() {
       if (res.success) {
         setLatencyMs(res.latencyMs);
         toast.success(
-          save ? "Database Connected & Saved" : "Connection Test Passed",
+          save ? "Connection Verified & Saved" : "Connection Test Passed",
           res.message
         );
         if (save) {
@@ -76,15 +88,39 @@ export function ByodbConfigCard() {
     }
   }
 
+  async function handleExport(dataset: ExportDataset) {
+    setExporting(dataset);
+    try {
+      const result = await downloadDataExport(dataset);
+      toast.success(
+        "Export Ready",
+        `${result.filename} downloaded with ${result.rowCount} row${result.rowCount === 1 ? "" : "s"}${
+          result.truncated ? " (row cap reached)" : ""
+        }.`
+      );
+    } catch (err) {
+      toast.error(
+        "Export Failed",
+        err instanceof Error ? err.message : "The dataset could not be exported."
+      );
+    } finally {
+      setExporting(null);
+    }
+  }
+
   return (
     <Card level="surface" className="border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs">
       <CardHeader
-        title="Connect Your Database (BYODB) — Data Sovereignty"
-        description="Store your company financial records, invoices, and audit logs directly in your own PostgreSQL instance."
+        title="Bring Your Own Database (BYODB) — Data Sovereignty"
+        description="Verify a PostgreSQL instance you own and export your workspace registers to it. Avarta never silently redirects live records without an explicit onboarding step."
         action={
-          <span className="inline-flex items-center gap-1.5 text-micro font-mono px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-semibold">
+          <span className="inline-flex items-center gap-1.5 text-micro font-mono px-2.5 py-1 rounded-full bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-700 font-semibold">
             <Activity size={12} />
-            <span>Mode: {mode === "CUSTOM" ? "Dedicated PostgreSQL" : "Managed Cloud"} ({latencyMs}ms)</span>
+            <span>
+              {mode === "CUSTOM" ? "Dedicated PostgreSQL" : "Managed Cloud"}
+              {connectionStatus === "CONNECTED" ? " · Verified" : ""}
+              {latencyMs !== null ? ` (${latencyMs}ms)` : ""}
+            </span>
           </span>
         }
       />
@@ -127,13 +163,19 @@ export function ByodbConfigCard() {
               </span>
             </div>
             <p className="text-caption text-neutral-500 dark:text-zinc-400">
-              Complete data sovereignty. All invoice, supplier, and payment records persist directly in your private database.
+              Verify a private PostgreSQL instance you control. Live record routing is completed during managed onboarding.
             </p>
           </button>
         </div>
 
         {mode === "CUSTOM" && (
           <div className="space-y-4 pt-2">
+            <Alert type="info" title="Connection verification, not automatic routing">
+              Saving a connection stores an encrypted profile and verifies reachability. Avarta does not
+              currently copy live invoice, supplier, or payment rows into this database. Use the exports
+              below to move your registers into your instance; managed onboarding performs the cutover.
+            </Alert>
+
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label htmlFor="byodb-connection-url-input" className="text-caption font-semibold text-neutral-800 dark:text-zinc-200">
@@ -248,11 +290,42 @@ export function ByodbConfigCard() {
                 onClick={() => handleTest(true)}
                 className="gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white"
               >
-                <span>Save & Connect Database</span>
+                <span>Verify &amp; Save Connection</span>
               </Button>
             </div>
           </div>
         )}
+
+        <div className="pt-4 border-t border-neutral-100 dark:border-zinc-800 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h4 className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100">
+                Export workspace registers
+              </h4>
+              <p className="text-caption text-neutral-500 dark:text-zinc-400">
+                Tenant-scoped CSV files for migration or independent backup. Exports are audit-logged and
+                capped at 10,000 rows per file.
+              </p>
+            </div>
+            <Download size={16} className="text-neutral-400 shrink-0 mt-0.5" />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {EXPORT_DATASETS.map((dataset) => (
+              <Button
+                key={dataset.id}
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={exporting !== null}
+                onClick={() => handleExport(dataset.id)}
+                className="gap-1.5"
+              >
+                <Download size={13} className={exporting === dataset.id ? "animate-pulse" : ""} />
+                <span>{exporting === dataset.id ? "Exporting…" : dataset.label}</span>
+              </Button>
+            ))}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

@@ -1,20 +1,14 @@
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useState, useEffect, useMemo, FormEvent } from "react";
 import {
-  Landmark,
   Search,
   Plus,
-  ShieldCheck,
-  ShieldAlert,
   Clock,
   CheckCircle2,
   XCircle,
-  AlertCircle,
   Building2,
   Star,
   ChevronRight,
-  Eye,
-  KeyRound,
-  ExternalLink,
   RotateCw,
 } from "lucide-react";
 import { PageHeader } from "../../components/layout/PageHeader";
@@ -46,6 +40,7 @@ import {
 } from "../../api/bankAccounts";
 
 export default function BankAccountsPage() {
+  useDocumentTitle("Bank Accounts", "Treasury bank accounts, payout routing configurations, and balance verification.");
   const { toast } = useToast();
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,6 +82,8 @@ export default function BankAccountsPage() {
 
   useEffect(() => {
     loadAccounts();
+    // Initial load only; loadAccounts closes over the current toast instance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredAccounts = useMemo(() => {
@@ -125,8 +122,10 @@ export default function BankAccountsPage() {
         setActiveAccount(verified);
       }
       toast({
-        title: "Penny-Drop Verification Successful",
-        description: `${verified.supplierName}'s account verified with Ref ${verified.pennyDropRef}.`,
+        title: "Bank Account Verified",
+        description: verified.pennyDropRef
+          ? `${verified.supplierName}'s account verified with Ref ${verified.pennyDropRef}.`
+          : `${verified.supplierName}'s account was marked verified. No penny-drop reference was issued.`,
         type: "success",
       });
     } catch {

@@ -1,3 +1,4 @@
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
@@ -37,6 +38,7 @@ const STAGES = [
 ].map((s) => ({ stage: s.stage, title: s.label, desc: s.description }));
 
 export default function VendorInvoiceTrackPage() {
+  useDocumentTitle("Vendor Portal - Track Invoice", "Real-time payment and processing status for vendor-submitted invoice vouchers.");
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<VendorTrackData | null>(null);
   const [loading, setLoading] = useState(true);

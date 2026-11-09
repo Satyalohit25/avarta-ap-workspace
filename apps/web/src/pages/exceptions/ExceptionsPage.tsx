@@ -1,3 +1,4 @@
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useEffect, useState, FormEvent, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -55,6 +56,7 @@ const RESOLUTION_PRESETS = [
 ];
 
 export default function ExceptionsPage() {
+  useDocumentTitle("Exceptions Queue", "Investigate and resolve 2-way and 3-way matching discrepancies, duplicate detection, and price variances.");
   const { toast } = useToast();
   const [rows, setRows] = useState<ExceptionRow[]>([]);
   const [loading, setLoading] = useState(true);

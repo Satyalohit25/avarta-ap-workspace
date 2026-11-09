@@ -61,6 +61,10 @@ const ForbiddenPage = lazy(() => import("../pages/ForbiddenPage"));
 const NotFoundPage = lazy(() => import("../pages/NotFoundPage"));
 import { CookieConsentBanner } from "../components/ui/CookieConsentBanner";
 import { NetworkStatusAlert } from "../components/ui/NetworkStatusAlert";
+import { sanitizeLegacyStorage } from "../lib/sanitizeStorage";
+
+// One-time sanitization of deprecated mock fixture keys from localStorage
+sanitizeLegacyStorage();
 
 // Eagerly prefetch primary demo routes when browser is idle to ensure 0ms tab switching
 function useRoutePrefetch() {

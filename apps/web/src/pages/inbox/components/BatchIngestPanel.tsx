@@ -22,7 +22,9 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
   const [queuedFiles, setQueuedFiles] = useState<QueuedFile[]>([]);
   const [isBatchDragging, setIsBatchDragging] = useState(false);
   const [batchUploading, setBatchUploading] = useState(false);
-  const [batchSuccessCount, setBatchSuccessCount] = useState<number | null>(null);
+  const [batchSuccessCount, setBatchSuccessCount] = useState<number | null>(
+    null,
+  );
 
   function formatFileSize(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
@@ -51,34 +53,6 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
       setQueuedFiles((prev) => [...prev, ...newItems]);
       setBatchSuccessCount(null);
     }
-  }
-
-  function handleLoadDemoFiles() {
-    const mockFiles: QueuedFile[] = [
-      {
-        id: `demo-${Date.now()}-1`,
-        file: new File(["%PDF-1.4 mock pdf"], "INV-2026-TataSteel.pdf", { type: "application/pdf" }),
-        name: "INV-2026-TataSteel.pdf",
-        size: 142800,
-        invoiceNumber: `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      },
-      {
-        id: `demo-${Date.now()}-2`,
-        file: new File(["%PDF-1.4 mock pdf"], "INV-2026-InfosysConsulting.pdf", { type: "application/pdf" }),
-        name: "INV-2026-InfosysConsulting.pdf",
-        size: 98400,
-        invoiceNumber: `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      },
-      {
-        id: `demo-${Date.now()}-3`,
-        file: new File(["%PDF-1.4 mock pdf"], "INV-2026-SchneiderElectric.pdf", { type: "application/pdf" }),
-        name: "INV-2026-SchneiderElectric.pdf",
-        size: 215600,
-        invoiceNumber: `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      },
-    ];
-    setQueuedFiles((prev) => [...prev, ...mockFiles]);
-    setBatchSuccessCount(null);
   }
 
   function handleRemoveQueuedFile(id: string) {
@@ -119,7 +93,8 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
       <CardContent className="p-5 flex-1 flex flex-col space-y-4">
         {batchSuccessCount !== null && (
           <Alert type="success" title="Batch Ingestion Completed">
-            Successfully ingested {batchSuccessCount} invoice(s) into the Received queue. Placeholder amounts are assigned for demo simulation — review and verify invoice details before processing.
+            Successfully ingested {batchSuccessCount} invoice(s) into the
+            Received queue. Invoices are queued for extraction and verification.
           </Alert>
         )}
 
@@ -174,19 +149,6 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
               <p className="text-caption text-neutral-500 dark:text-zinc-400 mt-1">
                 Supports multiple PDF, PNG, JPG files up to 10 MB each
               </p>
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleLoadDemoFiles();
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-zinc-700 bg-neutral-50 dark:bg-zinc-800 hover:bg-neutral-100 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-200 text-micro font-medium transition-colors duration-100 shadow-2xs cursor-pointer"
-                >
-                  <FileText size={13} className="text-neutral-500 dark:text-zinc-400" />
-                  <span>Load Standard Invoices</span>
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -200,7 +162,8 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
                 type="button"
                 onClick={() => {
                   setQueuedFiles([]);
-                  if (batchFileInputRef.current) batchFileInputRef.current.value = "";
+                  if (batchFileInputRef.current)
+                    batchFileInputRef.current.value = "";
                 }}
                 className="text-neutral-400 hover:text-neutral-700 dark:hover:text-zinc-200 text-micro underline cursor-pointer"
               >
@@ -255,7 +218,7 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
                 </span>
               </Button>
               <p className="text-[11px] text-neutral-500 dark:text-zinc-400 text-center">
-                Demo simulation assigns placeholder amounts. Invoices remain in Received state until verified.
+                Invoices remain in Received state until verified.
               </p>
             </div>
           </div>

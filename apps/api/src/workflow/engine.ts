@@ -104,6 +104,21 @@ export async function applyTransition({
               status: "PENDING",
             },
           });
+
+          // Notify the assigned approver. This is the only place approvals
+          // are generated, so the notification cannot drift from the task.
+          await tx.notification.create({
+            data: {
+              organizationId,
+              userId: approver.id,
+              type: "APPROVAL_REQUEST",
+              title: "Invoice awaiting your approval",
+              message: `Invoice ${invoice.invoiceNumber} for ${invoice.currency} ${Number(invoice.totalAmount).toFixed(2)} is ready for review.`,
+              entityType: "invoice",
+              entityId: invoiceId,
+              status: "UNREAD",
+            },
+          });
         }
       }
     }

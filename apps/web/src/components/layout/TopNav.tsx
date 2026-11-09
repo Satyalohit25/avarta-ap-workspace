@@ -60,10 +60,21 @@ export function TopNav({ onOpenMobileMenu }: TopNavProps) {
             type="button"
             onClick={onOpenMobileMenu}
             aria-label="Open navigation menu"
-            className="lg:hidden p-2 text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-100 hover:bg-neutral-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+            className="lg:hidden p-2 text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-100 hover:bg-neutral-100 dark:hover:bg-zinc-800 rounded-md transition-colors shrink-0"
           >
             <Menu size={20} />
           </button>
+
+          {/* Mobile Clickable Logo (< 1024px) */}
+          <Link
+            to="/overview"
+            aria-label="Avarta Home"
+            className="lg:hidden flex items-center shrink-0 pr-1 hover:opacity-80 transition-opacity"
+          >
+            <span className="font-old-english text-2xl text-neutral-900 dark:text-zinc-100 leading-none">
+              Avarta
+            </span>
+          </Link>
 
           <button
             type="button"
@@ -71,8 +82,14 @@ export function TopNav({ onOpenMobileMenu }: TopNavProps) {
             aria-label="Search invoices, suppliers, or PO numbers (⌘K / Ctrl+K)"
             className="flex items-center gap-2.5 bg-neutral-50 dark:bg-zinc-800/60 border border-neutral-200 dark:border-zinc-700/60 rounded-lg px-3 py-1.5 w-full hover:border-neutral-300 dark:hover:border-zinc-600 cursor-pointer transition-colors text-left group"
           >
-            <Search size={15} strokeWidth={1.75} className="text-neutral-400 dark:text-zinc-500 group-hover:text-neutral-500 dark:group-hover:text-zinc-400 transition-colors shrink-0" />
-            <span className="w-full text-body-sm text-neutral-500 dark:text-zinc-400 truncate">Search invoices, suppliers, or PO numbers...</span>
+            <Search
+              size={15}
+              strokeWidth={1.75}
+              className="text-neutral-400 dark:text-zinc-500 group-hover:text-neutral-500 dark:group-hover:text-zinc-400 transition-colors shrink-0"
+            />
+            <span className="w-full text-body-sm text-neutral-500 dark:text-zinc-400 truncate">
+              Search invoices, suppliers, or PO numbers...
+            </span>
             <kbd className="hidden sm:inline-flex items-center text-micro font-mono bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-700 text-neutral-600 dark:text-zinc-300 px-1.5 py-0.5 rounded-md shrink-0">
               ⌘K / Ctrl+K
             </kbd>
@@ -98,20 +115,21 @@ export function TopNav({ onOpenMobileMenu }: TopNavProps) {
             title={`Switch to ${theme === "light" ? "Dark" : "Light"} mode`}
             aria-label="Toggle Theme"
           >
-            {theme === "light" ? <Moon size={17} strokeWidth={1.75} /> : <Sun size={17} strokeWidth={1.75} />}
+            {theme === "light" ? (
+              <Moon size={17} strokeWidth={1.75} />
+            ) : (
+              <Sun size={17} strokeWidth={1.75} />
+            )}
           </button>
 
           {/* Notifications Link */}
           <Link
             to="/notifications"
             className="relative p-2 text-neutral-500 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-100 hover:bg-neutral-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-            aria-label="Notifications (unread alerts)"
-            title="Notifications (unread alerts)"
+            aria-label="Notifications"
+            title="Notifications"
           >
             <Bell size={17} strokeWidth={1.75} />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-zinc-900">
-              <span className="sr-only">Unread notifications</span>
-            </span>
           </Link>
 
           <Separator orientation="vertical" className="h-4 mx-1" />

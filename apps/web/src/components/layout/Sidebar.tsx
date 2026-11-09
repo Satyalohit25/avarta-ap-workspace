@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutGrid,
   Inbox,
@@ -10,7 +10,6 @@ import {
   Building2,
   ClipboardList,
   Package,
-  Landmark,
   BarChart3,
   Archive,
   PanelLeftClose,
@@ -34,7 +33,7 @@ interface NavSection {
   items: NavItemDef[];
 }
 
-// Canonical 12-item navigation grouped per Experience Standard v1.0 §5 & AGENTS.md
+// Canonical 11-item navigation grouped per Experience Standard v1.0 §5 & AGENTS.md
 const NAV_SECTIONS: NavSection[] = [
   {
     title: "Work",
@@ -63,7 +62,6 @@ const NAV_SECTIONS: NavSection[] = [
       { to: "/suppliers", label: "Suppliers", icon: Building2 },
       { to: "/purchase-orders", label: "Purchase Orders", icon: ClipboardList },
       { to: "/items", label: "Items", icon: Package },
-      { to: "/bank-accounts", label: "Bank Accounts", icon: Landmark },
     ],
   },
   {
@@ -163,21 +161,21 @@ export function Sidebar({
           {/* Expanded Brand Header with Background Crest Watermark */}
           <div className="h-[96px] w-full flex flex-col items-center justify-center border-b border-neutral-200/80 dark:border-zinc-800/80 shrink-0 relative px-4 overflow-hidden select-none">
             {/* Background Crest Watermark */}
-            <div 
+            <div
               className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden z-0"
               aria-hidden="true"
             >
               <div className="w-[220px] h-auto opacity-[0.08] dark:opacity-[0.13] transition-opacity duration-200 transform scale-110">
-                <AvartaCrest
-                  variant="full"
-                  glow
-                  className="w-full h-auto"
-                />
+                <AvartaCrest variant="full" glow className="w-full h-auto" />
               </div>
             </div>
 
-            {/* Foreground Brand Typography */}
-            <div className="relative z-10 flex flex-col items-center text-center">
+            {/* Foreground Brand Typography — Clickable Logo */}
+            <Link
+              to="/overview"
+              aria-label="Avarta AP Workspace Overview"
+              className="relative z-10 flex flex-col items-center text-center cursor-pointer hover:opacity-90 transition-opacity"
+            >
               <span
                 className="font-old-english font-normal text-neutral-900 dark:text-zinc-50 text-[38px] leading-none select-none text-center"
                 style={{ letterSpacing: "0.06em" }}
@@ -187,7 +185,7 @@ export function Sidebar({
               <span className="text-[8.5px] font-mono tracking-[0.24em] text-neutral-500 dark:text-zinc-400 uppercase font-semibold select-none text-center mt-1.5">
                 Accounts Payable Workspace
               </span>
-            </div>
+            </Link>
 
             {isMobileOpen && (
               <button
@@ -340,10 +338,16 @@ export function Sidebar({
             title={isRail ? "Expand sidebar" : "Collapse sidebar"}
           >
             {isRail ? (
-              <PanelLeftOpen size={17} className="text-neutral-400 dark:text-zinc-500" />
+              <PanelLeftOpen
+                size={17}
+                className="text-neutral-400 dark:text-zinc-500"
+              />
             ) : (
               <>
-                <PanelLeftClose size={16} className="text-neutral-400 dark:text-zinc-500" />
+                <PanelLeftClose
+                  size={16}
+                  className="text-neutral-400 dark:text-zinc-500"
+                />
                 <span>Collapse sidebar</span>
               </>
             )}

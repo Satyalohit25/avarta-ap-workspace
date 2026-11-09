@@ -10,6 +10,8 @@ export interface AuthTokenPayload {
   tokenVersion?: number;
   iat?: number;
   exp?: number;
+  /** True when the caller authenticated with a workspace API key. */
+  isApiKey?: boolean;
 }
 
 // In-memory fast-lookup cache for revoked tokens & user revocation timestamps

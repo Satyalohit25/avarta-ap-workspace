@@ -1,3 +1,4 @@
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useEffect, useState, FormEvent, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -72,6 +73,7 @@ const INITIAL_LINE_ITEMS: PoLineItem[] = [
 ];
 
 export default function PurchaseOrdersPage() {
+  useDocumentTitle("Purchase Orders", "Track and audit purchase order commitments, itemized line items, and fulfillment matching.");
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSearch = searchParams.get("search") || "";
@@ -896,8 +898,8 @@ export default function PurchaseOrdersPage() {
                     <span className="text-micro font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400 flex items-center gap-1.5">
                       <BarChart3 size={11} /> Itemized Commitment Lines
                     </span>
-                    <div className="rounded-xl border border-neutral-200 dark:border-zinc-800 overflow-hidden">
-                      <table className="w-full text-micro">
+                    <div className="rounded-md border border-neutral-200 dark:border-zinc-800 overflow-x-auto min-w-0">
+                      <table className="w-full min-w-[500px] text-micro">
                         <thead>
                           <tr className="bg-neutral-50 dark:bg-zinc-800/60">
                             <th className="text-left px-3 py-2 text-neutral-500 dark:text-zinc-400 font-semibold">#</th>

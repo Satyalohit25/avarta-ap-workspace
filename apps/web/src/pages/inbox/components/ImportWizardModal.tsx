@@ -1,21 +1,20 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   X,
   FileSpreadsheet,
-  Building,
   Upload,
   CheckCircle2,
   AlertTriangle,
   ArrowRight,
   RefreshCw,
-  Layers,
+  Download,
   Database,
 } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button } from "../../../components/ui/Button";
 import { Alert } from "../../../components/ui/Alert";
-import { useToast } from "../../../components/ui/ToastContext";
-import { createInvoice } from "../../../api/invoices";
+import { createInvoice, listInvoices } from "../../../api/invoices";
+import { ApiRequestError } from "../../../api/client";
 
 interface ImportWizardModalProps {
   isOpen: boolean;
@@ -24,24 +23,120 @@ interface ImportWizardModalProps {
 }
 
 type Step = "source" | "preview" | "progress" | "summary";
-type SourceType = "csv" | "tally" | "quickbooks" | "xero";
 
 interface PreviewItem {
+  rowNumber: number;
   invoiceNumber: string;
   vendorName: string;
   date: string;
   amount: number;
   currency: string;
-  isDuplicate?: boolean;
+  isDuplicate: boolean;
+  error?: string;
+}
+
+const TEMPLATE_CSV = [
+  "invoiceNumber,vendorName,date,amount,currency",
+  "INV-1001,Acme Supplies Pvt Ltd,2026-11-01,12500.00,INR",
+  "INV-1002,Northwind Traders,2026-11-02,43250.50,INR",
+].join("\n");
+
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i += 1;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += ch;
+      }
+      continue;
+    }
+
+    if (ch === '"') inQuotes = true;
+    else if (ch === ",") {
+      row.push(field);
+      field = "";
+    } else if (ch === "\n") {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else if (ch !== "\r") {
+      field += ch;
+    }
+  }
+
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+
+  return rows.filter((r) => r.some((cell) => cell.trim() !== ""));
+}
+
+function normalizeHeader(value: string): string {
+  return value.replace(/^\uFEFF/, "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+const HEADER_ALIASES: Record<string, string[]> = {
+  invoiceNumber: ["invoicenumber", "invoiceno", "invoice", "number", "billno", "documentnumber"],
+  vendorName: ["vendorname", "vendor", "supplier", "suppliername", "party", "partyname"],
+  date: ["date", "invoicedate", "billdate", "documentdate"],
+  amount: ["amount", "total", "totalamount", "invoiceamount", "grandtotal"],
+  currency: ["currency", "ccy", "currencycode"],
+};
+
+function findColumn(headers: string[], field: keyof typeof HEADER_ALIASES): number {
+  const aliases = HEADER_ALIASES[field];
+  return headers.findIndex((header) => aliases.includes(normalizeHeader(header)));
+}
+
+function parseAmount(raw: string): number {
+  const cleaned = raw.replace(/[₹$€£,\s]/g, "").replace(/[^\d.-]/g, "");
+  const value = Number(cleaned);
+  return Number.isFinite(value) ? value : NaN;
+}
+
+function parseDate(raw: string): string | null {
+  const value = raw.trim();
+  if (!value) return null;
+
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (iso) return value;
+
+  const dmy = /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/.exec(value);
+  if (dmy) {
+    const day = Number(dmy[1]);
+    const month = Number(dmy[2]);
+    const year = dmy[3];
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+  }
+
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+  return null;
 }
 
 export function ImportWizardModal({ isOpen, onClose, onImportComplete }: ImportWizardModalProps) {
-  const { toast } = useToast();
   const [step, setStep] = useState<Step>("source");
-  const [selectedSource, setSelectedSource] = useState<SourceType>("csv");
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [previewItems, setPreviewItems] = useState<PreviewItem[]>([]);
+  const [parseErrors, setParseErrors] = useState<string[]>([]);
+  const [duplicateCheckWarning, setDuplicateCheckWarning] = useState<string | null>(null);
   const [importProgress, setImportProgress] = useState(0);
   const [importStats, setImportStats] = useState<{ imported: number; skipped: number; failed: number }>({
     imported: 0,
@@ -49,100 +144,155 @@ export function ImportWizardModal({ isOpen, onClose, onImportComplete }: ImportW
     failed: 0,
   });
 
-  const handleSourceSelect = (src: SourceType) => {
-    setSelectedSource(src);
-  };
+  const importableItems = useMemo(
+    () => previewItems.filter((item) => !item.isDuplicate && !item.error),
+    [previewItems]
+  );
+  const duplicateCount = previewItems.filter((item) => item.isDuplicate).length;
+  const invalidCount = previewItems.filter((item) => Boolean(item.error)).length;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  async function loadExistingInvoiceNumbers(): Promise<Set<string>> {
+    const numbers = new Set<string>();
+    let page = 1;
+    let totalPages = 1;
+
+    // Read the invoice register so duplicates are flagged before import.
+    // The API also enforces a unique constraint, so a race still cannot
+    // double-post an invoice.
+    do {
+      const result = await listInvoices({ page, pageSize: 100 });
+      for (const invoice of result.data) {
+        numbers.add(invoice.invoiceNumber.trim().toLowerCase());
+      }
+      totalPages = result.meta.totalPages;
+      page += 1;
+    } while (page <= totalPages && page <= 20);
+
+    return numbers;
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setSelectedFileName(file.name);
     setLoadingPreview(true);
+    setParseErrors([]);
+    setDuplicateCheckWarning(null);
+    setPreviewItems([]);
 
-    // Parse CSV or simulate ERP preview
-    setTimeout(() => {
-      // Sample parsed records from file
-      const items: PreviewItem[] = [
-        {
-          invoiceNumber: "IMP-2026-001",
-          vendorName: "Steel Authority Logistics",
-          date: "2026-03-15",
-          amount: 45000,
-          currency: "INR",
+    try {
+      const text = await file.text();
+      const rows = parseCsv(text);
+      if (rows.length === 0) {
+        setParseErrors(["The selected file is empty."]);
+        setLoadingPreview(false);
+        return;
+      }
+
+      const headers = rows[0];
+      const columns = {
+        invoiceNumber: findColumn(headers, "invoiceNumber"),
+        vendorName: findColumn(headers, "vendorName"),
+        date: findColumn(headers, "date"),
+        amount: findColumn(headers, "amount"),
+        currency: findColumn(headers, "currency"),
+      };
+
+      const missing = Object.entries(columns)
+        .filter(([field, index]) => field !== "currency" && index === -1)
+        .map(([field]) => field);
+
+      if (missing.length > 0) {
+        setParseErrors([
+          `Missing required column${missing.length === 1 ? "" : "s"}: ${missing.join(", ")}. Expected headers: invoiceNumber, vendorName, date, amount, currency (optional).`,
+        ]);
+        setLoadingPreview(false);
+        return;
+      }
+
+      const errors: string[] = [];
+      const items: PreviewItem[] = [];
+
+      rows.slice(1).forEach((cells, idx) => {
+        const rowNumber = idx + 2;
+        const invoiceNumber = (cells[columns.invoiceNumber] ?? "").trim();
+        const vendorName = (cells[columns.vendorName] ?? "").trim();
+        const rawDate = cells[columns.date] ?? "";
+        const rawAmount = cells[columns.amount] ?? "";
+        const currency = (
+          (columns.currency >= 0 ? cells[columns.currency] : "") || "INR"
+        )
+          .trim()
+          .toUpperCase();
+
+        let error: string | undefined;
+        const date = parseDate(rawDate);
+        const amount = parseAmount(rawAmount);
+
+        if (!invoiceNumber) error = "Missing invoice number.";
+        else if (!vendorName) error = "Missing vendor name.";
+        else if (!date) error = `Unrecognised date "${rawDate}".`;
+        else if (!Number.isFinite(amount) || amount <= 0) {
+          error = `Invalid amount "${rawAmount}".`;
+        }
+
+        if (error) errors.push(`Row ${rowNumber}: ${error}`);
+
+        items.push({
+          rowNumber,
+          invoiceNumber,
+          vendorName,
+          date: date || "",
+          amount: Number.isFinite(amount) ? amount : 0,
+          currency: currency || "INR",
           isDuplicate: false,
-        },
-        {
-          invoiceNumber: "IMP-2026-002",
-          vendorName: "Tata Precision Tools",
-          date: "2026-03-18",
-          amount: 82500,
-          currency: "INR",
-          isDuplicate: true, // Already present in database
-        },
-        {
-          invoiceNumber: "IMP-2026-003",
-          vendorName: "Karnataka Electricals Ltd",
-          date: "2026-03-20",
-          amount: 31200,
-          currency: "INR",
-          isDuplicate: false,
-        },
-        {
-          invoiceNumber: "IMP-2026-004",
-          vendorName: "Bharati Packaging Corp",
-          date: "2026-03-22",
-          amount: 19400,
-          currency: "INR",
-          isDuplicate: false,
-        },
-      ];
+          error,
+        });
+      });
+
+      setParseErrors(errors);
       setPreviewItems(items);
-      setLoadingPreview(false);
-      setStep("preview");
-    }, 400);
-  };
 
-  const handleConnectErp = () => {
-    setLoadingPreview(true);
-    setSelectedFileName(`${selectedSource.toUpperCase()} API Live Feed`);
-    setTimeout(() => {
-      const items: PreviewItem[] = [
-        {
-          invoiceNumber: `ERP-${selectedSource.toUpperCase().slice(0, 3)}-101`,
-          vendorName: "Sterling Polymers Ltd",
-          date: "2026-03-24",
-          amount: 64000,
-          currency: "INR",
-          isDuplicate: false,
-        },
-        {
-          invoiceNumber: `ERP-${selectedSource.toUpperCase().slice(0, 3)}-102`,
-          vendorName: "Apex Machine Tools",
-          date: "2026-03-25",
-          amount: 125000,
-          currency: "INR",
-          isDuplicate: false,
-        },
-      ];
-      setPreviewItems(items);
-      setLoadingPreview(false);
-      setStep("preview");
-    }, 600);
-  };
+      try {
+        const existing = await loadExistingInvoiceNumbers();
+        setPreviewItems((prev) =>
+          prev.map((item) =>
+            item.error
+              ? item
+              : {
+                  ...item,
+                  isDuplicate: existing.has(item.invoiceNumber.toLowerCase()),
+                }
+          )
+        );
+      } catch (err) {
+        setDuplicateCheckWarning(
+          `Duplicate pre-check could not complete (${err instanceof Error ? err.message : "unknown error"}). The server will still reject duplicate invoice numbers during import.`
+        );
+      }
 
-  const handleExecuteImport = async () => {
+      setStep("preview");
+    } catch (err) {
+      setParseErrors([
+        err instanceof Error ? err.message : "The selected file could not be read.",
+      ]);
+    } finally {
+      setLoadingPreview(false);
+    }
+  }
+
+  async function handleExecuteImport() {
+    if (importableItems.length === 0) return;
     setStep("progress");
-    setImportProgress(10);
-
-    const nonDuplicates = previewItems.filter((i) => !i.isDuplicate);
-    const duplicates = previewItems.filter((i) => i.isDuplicate);
+    setImportProgress(0);
 
     let countImported = 0;
     let countFailed = 0;
+    let countSkipped = duplicateCount;
 
-    for (let i = 0; i < nonDuplicates.length; i++) {
-      const item = nonDuplicates[i];
+    for (let i = 0; i < importableItems.length; i += 1) {
+      const item = importableItems[i];
       try {
         await createInvoice({
           invoiceNumber: item.invoiceNumber,
@@ -154,36 +304,55 @@ export function ImportWizardModal({ isOpen, onClose, onImportComplete }: ImportW
           lines: [
             {
               lineNumber: 1,
-              description: `Imported Line Item - ${item.vendorName}`,
+              description: `Imported from ${selectedFileName || "CSV"} — ${item.vendorName}`,
               quantity: 1,
               unitPrice: item.amount,
               lineAmount: item.amount,
             },
           ],
         });
-        countImported++;
-      } catch {
-        countFailed++;
+        countImported += 1;
+      } catch (err) {
+        if (err instanceof ApiRequestError && err.status === 409) {
+          // The unique invoice-number constraint caught a duplicate that the
+          // preview missed (e.g. created after the pre-check).
+          countSkipped += 1;
+        } else {
+          countFailed += 1;
+        }
       }
-      setImportProgress(Math.round(((i + 1) / nonDuplicates.length) * 100));
+      setImportProgress(Math.round(((i + 1) / importableItems.length) * 100));
     }
 
     setImportStats({
       imported: countImported,
-      skipped: duplicates.length,
+      skipped: countSkipped,
       failed: countFailed,
     });
     setStep("summary");
     if (onImportComplete) onImportComplete();
-  };
+  }
 
-  const handleReset = () => {
+  function handleDownloadTemplate() {
+    const blob = new Blob([TEMPLATE_CSV], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "avarta-invoice-import-template.csv";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleReset() {
     setStep("source");
     setSelectedFileName(null);
     setPreviewItems([]);
+    setParseErrors([]);
+    setDuplicateCheckWarning(null);
     setImportProgress(0);
+    setImportStats({ imported: 0, skipped: 0, failed: 0 });
     onClose();
-  };
+  }
 
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && handleReset()}>
@@ -197,10 +366,10 @@ export function ImportWizardModal({ isOpen, onClose, onImportComplete }: ImportW
               </div>
               <div>
                 <DialogPrimitive.Title className="text-body font-bold text-neutral-900 dark:text-zinc-100">
-                  Import Wizard (C3)
+                  Import Invoices
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Description className="text-micro text-neutral-500 dark:text-zinc-400">
-                  Bulk import invoices from ERP or CSV with zero duplicate risk
+                  Bulk import an invoice register from CSV with duplicate protection
                 </DialogPrimitive.Description>
               </div>
             </div>
@@ -216,92 +385,81 @@ export function ImportWizardModal({ isOpen, onClose, onImportComplete }: ImportW
           </div>
 
           <div className="py-5">
-            {/* ── STEP 1: Source Choice ── */}
             {step === "source" && (
               <div className="space-y-4">
                 <p className="text-body-sm text-neutral-600 dark:text-zinc-400">
-                  Select the source of invoices you wish to import into Avarta:
+                  Upload a CSV invoice register. Each row is created as a received invoice and
+                  enters the normal capture and validation workflow.
                 </p>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div
-                    onClick={() => handleSourceSelect("csv")}
-                    className={`p-4 rounded-xl border cursor-pointer transition-colors duration-100 ${
-                      selectedSource === "csv"
-                        ? "border-indigo-600 bg-indigo-50/30 dark:bg-indigo-950/20 ring-1 ring-indigo-500"
-                        : "border-neutral-200 dark:border-zinc-800 hover:border-neutral-300"
-                    }`}
-                  >
-                    <FileSpreadsheet className="text-indigo-600 dark:text-indigo-400 mb-2" size={24} />
+                <div className="p-4 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-800/40 flex items-start gap-3">
+                  <FileSpreadsheet className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" size={20} />
+                  <div className="space-y-1 min-w-0">
                     <h4 className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100">
-                      CSV / Excel File
+                      Required CSV columns
                     </h4>
-                    <p className="text-micro text-neutral-500 dark:text-zinc-400 mt-1">
-                      Standard invoice register template (.csv, .xlsx)
+                    <p className="text-micro text-neutral-500 dark:text-zinc-400">
+                      <code className="font-mono">invoiceNumber</code>,{" "}
+                      <code className="font-mono">vendorName</code>,{" "}
+                      <code className="font-mono">date</code>,{" "}
+                      <code className="font-mono">amount</code>; optional{" "}
+                      <code className="font-mono">currency</code> (defaults to INR).
                     </p>
-                  </div>
-
-                  <div
-                    onClick={() => handleSourceSelect("tally")}
-                    className={`p-4 rounded-xl border cursor-pointer transition-colors duration-100 ${
-                      selectedSource === "tally"
-                        ? "border-indigo-600 bg-indigo-50/30 dark:bg-indigo-950/20 ring-1 ring-indigo-500"
-                        : "border-neutral-200 dark:border-zinc-800 hover:border-neutral-300"
-                    }`}
-                  >
-                    <Building className="text-indigo-600 dark:text-indigo-400 mb-2" size={24} />
-                    <h4 className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100">
-                      TallyPrime / ERP
-                    </h4>
-                    <p className="text-micro text-neutral-500 dark:text-zinc-400 mt-1">
-                      Direct XML or read-only connected ODBC pull
-                    </p>
+                    <button
+                      type="button"
+                      onClick={handleDownloadTemplate}
+                      className="inline-flex items-center gap-1 text-micro font-semibold text-indigo-600 dark:text-indigo-400 hover:underline pt-1"
+                    >
+                      <Download size={12} />
+                      <span>Download CSV template</span>
+                    </button>
                   </div>
                 </div>
 
-                {selectedSource === "csv" ? (
-                  <div className="pt-2">
-                    <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-neutral-300 dark:border-zinc-700 rounded-xl hover:border-indigo-500 dark:hover:border-indigo-400 cursor-pointer transition-colors bg-neutral-50 dark:bg-zinc-800/40">
-                      <Upload className="text-neutral-400 mb-2" size={24} />
-                      <span className="text-body-sm font-semibold text-neutral-800 dark:text-zinc-200">
-                        {loadingPreview ? "Scanning file..." : "Click to select CSV invoice file"}
-                      </span>
-                      <span className="text-micro text-neutral-500 dark:text-zinc-400 mt-1">
-                        UTF-8 CSV with invoiceNumber, vendorName, amount, date
-                      </span>
-                      <input
-                        type="file"
-                        accept=".csv,.txt"
-                        className="hidden"
-                        onChange={handleFileChange}
-                        disabled={loadingPreview}
-                      />
-                    </label>
-                  </div>
-                ) : (
-                  <div className="pt-3">
-                    <Button
-                      variant="primary"
-                      onClick={handleConnectErp}
-                      disabled={loadingPreview}
-                      className="w-full h-10 font-semibold"
-                    >
-                      {loadingPreview ? "Connecting to ERP..." : `Pull Invoices from ${selectedSource.toUpperCase()}`}
-                    </Button>
-                  </div>
+                <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-neutral-300 dark:border-zinc-700 rounded-xl hover:border-indigo-500 dark:hover:border-indigo-400 cursor-pointer transition-colors bg-neutral-50 dark:bg-zinc-800/40">
+                  <Upload className="text-neutral-400 mb-2" size={24} />
+                  <span className="text-body-sm font-semibold text-neutral-800 dark:text-zinc-200">
+                    {loadingPreview ? "Reading file…" : "Click to select a CSV invoice file"}
+                  </span>
+                  <span className="text-micro text-neutral-500 dark:text-zinc-400 mt-1">
+                    UTF-8 CSV · no vendor data is invented
+                  </span>
+                  <input
+                    type="file"
+                    accept=".csv,.txt"
+                    className="hidden"
+                    onChange={handleFileChange}
+                    disabled={loadingPreview}
+                  />
+                </label>
+
+                {parseErrors.length > 0 && (
+                  <Alert type="error" title="File could not be parsed">
+                    <ul className="list-disc pl-4 space-y-1">
+                      {parseErrors.map((message) => (
+                        <li key={message}>{message}</li>
+                      ))}
+                    </ul>
+                  </Alert>
                 )}
+
+                <p className="text-micro text-neutral-500 dark:text-zinc-400">
+                  Importing from Tally, QuickBooks, or Xero? Export the invoice register from
+                  your accounting system as CSV — ERP connectors in Settings are for publishing
+                  approved invoices back to your ledger.
+                </p>
               </div>
             )}
 
-            {/* ── STEP 2: Preview & Duplicate Check ── */}
             {step === "preview" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between text-body-sm">
                   <span className="text-neutral-600 dark:text-zinc-400">
-                    Source: <strong className="text-neutral-900 dark:text-zinc-100">{selectedFileName}</strong>
+                    Source:{" "}
+                    <strong className="text-neutral-900 dark:text-zinc-100">{selectedFileName}</strong>
                   </span>
                   <span className="font-mono text-micro text-neutral-500 dark:text-zinc-400">
-                    {previewItems.length} records found
+                    {previewItems.length} rows found
                   </span>
                 </div>
 
@@ -317,20 +475,39 @@ export function ImportWizardModal({ isOpen, onClose, onImportComplete }: ImportW
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-100 dark:divide-zinc-800">
-                      {previewItems.map((item, idx) => (
-                        <tr key={idx} className={item.isDuplicate ? "bg-amber-50/40 dark:bg-amber-950/20" : ""}>
+                      {previewItems.map((item) => (
+                        <tr
+                          key={item.rowNumber}
+                          className={
+                            item.error
+                              ? "bg-red-50/40 dark:bg-red-950/20"
+                              : item.isDuplicate
+                                ? "bg-amber-50/40 dark:bg-amber-950/20"
+                                : ""
+                          }
+                        >
                           <td className="p-2.5 font-mono font-medium text-neutral-900 dark:text-zinc-100">
-                            {item.invoiceNumber}
+                            {item.invoiceNumber || "—"}
                           </td>
                           <td className="p-2.5 text-neutral-700 dark:text-zinc-300 truncate max-w-[140px]">
-                            {item.vendorName}
+                            {item.vendorName || "—"}
                           </td>
-                          <td className="p-2.5 text-neutral-500 dark:text-zinc-400">{item.date}</td>
+                          <td className="p-2.5 text-neutral-500 dark:text-zinc-400">
+                            {item.date || "—"}
+                          </td>
                           <td className="p-2.5 text-right font-mono tabular-nums text-neutral-900 dark:text-zinc-100 font-semibold">
-                            ₹{item.amount.toLocaleString("en-IN")}
+                            {item.currency} {item.amount.toLocaleString("en-IN")}
                           </td>
                           <td className="p-2.5 text-center">
-                            {item.isDuplicate ? (
+                            {item.error ? (
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] font-semibold text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-950/60 px-1.5 py-0.5 rounded"
+                                title={item.error}
+                              >
+                                <AlertTriangle size={10} />
+                                Invalid
+                              </span>
+                            ) : item.isDuplicate ? (
                               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.5 rounded">
                                 Duplicate (Skip)
                               </span>
@@ -346,11 +523,21 @@ export function ImportWizardModal({ isOpen, onClose, onImportComplete }: ImportW
                   </table>
                 </div>
 
-                {previewItems.some((i) => i.isDuplicate) && (
+                {duplicateCheckWarning && (
+                  <Alert type="warning">{duplicateCheckWarning}</Alert>
+                )}
+
+                {duplicateCount > 0 && (
                   <Alert type="warning">
-                    <span>
-                      1 duplicate invoice detected and will be automatically skipped to prevent double-posting (C3-3).
-                    </span>
+                    {duplicateCount} invoice{duplicateCount === 1 ? "" : "s"} already exist
+                    in this workspace and will be skipped.
+                  </Alert>
+                )}
+
+                {invalidCount > 0 && (
+                  <Alert type="error" title={`${invalidCount} invalid row(s)`}>
+                    Fix the highlighted rows in your CSV and upload again. Invalid rows are
+                    never imported.
                   </Alert>
                 )}
 
@@ -358,34 +545,37 @@ export function ImportWizardModal({ isOpen, onClose, onImportComplete }: ImportW
                   <Button variant="outline" onClick={() => setStep("source")}>
                     Back
                   </Button>
-                  <Button variant="primary" onClick={handleExecuteImport} className="gap-2">
-                    <span>Confirm & Import ({previewItems.filter((i) => !i.isDuplicate).length})</span>
+                  <Button
+                    variant="primary"
+                    onClick={handleExecuteImport}
+                    disabled={importableItems.length === 0}
+                    className="gap-2"
+                  >
+                    <span>Confirm &amp; Import ({importableItems.length})</span>
                     <ArrowRight size={14} />
                   </Button>
                 </div>
               </div>
             )}
 
-            {/* ── STEP 3: Progress ── */}
             {step === "progress" && (
               <div className="space-y-4 py-6 text-center">
                 <RefreshCw size={32} className="animate-spin text-indigo-600 dark:text-indigo-400 mx-auto" />
                 <h4 className="text-body font-semibold text-neutral-900 dark:text-zinc-100">
-                  Importing Invoices into Intake Register...
+                  Importing invoices into the intake register…
                 </h4>
                 <p className="text-caption text-neutral-500 dark:text-zinc-400">
-                  Applying validation gates and source tagging per C3-2
+                  Each invoice is validated and stocked independently.
                 </p>
                 <div className="w-full max-w-md mx-auto h-2 bg-neutral-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-indigo-600 rounded-full transition-colors duration-100 duration-300"
+                    className="h-full bg-indigo-600 rounded-full transition-colors duration-100"
                     style={{ width: `${importProgress}%` }}
                   />
                 </div>
               </div>
             )}
 
-            {/* ── STEP 4: Summary ── */}
             {step === "summary" && (
               <div className="space-y-4 text-center py-4">
                 <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
@@ -393,10 +583,10 @@ export function ImportWizardModal({ isOpen, onClose, onImportComplete }: ImportW
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-body font-semibold text-neutral-900 dark:text-zinc-100">
-                    Import Complete (C3-5)
+                    Import complete
                   </h3>
                   <p className="text-caption text-neutral-600 dark:text-zinc-400">
-                    All imported items are tagged with source <code>IMPORTED</code> and entered into the intake register.
+                    Imported invoices are now in the intake register awaiting capture.
                   </p>
                 </div>
 
@@ -421,9 +611,16 @@ export function ImportWizardModal({ isOpen, onClose, onImportComplete }: ImportW
                   </div>
                 </div>
 
+                {importStats.failed > 0 && (
+                  <p className="text-micro text-neutral-500 dark:text-zinc-400">
+                    Failed rows were rejected by the server. Re-upload them after correcting the
+                    source data.
+                  </p>
+                )}
+
                 <div className="pt-4">
                   <Button variant="primary" onClick={handleReset} className="w-full max-w-xs mx-auto">
-                    Done & Return to Inbox
+                    Done &amp; Return to Inbox
                   </Button>
                 </div>
               </div>

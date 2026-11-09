@@ -10,14 +10,16 @@ import { Alert } from "../../components/ui/Alert";
 import { Button } from "../../components/ui/Button";
 import { AvartaCrest } from "../../components/brand/AvartaCrest";
 import { sanitizeReturnTo } from "../../lib/sanitizeReturnTo";
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 
 export default function LoginPage() {
+  useDocumentTitle("Sign In", "Access the Avarta Accounts Payable Workspace.");
   const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [signupEnabled, setSignupEnabled] = useState<boolean | null>(null);
+  const [signupEnabled, setSignupEnabled] = useState<boolean>(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export default function LoginPage() {
         if (mounted) setSignupEnabled(cfg.signupEnabled);
       })
       .catch(() => {
-        if (mounted) setSignupEnabled(true);
+        if (mounted) setSignupEnabled(false);
       });
     return () => {
       mounted = false;
@@ -80,28 +82,23 @@ export default function LoginPage() {
     }
   }
 
-
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-background text-foreground px-4 py-12 sm:py-16 pb-28 md:pb-16 select-none overflow-x-hidden overflow-y-auto">
       {/* ── Atmospheric Heraldic Crest Background Watermark ── */}
-      <div 
+      <div
         className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden z-0"
         aria-hidden="true"
       >
         {/* Large Grand Crest Watermark */}
         <div className="w-[780px] max-w-[94vw] aspect-square opacity-[0.05] dark:opacity-[0.08] transition-opacity duration-300 transform scale-105 sm:scale-110 contain-layout">
-          <AvartaCrest 
-            variant="full" 
-            glow 
-            className="w-full h-full" 
-          />
+          <AvartaCrest variant="full" glow className="w-full h-full" />
         </div>
       </div>
 
       {/* ── Foreground Login Content ── */}
       <div className="relative z-10 w-full max-w-sm">
         <div className="text-center mb-6">
-          <h1 
+          <h1
             className="font-old-english text-6xl text-neutral-900 dark:text-zinc-50 font-normal leading-none mb-1 tracking-wide min-h-[60px]"
             style={{ letterSpacing: "0.06em" }}
           >
@@ -115,8 +112,8 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <Card 
-          level="surface" 
+        <Card
+          level="surface"
           className="relative border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-md overflow-hidden"
         >
           <CardContent className="p-6 md:p-8">
@@ -155,9 +152,15 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
                     className="text-neutral-400 hover:text-neutral-600 dark:text-zinc-500 dark:hover:text-zinc-300 focus:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400 dark:focus-visible:ring-zinc-400 rounded p-0.5 transition-colors"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
-                    {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+                    {showPassword ? (
+                      <EyeOff size={16} aria-hidden="true" />
+                    ) : (
+                      <Eye size={16} aria-hidden="true" />
+                    )}
                   </button>
                 }
                 placeholder="••••••••"
@@ -176,15 +179,25 @@ export default function LoginPage() {
 
               {error && <Alert type="error">{error}</Alert>}
 
-              <Button type="submit" disabled={submitting} className="w-full h-10 font-semibold text-body-sm rounded-md">
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="w-full h-10 font-semibold text-body-sm rounded-md"
+              >
                 {submitting ? "Signing in..." : "Sign in"}
               </Button>
 
-              {signupEnabled !== false && (
-                <div className="text-center pt-1" data-testid="create-workspace-link-container">
+              {signupEnabled && (
+                <div
+                  className="text-center pt-1"
+                  data-testid="create-workspace-link-container"
+                >
                   <span className="text-body-sm text-neutral-500 dark:text-zinc-400">
                     New to Avarta?{" "}
-                    <Link to="/signup" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
+                    <Link
+                      to="/signup"
+                      className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+                    >
                       Create a workspace
                     </Link>
                   </span>
@@ -204,8 +217,12 @@ export default function LoginPage() {
                     }}
                     className="w-full py-1.5 px-2 rounded-sm border border-neutral-200 dark:border-zinc-750 bg-neutral-100/70 dark:bg-zinc-800/80 text-neutral-700 dark:text-zinc-300 text-micro font-mono flex items-center justify-center gap-1.5 hover:bg-neutral-200/70 dark:hover:bg-zinc-700/80 transition-colors duration-100"
                   >
-                    <span className="px-1 py-0.5 text-[9px] font-semibold bg-neutral-200 dark:bg-zinc-700 rounded-xs">DEV</span>
-                    <span>Load Dev Operator Credentials (admin@avarta.dev)</span>
+                    <span className="px-1 py-0.5 text-[9px] font-semibold bg-neutral-200 dark:bg-zinc-700 rounded-xs">
+                      DEV
+                    </span>
+                    <span>
+                      Load Dev Operator Credentials (admin@avarta.dev)
+                    </span>
                   </button>
                 </div>
               )}
@@ -215,31 +232,51 @@ export default function LoginPage() {
 
         {/* Footer Legal Links */}
         <div className="flex flex-wrap items-center justify-center gap-3 text-micro text-neutral-400 dark:text-zinc-500 pt-4">
-          <Link to="/privacy" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+          <Link
+            to="/privacy"
+            className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+          >
             Privacy Policy
           </Link>
           <span>•</span>
-          <Link to="/terms" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+          <Link
+            to="/terms"
+            className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+          >
             Terms of Service
           </Link>
           <span>•</span>
-          <Link to="/dpa" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+          <Link
+            to="/dpa"
+            className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+          >
             DPA
           </Link>
           <span>•</span>
-          <Link to="/subprocessors" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+          <Link
+            to="/subprocessors"
+            className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+          >
             Subprocessors
           </Link>
           <span>•</span>
-          <Link to="/refund" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+          <Link
+            to="/refund"
+            className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+          >
             Refund Policy
           </Link>
           <span>•</span>
-          <a href="/.well-known/security.txt" target="_blank" rel="noreferrer noopener" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+          <a
+            href="/.well-known/security.txt"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+          >
             Security.txt
           </a>
           <span>•</span>
-          <span>© 2026 Avarta AP Workspace</span>
+          <span>© {new Date().getFullYear()} Avarta AP Workspace</span>
         </div>
       </div>
     </div>

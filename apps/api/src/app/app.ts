@@ -1,41 +1,23 @@
-import cors from "cors";
 import express from "express";
 import { env } from "../config/env";
 import { errorHandler, notFoundHandler } from "../middleware/error-handler";
 import { requestId } from "../middleware/request-id";
 import { apiRateLimiter } from "../middleware/rate-limiter";
 import { router } from "./routes";
+import { createCorsMiddleware } from "../security/cors";
 
 import { prisma } from "../config/database";
 
 export function createApp() {
   const app = express();
 
-  // Dynamic CORS: support localhost, custom WEB_ORIGIN, and any *.vercel.app deployment
-  const customOrigins = (env.webOrigin || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  // Only trust X-Forwarded-For when an operator explicitly confirms a proxy.
+  if (process.env.TRUST_PROXY === "true") {
+    app.set("trust proxy", 1);
+  }
 
-  app.use(
-    cors({
-      origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
-        const isAllowed =
-          customOrigins.includes("*") ||
-          customOrigins.includes(origin) ||
-          origin.endsWith(".vercel.app") ||
-          origin.includes("localhost") ||
-          origin.includes("127.0.0.1");
-
-        if (isAllowed) {
-          return callback(null, true);
-        }
-        return callback(new Error(`Origin ${origin} not allowed by CORS policy`));
-      },
-      credentials: true,
-    })
-  );
+  // Strict CORS: exact origin matching, no wildcards in prod, credentialed protection
+  app.use(createCorsMiddleware(env.webOrigin, process.env.NODE_ENV));
 
   // Standard OWASP Security Headers
   app.use((_req, res, next) => {

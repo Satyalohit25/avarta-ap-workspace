@@ -74,18 +74,18 @@ describe("Item 12: Bundle Hygiene, Build Verification, and Source Scans", () => 
     }
   }, 30000);
 
-  it("tracks expected-until-Item-C fixtures and verifies Item C is not started prematurely", () => {
-    // Strings that are explicitly expected until Item C lands
-    const expectedUntilItemCStrings = ["generateSupplierLineItems"];
+  it("verifies the Item C generated-catalogue fixtures have been removed", () => {
+    // Item C replaced the synthetic supplier catalogue with invoice-backed
+    // line items, so these fixtures must no longer exist in web source.
+    const removedFixtureStrings = ["generateSupplierLineItems", "selectCatalog"];
 
     const webSrcFiles = getAllFiles(webSrcDir);
-    for (const str of expectedUntilItemCStrings) {
+    for (const str of removedFixtureStrings) {
       const matches = searchFilesForString(webSrcFiles, str);
-      // Item C has NOT landed yet, so generateSupplierLineItems MUST still be present in web source
       expect(
-        matches.length,
-        `Expected fixture "${str}" was not found in web source. Item C should not be removed or started early without updating this checklist.`
-      ).toBeGreaterThan(0);
+        matches,
+        `Fixture "${str}" still exists in web source: ${matches.join(", ")}`
+      ).toHaveLength(0);
     }
   });
 

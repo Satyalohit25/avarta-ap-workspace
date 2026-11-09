@@ -3,6 +3,8 @@ import { prisma } from "../../config/database";
 import {
   assertNoCliPasswordArg,
   getDatabaseHost,
+  getDatabaseDetails,
+  confirmDatabaseTarget,
   provisionInitialAdmin,
 } from "../../../scripts/create-initial-admin";
 import { signupHandler, authConfigHandler } from "./controller";
@@ -32,15 +34,26 @@ describe("Production Gate Item C: Initial Admin CLI & Signup Lock", () => {
 
     it("allows non-sensitive CLI arguments", () => {
       expect(() => {
-        assertNoCliPasswordArg(["--company=Acme", "--email=admin@acme.dev", "--confirm-host=127.0.0.1"]);
+        assertNoCliPasswordArg(["--company=Acme", "--email=admin@acme.dev", "--confirm-host=127.0.0.1", "--yes"]);
       }).not.toThrow();
     });
 
-    it("extracts hostname from database connection strings accurately", () => {
-      expect(getDatabaseHost("postgresql://user:pass@ep-cool-dawn-123456.us-east-2.aws.neon.tech/neondb")).toBe(
-        "ep-cool-dawn-123456.us-east-2.aws.neon.tech"
-      );
+    it("extracts hostname and database name from connection strings accurately", () => {
+      const details = getDatabaseDetails("postgresql://user:pass@ep-cool-dawn-123456.us-east-2.aws.neon.tech/neondb");
+      expect(details.host).toBe("ep-cool-dawn-123456.us-east-2.aws.neon.tech");
+      expect(details.databaseName).toBe("neondb");
+
       expect(getDatabaseHost("postgresql://postgres:123@127.0.0.1:5432/avarta_db")).toBe("127.0.0.1");
+    });
+
+    it("allows remote database execution with --yes flag", async () => {
+      const details = await confirmDatabaseTarget({
+        connectionString: "postgresql://remote_user:pass@ep-cool-dawn.us-east-2.aws.neon.tech/neondb",
+        args: ["--yes"],
+        isTTY: false,
+      });
+      expect(details.host).toBe("ep-cool-dawn.us-east-2.aws.neon.tech");
+      expect(details.databaseName).toBe("neondb");
     });
 
     it("aborts execution if database host confirmation does not match target host", async () => {
@@ -178,7 +191,7 @@ describe("Production Gate Item C: Initial Admin CLI & Signup Lock", () => {
 
       expect(caughtError).toBeInstanceOf(ApiError);
       expect(caughtError.status).toBe(403);
-      expect(caughtError.message).toContain("Public signup is disabled");
+      expect(caughtError.message).toBe("Public registration is disabled. Please contact your organization administrator.");
     });
 
     it("allows signup to proceed when workspace limit is not reached", async () => {

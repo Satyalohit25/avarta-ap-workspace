@@ -20,6 +20,10 @@ export interface SeedSummary {
   scenarios: string[];
 }
 
+// The demo seeder only ever destroys and recreates this tenant. Other
+// organizations sharing the database are never touched.
+export const DEMO_ORGANIZATION_ID = "org_demo_001";
+
 export async function seedDemoDataset(prismaClient: PrismaClient): Promise<SeedSummary> {
   if (process.env.NODE_ENV === "production") {
     throw new Error(
@@ -29,35 +33,43 @@ export async function seedDemoDataset(prismaClient: PrismaClient): Promise<SeedS
 
   const prisma = prismaClient;
 
-  // 1. Dependency-ordered clean table wipe inside transaction
+  // 1. Dependency-ordered clean of the DEMO tenant only. Other organizations
+  // sharing the database are deliberately left untouched.
   await runWithSeederBypass(async () => {
+    const demoOrg = DEMO_ORGANIZATION_ID;
     await prisma.$transaction([
-      prisma.idempotencyKey.deleteMany(),
-      prisma.auditLog.deleteMany(),
-      prisma.notification.deleteMany(),
-      prisma.comment.deleteMany(),
-      prisma.workflowTransition.deleteMany(),
-      prisma.workflowInstance.deleteMany(),
-      prisma.payment.deleteMany(),
-      prisma.approval.deleteMany(),
-      prisma.exception.deleteMany(),
-      prisma.validation.deleteMany(),
-      prisma.document.deleteMany(),
-      prisma.invoiceLine.deleteMany(),
-      prisma.invoice.deleteMany(),
-      prisma.goodsReceiptLine.deleteMany(),
-      prisma.goodsReceipt.deleteMany(),
-      prisma.purchaseOrder.deleteMany(),
-      prisma.supplier.deleteMany(),
-      prisma.user.deleteMany(),
-      prisma.organization.deleteMany(),
+      prisma.idempotencyKey.deleteMany({ where: { organizationId: demoOrg } }),
+      prisma.auditLog.deleteMany({ where: { organizationId: demoOrg } }),
+      prisma.notification.deleteMany({ where: { organizationId: demoOrg } }),
+      prisma.comment.deleteMany({ where: { invoice: { organizationId: demoOrg } } }),
+      prisma.workflowTransition.deleteMany({
+        where: { workflowInstance: { invoice: { organizationId: demoOrg } } },
+      }),
+      prisma.workflowInstance.deleteMany({ where: { invoice: { organizationId: demoOrg } } }),
+      prisma.payment.deleteMany({ where: { organizationId: demoOrg } }),
+      prisma.approval.deleteMany({ where: { invoice: { organizationId: demoOrg } } }),
+      prisma.exception.deleteMany({ where: { organizationId: demoOrg } }),
+      prisma.validation.deleteMany({ where: { invoice: { organizationId: demoOrg } } }),
+      prisma.document.deleteMany({ where: { invoice: { organizationId: demoOrg } } }),
+      prisma.invoiceLine.deleteMany({ where: { invoice: { organizationId: demoOrg } } }),
+      prisma.invoice.deleteMany({ where: { organizationId: demoOrg } }),
+      prisma.goodsReceiptLine.deleteMany({ where: { goodsReceipt: { organizationId: demoOrg } } }),
+      prisma.goodsReceipt.deleteMany({ where: { organizationId: demoOrg } }),
+      prisma.purchaseOrder.deleteMany({ where: { organizationId: demoOrg } }),
+      prisma.supplier.deleteMany({ where: { organizationId: demoOrg } }),
+      prisma.item.deleteMany({ where: { organizationId: demoOrg } }),
+      prisma.sampleRecord.deleteMany({ where: { organizationId: demoOrg } }),
+      prisma.organizationInvitation.deleteMany({ where: { organizationId: demoOrg } }),
+      prisma.passwordResetToken.deleteMany({ where: { organizationId: demoOrg } }),
+      prisma.user.deleteMany({ where: { organizationId: demoOrg } }),
+      prisma.organization.deleteMany({ where: { id: demoOrg } }),
     ]);
   });
 
   // 2. Organization Creation (Deterministic ID preserves active demo session tokens)
   const org = await prisma.organization.create({
     data: {
-      id: "org_demo_001",
+      id: DEMO_ORGANIZATION_ID,
       name: "Acme Manufacturing Pvt Ltd",
       legalName: "Acme Manufacturing Private Limited",
       country: "IN",
@@ -896,7 +908,9 @@ export async function seedDemoDataset(prismaClient: PrismaClient): Promise<SeedS
       },
     });
 
-    const instance = await prisma.workflowInstance.findUnique({ where: { invoiceId: inv.id } });
+    const instance = await prisma.workflowInstance.findFirst({
+      where: { invoiceId: inv.id, invoice: { organizationId: org.id } },
+    });
 
     // Progressive timeline transitions
     const stageTimeline: Array<{
@@ -1125,6 +1139,13 @@ export async function seedDemoDataset(prismaClient: PrismaClient): Promise<SeedS
     // Attach Payment
     if (item.payment) {
       paymentsCount++;
+      // PAID payments must satisfy Payment_paid_settlement_check: a non-empty
+      // alphanumeric UTR (10–22 chars) plus a settlement date.
+      const isPaid = item.payment.status === "PAID";
+      const sanitizedRef = (item.payment.ref ?? "").replace(/[^A-Za-z0-9]/g, "");
+      const utrNumber = isPaid
+        ? (sanitizedRef.length >= 10 ? sanitizedRef.slice(0, 22) : `UTR${sanitizedRef}${Date.now()}`.slice(0, 22))
+        : null;
       await prisma.payment.create({
         data: {
           organizationId: org.id,
@@ -1134,8 +1155,11 @@ export async function seedDemoDataset(prismaClient: PrismaClient): Promise<SeedS
           currency: item.currency,
           paymentMethod: item.payment.method,
           scheduledDate: item.payment.date,
-          processedAt: item.payment.status === "PAID" ? item.payment.date : null,
+          processedAt: isPaid ? item.payment.date : null,
           status: item.payment.status as unknown as never,
+          ...(isPaid
+            ? { utrNumber, settlementDate: item.payment.date, clearingDate: item.payment.date }
+            : {}),
         },
       });
     }

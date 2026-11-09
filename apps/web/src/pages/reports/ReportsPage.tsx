@@ -1,3 +1,4 @@
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useState } from "react";
 import { PageHeader } from "../../components/layout/PageHeader";
 import { Select } from "../../components/ui/Select";
@@ -7,6 +8,7 @@ import { ApAgingCashForecastView } from "./components/ApAgingCashForecastView";
 import { BarChart3, Clock } from "lucide-react";
 
 export default function ReportsPage() {
+  useDocumentTitle("Reports & Auditing", "AP turnover analytics, aging buckets, cash outflow projections, and statutory compliance reports.");
   const [timeRange, setTimeRange] = useState("30d");
 
   return (

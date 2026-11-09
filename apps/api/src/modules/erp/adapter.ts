@@ -1,3 +1,5 @@
+import { validateUrlSsrf } from "../../security/ssrf";
+
 export interface JournalEntryLine {
   accountCode: string;
   accountName: string;
@@ -97,7 +99,33 @@ export class TallyPrimeAdapter implements ErpAdapter {
 
   async testConnection(config: Record<string, string>): Promise<ErpTestResult> {
     const start = Date.now();
-    const gatewayUrl = config.gatewayUrl || "http://localhost:9000";
+    const gatewayUrl = config.gatewayUrl || process.env.TALLY_GATEWAY_URL || "http://localhost:9000";
+
+    let isLocalDevTally = false;
+    try {
+      const parsed = new URL(gatewayUrl);
+      isLocalDevTally =
+        process.env.ALLOW_LOCAL_TALLY === "true" &&
+        (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") &&
+        (parsed.port === "9000" || parsed.port === "");
+    } catch {
+      return {
+        success: false,
+        latencyMs: Date.now() - start,
+        message: "Invalid Tally gateway URL format.",
+      };
+    }
+
+    if (!isLocalDevTally) {
+      const ssrfCheck = await validateUrlSsrf(gatewayUrl, { allowHttp: true });
+      if (!ssrfCheck.safe) {
+        return {
+          success: false,
+          latencyMs: Date.now() - start,
+          message: `SSRF Rejection: ${ssrfCheck.reason}`,
+        };
+      }
+    }
 
     try {
       const pingXml = `<ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Data</TYPE><ID>Company</ID></HEADER><BODY><DESC><STATICVARIABLES><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES></DESC></BODY></ENVELOPE>`;
@@ -183,16 +211,35 @@ export class TallyPrimeAdapter implements ErpAdapter {
     // Attempt direct dispatch if gatewayUrl configured
     let erpResponse: string | undefined;
     if (config?.gatewayUrl) {
+      let isSafeUrl = false;
       try {
-        const res = await fetch(config.gatewayUrl, {
-          method: "POST",
-          headers: { "Content-Type": "text/xml" },
-          body: tallyXml,
-          signal: AbortSignal.timeout(5000),
-        });
-        erpResponse = await res.text();
+        const parsed = new URL(config.gatewayUrl);
+        const isLocalDevTally =
+          process.env.ALLOW_LOCAL_TALLY === "true" &&
+          (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") &&
+          (parsed.port === "9000" || parsed.port === "");
+        if (isLocalDevTally) {
+          isSafeUrl = true;
+        } else {
+          const ssrfCheck = await validateUrlSsrf(config.gatewayUrl, { allowHttp: true });
+          isSafeUrl = ssrfCheck.safe;
+        }
       } catch {
-        // Fallback: XML generated successfully for download/manual sync
+        isSafeUrl = false;
+      }
+
+      if (isSafeUrl) {
+        try {
+          const res = await fetch(config.gatewayUrl, {
+            method: "POST",
+            headers: { "Content-Type": "text/xml" },
+            body: tallyXml,
+            signal: AbortSignal.timeout(5000),
+          });
+          erpResponse = await res.text();
+        } catch {
+          // Fallback: XML generated successfully for download/manual sync
+        }
       }
     }
 

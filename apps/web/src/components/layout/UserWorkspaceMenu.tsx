@@ -100,7 +100,7 @@ export function UserWorkspaceMenu({
 
       {/* The Space Where Everything Exists: Dropdown / Popover Hub */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-[420px] sm:w-[480px] bg-white dark:bg-zinc-900 border border-neutral-200/90 dark:border-zinc-800 rounded-lg shadow-lg z-50 overflow-hidden text-neutral-800 dark:text-zinc-200 divide-y divide-neutral-100 dark:divide-zinc-800/80">
+        <div className="absolute right-0 top-full mt-2 w-[calc(100vw-1.5rem)] sm:w-[440px] max-w-[460px] bg-white dark:bg-zinc-900 border border-neutral-200/90 dark:border-zinc-800 rounded-lg shadow-lg z-50 overflow-hidden text-neutral-800 dark:text-zinc-200 divide-y divide-neutral-100 dark:divide-zinc-800/80">
           {/* Section 1: User & Organization Identity */}
           <div className="p-4 bg-neutral-50/70 dark:bg-zinc-900/50">
             <div className="flex items-start justify-between gap-3">
@@ -128,7 +128,14 @@ export function UserWorkspaceMenu({
                       {displayRole}
                     </span>
                   </div>
-                    {user?.email ?? ""}
+                  {user?.email && (
+                    <a
+                      href={`mailto:${user.email}`}
+                      className="text-micro font-mono text-neutral-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline block truncate mt-0.5"
+                    >
+                      {user.email}
+                    </a>
+                  )}
                   <div className="flex items-center gap-1.5 mt-1.5 text-micro text-neutral-600 dark:text-zinc-400">
                     <Building2 size={12} className="text-neutral-400 shrink-0" />
                     <span className="truncate font-medium">{orgName}</span>

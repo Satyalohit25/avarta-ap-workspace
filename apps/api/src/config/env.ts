@@ -1,7 +1,19 @@
 import "dotenv/config";
 
 export function validateEnvironment(): void {
-  const isProd = process.env.NODE_ENV === "production";
+  const nodeEnv = process.env.NODE_ENV;
+  const allowedEnvironments = ["development", "test", "production"];
+
+  // Fail closed: an unset or misspelled NODE_ENV must never silently disable
+  // production guards (JWT secret, demo reset, dev master credentials).
+  if (!nodeEnv || !allowedEnvironments.includes(nodeEnv)) {
+    throw new Error(
+      `FATAL BOOT CONFIGURATION ERROR: NODE_ENV must be explicitly set to one of ${allowedEnvironments.join(", ")}. ` +
+      `Received: ${nodeEnv === undefined ? "<unset>" : JSON.stringify(nodeEnv)}`
+    );
+  }
+
+  const isProd = nodeEnv === "production";
   const missingOrInvalid: string[] = [];
 
   // Required in production
@@ -76,7 +88,9 @@ export const env = {
     (isProd ? "" : "postgresql://postgres:123456@127.0.0.1:5432/avarta_db?schema=public"),
   jwtSecret: process.env.JWT_SECRET ?? (isProd ? "" : "dev-secret-change-me"),
   jwtExpiresIn: Number(process.env.JWT_EXPIRES_IN ?? 900),
-  webOrigin: process.env.WEB_ORIGIN ?? "http://localhost:5173",
+  get webOrigin(): string {
+    return process.env.WEB_ORIGIN ?? "http://localhost:5173";
+  },
   appEncryptionKey:
     process.env.APP_ENCRYPTION_KEY ??
     (isProd ? "" : "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"),

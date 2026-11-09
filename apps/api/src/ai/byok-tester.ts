@@ -1,3 +1,5 @@
+import { OUTBOUND_TIMEOUTS } from "../config/timeouts";
+
 export interface ByokTestResult {
   success: boolean;
   provider: "GEMINI" | "OPENAI" | "TEXTRACT";
@@ -32,7 +34,11 @@ export async function testByokApiKey(
       // Test Google Gemini API Key via models endpoint
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`,
-        { method: "GET", headers: { "Content-Type": "application/json" } }
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          signal: AbortSignal.timeout(OUTBOUND_TIMEOUTS.KEY_TEST_MS),
+        }
       );
       const latencyMs = Date.now() - start;
 
@@ -65,6 +71,7 @@ export async function testByokApiKey(
       const response = await fetch("https://api.openai.com/v1/models", {
         method: "GET",
         headers: { Authorization: `Bearer ${cleanKey}` },
+        signal: AbortSignal.timeout(OUTBOUND_TIMEOUTS.KEY_TEST_MS),
       });
       const latencyMs = Date.now() - start;
 

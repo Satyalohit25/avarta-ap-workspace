@@ -9,6 +9,7 @@ import {
   revokeAllUserTokens,
 } from "../../lib/jwt";
 import { env } from "../../config/env";
+import { IntegrationsService } from "../integrations/service";
 
 export function computeLockoutHash(email: string, clientIp: string): string {
   const cleanEmail = email.toLowerCase().trim();
@@ -348,42 +349,186 @@ export async function listTeamMembers(organizationId: string) {
 
 export async function inviteTeamMember(
   organizationId: string,
-  input: { email: string; fullName: string; role: "ADMINISTRATOR" | "FINANCE_MANAGER" | "FINANCE_EXECUTIVE" | "APPROVER" | "READ_ONLY" }
+  input: { email: string; fullName: string; role: "ADMINISTRATOR" | "FINANCE_MANAGER" | "FINANCE_EXECUTIVE" | "APPROVER" | "READ_ONLY" },
+  invitedById?: string
 ) {
   const cleanEmail = input.email.toLowerCase().trim();
 
-  // Check if user already exists in organization
+  // A user may only belong to one workspace today (login is email-based), so
+  // reject invitations for emails that already have an account anywhere.
   const existing = await prisma.user.findFirst({
-    where: { organizationId, email: cleanEmail },
+    where: { email: cleanEmail },
   });
   if (existing) {
-    throw ApiError.conflict(`A user with email ${cleanEmail} already exists in this organization.`);
+    throw ApiError.conflict(`An account with email ${cleanEmail} already exists.`);
   }
 
-  // Generate temporary password hash (invitation flow)
-  const tempPassword = `Inv_${Math.random().toString(36).slice(-8)}!`;
-  const passwordHash = await bcrypt.hash(tempPassword, 10);
+  // Determine inviter user ID
+  let inviterId = invitedById;
+  if (!inviterId) {
+    const admin = await prisma.user.findFirst({
+      where: { organizationId, role: "ADMINISTRATOR" },
+      select: { id: true },
+    });
+    inviterId = admin?.id;
+  }
+  if (!inviterId) {
+    const anyUser = await prisma.user.findFirst({
+      where: { organizationId },
+      select: { id: true },
+    });
+    inviterId = anyUser?.id;
+  }
+  if (!inviterId) {
+    throw ApiError.badRequest("Cannot invite team member without an existing organization user.");
+  }
 
-  const newUser = await prisma.user.create({
+  // Generate secure single-use invitation token
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7-day expiry
+
+  const invitation = await prisma.$transaction(async (tx) => {
+    // Revoke previous pending invites for this email in this organization
+    await tx.organizationInvitation.updateMany({
+      where: {
+        organizationId,
+        email: cleanEmail,
+        usedAt: null,
+        revokedAt: null,
+      },
+      data: { revokedAt: new Date() },
+    });
+
+    // The user row is created only when the invitation is accepted, so no
+    // temporary password or inactive account is ever generated.
+    return tx.organizationInvitation.create({
+      data: {
+        organizationId,
+        invitedById: inviterId as string,
+        email: cleanEmail,
+        role: input.role,
+        tokenHash,
+        expiresAt,
+      },
+    });
+  });
+
+  const inviteUrl = `${env.webOrigin.replace(/\/$/, "")}/accept-invite?token=${rawToken}`;
+
+  // Deliver through the tenant's own email connector. When none is
+  // configured we return the link so the administrator can share it and
+  // never claim an email was sent.
+  const delivery = await IntegrationsService.sendTransactionalEmail(organizationId, {
+    to: cleanEmail,
+    subject: "You have been invited to Avarta AP Workspace",
+    text: [
+      `Hello ${input.fullName},`,
+      "",
+      `You have been invited to join the Avarta AP Workspace as ${input.role.replace(/_/g, " ")}.`,
+      `Accept your invitation: ${inviteUrl}`,
+      "",
+      "This single-use link expires in 7 days. If you were not expecting this invitation, you can ignore this email.",
+    ].join("\n"),
+    html: `<p>Hello ${input.fullName},</p><p>You have been invited to join the Avarta AP Workspace as <strong>${input.role.replace(/_/g, " ")}</strong>.</p><p><a href="${inviteUrl}">Accept your invitation</a></p><p>This single-use link expires in 7 days.</p>`,
+  });
+
+  return {
+    id: invitation.id,
+    email: invitation.email,
+    role: invitation.role,
+    invitationId: invitation.id,
+    token: delivery.sent ? undefined : rawToken,
+    inviteUrl: delivery.sent ? undefined : inviteUrl,
+    emailSent: delivery.sent,
+    emailDeliveryError: delivery.sent ? undefined : delivery.reason,
+    expiresAt: invitation.expiresAt,
+    message: delivery.sent
+      ? `Invitation email sent to ${cleanEmail}.`
+      : "Invitation created. No email connector is configured, so share the single-use invitation link securely.",
+  };
+}
+
+export async function acceptInvitation(input: {
+  token: string;
+  fullName: string;
+  password: string;
+}) {
+  if (input.password.length < 12) {
+    throw ApiError.badRequest("Password must be at least 12 characters long");
+  }
+
+  const tokenHash = crypto.createHash("sha256").update(input.token).digest("hex");
+  const invitation = await prisma.organizationInvitation.findUnique({
+    where: { tokenHash },
+  });
+
+  if (
+    !invitation ||
+    invitation.usedAt ||
+    invitation.revokedAt ||
+    invitation.expiresAt.getTime() <= Date.now()
+  ) {
+    throw ApiError.badRequest("Invitation is invalid, revoked, or has expired");
+  }
+
+  const existing = await prisma.user.findFirst({ where: { email: invitation.email } });
+  if (existing) {
+    throw ApiError.conflict("An account with this email already exists. Please log in.");
+  }
+
+  const passwordHash = await bcrypt.hash(input.password, 10);
+
+  const user = await prisma.$transaction(async (tx) => {
+    // Single-use claim: only the first concurrent request can consume this token.
+    const claimed = await tx.organizationInvitation.updateMany({
+      where: {
+        id: invitation.id,
+        usedAt: null,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      data: { usedAt: new Date() },
+    });
+    if (claimed.count !== 1) {
+      throw ApiError.badRequest("Invitation is invalid, revoked, or has expired");
+    }
+
+    return tx.user.create({
+      data: {
+        organizationId: invitation.organizationId,
+        email: invitation.email,
+        fullName: input.fullName.trim(),
+        passwordHash,
+        role: invitation.role,
+        status: "ACTIVE",
+        tokenVersion: 0,
+      },
+      include: { organization: true },
+    });
+  });
+
+  await prisma.auditLog.create({
     data: {
-      organizationId,
-      email: cleanEmail,
-      fullName: input.fullName.trim(),
-      passwordHash,
-      role: input.role,
-      status: "ACTIVE",
-      tokenVersion: 0,
+      organizationId: invitation.organizationId,
+      userId: user.id,
+      action: "INVITATION_ACCEPTED",
+      entityType: "User",
+      entityId: user.id,
+      result: "SUCCESS",
     },
   });
 
   return {
-    id: newUser.id,
-    email: newUser.email,
-    fullName: newUser.fullName,
-    role: newUser.role,
-    status: newUser.status,
-    temporaryPassword: tempPassword,
-    message: "Team member invitation created. Temporary credentials generated.",
+    success: true,
+    message: "Invitation accepted. You can now log in.",
+    user: {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+      organizationId: user.organizationId,
+    },
   };
 }
 
@@ -421,9 +566,8 @@ export async function deactivateTeamMember(organizationId: string, userId: strin
   return updated;
 }
 
-// In-memory token store with TTL for secure account recovery
-const resetTokenStore = new Map<string, { userId: string; expiresAt: number }>();
-
+// Password reset tokens are persisted (hashed) in `password_reset_tokens`
+// so resets survive process restarts and work across multiple instances.
 export async function requestPasswordReset(email: string) {
   const cleanEmail = email.toLowerCase().trim();
   const user = await prisma.user.findFirst({
@@ -441,9 +585,23 @@ export async function requestPasswordReset(email: string) {
   }
 
   const resetToken = crypto.randomBytes(32).toString("hex");
-  resetTokenStore.set(resetToken, {
-    userId: user.id,
-    expiresAt: Date.now() + 60 * 60 * 1000, // 1 hour TTL
+  const tokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour TTL
+
+  await prisma.$transaction(async (tx) => {
+    // Revoke any outstanding tokens before issuing a new one.
+    await tx.passwordResetToken.updateMany({
+      where: { userId: user.id, organizationId: user.organizationId, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+    await tx.passwordResetToken.create({
+      data: {
+        tokenHash,
+        userId: user.id,
+        organizationId: user.organizationId,
+        expiresAt,
+      },
+    });
   });
 
   await prisma.auditLog.create({
@@ -462,6 +620,21 @@ export async function requestPasswordReset(email: string) {
     console.info(`[DEV/TEST] Password recovery token for ${cleanEmail}: ${resetToken}`);
   }
 
+  const resetUrl = `${env.webOrigin.replace(/\/$/, "")}/reset-password?token=${resetToken}`;
+  await IntegrationsService.sendTransactionalEmail(user.organizationId, {
+    to: cleanEmail,
+    subject: "Reset your Avarta AP Workspace password",
+    text: [
+      `Hello ${user.fullName || "there"},`,
+      "",
+      "A password reset was requested for your account.",
+      `Reset your password: ${resetUrl}`,
+      "",
+      "This link expires in 1 hour and can only be used once. If you did not request this, no action is needed.",
+    ].join("\n"),
+    html: `<p>Hello ${user.fullName || "there"},</p><p>A password reset was requested for your account.</p><p><a href="${resetUrl}">Reset your password</a></p><p>This link expires in 1 hour and can only be used once.</p>`,
+  });
+
   // Never return resetToken in API response body to prevent user enumeration
   return {
     success: true,
@@ -473,26 +646,39 @@ export async function resetPassword(token: string, newPassword: string) {
   if (!token || !newPassword) {
     throw ApiError.badRequest("Token and new password are required");
   }
-  if (newPassword.length < 8) {
-    throw ApiError.badRequest("Password must be at least 8 characters long");
+  if (newPassword.length < 12) {
+    throw ApiError.badRequest("Password must be at least 12 characters long");
   }
 
-  const record = resetTokenStore.get(token);
-  if (!record || Date.now() > record.expiresAt) {
-    if (record) resetTokenStore.delete(token);
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const record = await prisma.passwordResetToken.findUnique({ where: { tokenHash } });
+  if (!record || record.usedAt || record.expiresAt.getTime() <= Date.now()) {
     throw ApiError.badRequest("Password reset token is invalid or has expired");
   }
 
   const passwordHash = await bcrypt.hash(newPassword, 10);
-  const user = await prisma.user.update({
-    where: { id: record.userId },
-    data: {
-      passwordHash,
-      tokenVersion: { increment: 1 }, // Invalidate all previously issued tokens across all instances
-    },
-  });
+  const user = await prisma.$transaction(async (tx) => {
+    // Single-use claim: only the first concurrent request can consume this token.
+    const claimed = await tx.passwordResetToken.updateMany({
+      where: {
+        id: record.id,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      data: { usedAt: new Date() },
+    });
+    if (claimed.count !== 1) {
+      throw ApiError.badRequest("Password reset token is invalid or has expired");
+    }
 
-  resetTokenStore.delete(token);
+    return tx.user.update({
+      where: { id: record.userId },
+      data: {
+        passwordHash,
+        tokenVersion: { increment: 1 }, // Invalidate all previously issued tokens across all instances
+      },
+    });
+  });
 
   // Revoke all existing sessions and refresh tokens on password change
   await revokeAllUserTokensAsync(user.id);
@@ -609,5 +795,44 @@ export async function signup(data: {
     accessToken,
     refreshToken: rawRefreshToken,
     expiresIn: env.jwtExpiresIn,
+  };
+}
+
+export async function isSignupAllowed(): Promise<{
+  allowed: boolean;
+  reason?: string;
+  currentCount: number;
+  maxCount: number;
+}> {
+  // Gate 1 Fail-closed: Must be explicitly enabled via ENABLE_PUBLIC_SIGNUP === "true" (or legacy ALLOW_PUBLIC_SIGNUP === "true").
+  // Any legacy ALLOW_PUBLIC_SIGNUP="false" or absence of explicit true fails closed.
+  if (
+    process.env.ALLOW_PUBLIC_SIGNUP === "false" ||
+    (process.env.ENABLE_PUBLIC_SIGNUP !== "true" && process.env.ALLOW_PUBLIC_SIGNUP !== "true")
+  ) {
+    return {
+      allowed: false,
+      reason: "Public registration is disabled. Please contact your organization administrator.",
+      currentCount: 0,
+      maxCount: 0,
+    };
+  }
+
+  const maxCount = parseInt(process.env.MAX_PUBLIC_SIGNUPS || "2", 10);
+  const currentCount = await prisma.organization.count();
+
+  if (currentCount >= maxCount) {
+    return {
+      allowed: false,
+      reason: `Public signup limit reached (maximum ${maxCount} workspaces). Self-service registration is now closed.`,
+      currentCount,
+      maxCount,
+    };
+  }
+
+  return {
+    allowed: true,
+    currentCount,
+    maxCount,
   };
 }

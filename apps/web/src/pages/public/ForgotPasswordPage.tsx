@@ -1,3 +1,4 @@
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Shield, ArrowLeft, Mail, CheckCircle2 } from "lucide-react";
@@ -8,6 +9,7 @@ import { Alert } from "../../components/ui/Alert";
 import { apiRequest } from "../../api/client";
 
 export default function ForgotPasswordPage() {
+  useDocumentTitle("Forgot Password", "Request a password reset link for your Avarta AP Workspace account.");
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);

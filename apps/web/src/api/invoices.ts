@@ -34,7 +34,7 @@ interface ListResponse {
   meta: { page: number; pageSize: number; total: number; totalPages: number };
 }
 
-export function listInvoices(params: { status?: string; search?: string; page?: number } = {}) {
+export function listInvoices(params: { status?: string; search?: string; page?: number; pageSize?: number } = {}) {
   return apiRequest<ListResponse>("/invoices", { query: params });
 }
 

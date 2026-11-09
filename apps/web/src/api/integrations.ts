@@ -31,6 +31,15 @@ export interface IntegrationsStatusData {
     maskedKey?: string;
     lastTestedAt?: string;
   };
+  email?: {
+    provider: string;
+    status: string;
+    fromName?: string;
+    fromEmail?: string;
+    replyTo?: string;
+    maskedKey?: string;
+    lastTestedAt?: string;
+  };
 }
 
 export interface ByokTestResponse {
@@ -58,6 +67,7 @@ export interface ErpTestResponse {
 
 export interface ErpSyncResponse {
   syncedCount: number;
+  failedCount: number;
   batchReference: string;
   format: string;
 }
@@ -129,5 +139,52 @@ export async function testPaymentGatewayConnection(payload: {
     body: payload,
   });
   return res.data;
+}
+
+export type EmailProvider = "SMTP" | "RESEND" | "SENDGRID" | "POSTMARK" | "MAILGUN";
+
+export interface EmailConfigPayload {
+  provider: EmailProvider;
+  fromName: string;
+  fromEmail: string;
+  replyTo?: string;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpSecure?: boolean;
+  smtpUser?: string;
+  smtpPassword?: string;
+  apiKey?: string;
+  domain?: string;
+}
+
+export interface EmailTestResponse {
+  success: boolean;
+  provider: string;
+  latencyMs: number;
+  message: string;
+  messageId?: string;
+}
+
+export async function testEmailConnection(payload: {
+  provider: EmailProvider;
+  config: Partial<EmailConfigPayload>;
+  save?: boolean;
+  testRecipient?: string;
+}): Promise<EmailTestResponse> {
+  const res = await apiRequest<{ data: EmailTestResponse }>("/integrations/email/test", {
+    method: "POST",
+    body: payload,
+  });
+  return res.data;
+}
+
+export async function disconnectIntegration(
+  type: "BYOK_AI" | "BYODB" | "ERP" | "PAYMENT_GATEWAY" | "EMAIL",
+  provider: string
+): Promise<void> {
+  await apiRequest(`/integrations/${type}/disconnect`, {
+    method: "POST",
+    body: { provider },
+  });
 }
 

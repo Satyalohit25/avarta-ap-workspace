@@ -13,6 +13,12 @@ import { reportRoutes } from "../modules/reports/routes";
 import { demoRoutes } from "../modules/demo/routes";
 import { integrationRoutes } from "../modules/integrations/routes";
 import { billingRoutes } from "../modules/billing/routes";
+import { itemRoutes } from "../modules/items/routes";
+import { bankAccountRoutes } from "../modules/bank_accounts/routes";
+import { organizationRoutes } from "../modules/organization/routes";
+import { notificationRoutes } from "../modules/notifications/routes";
+import { apiKeyRoutes } from "../modules/api_keys/routes";
+import { dataExportRoutes } from "../modules/data_export/routes";
 
 export const router = Router();
 
@@ -32,6 +38,12 @@ router.use("/integrations", integrationRoutes);
 router.use("/settings/integrations", integrationRoutes);
 router.use("/billing", billingRoutes);
 router.use("/settings/billing", billingRoutes);
+router.use("/items", itemRoutes);
+router.use("/bank-accounts", bankAccountRoutes);
+router.use("/organization", organizationRoutes);
+router.use("/notifications", notificationRoutes);
+router.use("/api-keys", apiKeyRoutes);
+router.use("/data-export", dataExportRoutes);
 
 
 

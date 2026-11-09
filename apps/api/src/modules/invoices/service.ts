@@ -149,7 +149,10 @@ export async function updateInvoice(input: UpdateInvoiceInput) {
 
     if (input.lines && input.lines.length > 0) {
       await tx.invoiceLine.deleteMany({
-        where: { invoiceId: input.invoiceId },
+        where: {
+          invoiceId: input.invoiceId,
+          invoice: { organizationId: input.organizationId },
+        },
       });
 
       await tx.invoiceLine.createMany({
@@ -345,7 +348,7 @@ export async function createInvoice(input: CreateInvoiceInput) {
       entityType: "invoice",
       entityId: invoice.id,
       afterData: {
-        confidence: extracted?.overallConfidence || 96.5,
+        confidence: extracted?.overallConfidence ?? null,
         boundingBoxes: extracted?.fieldBoundingBoxes || null,
         extracted: extracted || null,
         invoiceNumber,
@@ -355,6 +358,66 @@ export async function createInvoice(input: CreateInvoiceInput) {
   });
 
   return getInvoice(input.organizationId, invoice.id);
+}
+
+type ExtractedInvoice = Awaited<ReturnType<typeof extractInvoiceFromFile>>;
+type AiConfidenceBand = "HIGH" | "MEDIUM" | "LOW";
+
+// Doc 05 / AGENTS.md Rule 2: High (>=95) may pre-fill for one-click accept,
+// Medium (80–94) is a recommendation only, Low (<80) pre-fills nothing.
+function confidenceBand(confidence: number | null): AiConfidenceBand {
+  if (confidence === null) return "LOW";
+  if (confidence >= 95) return "HIGH";
+  if (confidence >= 80) return "MEDIUM";
+  return "LOW";
+}
+
+// Re-extraction updates existing lines in place and appends new ones. It never
+// deletes rows — AGENTS.md Rule 3 (nothing is ever deleted).
+async function applyExtractedLines(
+  organizationId: string,
+  invoiceId: string,
+  lines: ExtractedInvoice["lines"]
+) {
+  const existing = await prisma.invoiceLine.findMany({
+    where: { invoiceId, invoice: { organizationId } },
+    orderBy: { lineNumber: "asc" },
+  });
+
+  const toCreate: Array<{
+    invoiceId: string;
+    lineNumber: number;
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    taxAmount: number;
+    lineAmount: number;
+  }> = [];
+
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
+    const data = {
+      lineNumber: line.lineNumber ?? index + 1,
+      description: line.description,
+      quantity: line.quantity,
+      unitPrice: line.unitPrice,
+      taxAmount: line.taxRate ? (line.quantity * line.unitPrice * line.taxRate) / 100 : 0,
+      lineAmount: line.lineAmount,
+    };
+
+    if (existing[index]) {
+      await prisma.invoiceLine.updateMany({
+        where: { id: existing[index].id, invoice: { organizationId } },
+        data,
+      });
+    } else {
+      toCreate.push({ invoiceId, ...data });
+    }
+  }
+
+  if (toCreate.length > 0) {
+    await prisma.invoiceLine.createMany({ data: toCreate });
+  }
 }
 
 /**
@@ -374,7 +437,7 @@ export async function processInvoice(organizationId: string, invoiceId: string, 
   // Document AI Extraction (Multimodal Live AI with BYOK or Statutory Heuristic)
   let confidence: number | null = invoice.aiConfidence ? Number(invoice.aiConfidence) : null;
   const document = await prisma.document.findFirst({
-    where: { invoiceId },
+    where: { invoiceId, invoice: { organizationId } },
     orderBy: { createdAt: "desc" },
   });
 
@@ -385,89 +448,78 @@ export async function processInvoice(organizationId: string, invoiceId: string, 
       const extracted = await extractInvoiceFromFile(filePath, document.mimeType, document.fileName, organizationId);
       confidence = Math.round(extracted.overallConfidence * 100) / 100;
 
-      // Match or create supplier dynamically
-      let supplierId = invoice.supplierId;
-      if (!supplierId && extracted.supplier?.name) {
-        const foundSupplier = await prisma.supplier.findFirst({
-          where: {
-            organizationId,
-            OR: [
-              ...(extracted.supplier.gstin ? [{ gstNumber: extracted.supplier.gstin }] : []),
-              { displayName: { contains: extracted.supplier.name, mode: "insensitive" } },
-              { legalName: { contains: extracted.supplier.name, mode: "insensitive" } },
-            ],
-          },
-        });
-        if (foundSupplier) {
-          supplierId = foundSupplier.id;
-        } else {
-          const newSup = await prisma.supplier.create({
-            data: {
+      const band = confidenceBand(confidence);
+      const canPrefill = band === "HIGH";
+
+      if (canPrefill) {
+        // Match an existing supplier only. Creating a supplier is a human
+        // decision, not an AI side effect.
+        let supplierId = invoice.supplierId;
+        if (!supplierId && extracted.supplier?.name) {
+          const foundSupplier = await prisma.supplier.findFirst({
+            where: {
               organizationId,
-              supplierCode: `SUP-${Date.now().toString(36).toUpperCase()}`,
-              displayName: extracted.supplier.name,
-              legalName: extracted.supplier.name,
-              currency: extracted.currency || invoice.currency || "SGD",
-              country: extracted.supplier.country || (extracted.currency === "SGD" ? "SG" : "IN"),
-              gstNumber: extracted.supplier.gstin || null,
-              paymentTermsDays: 30,
-              status: "ACTIVE",
-              address: extracted.supplier.address || null,
-              phone: extracted.supplier.phone || null,
-              email: extracted.supplier.email || null,
+              OR: [
+                ...(extracted.supplier.gstin ? [{ gstNumber: extracted.supplier.gstin }] : []),
+                { displayName: { contains: extracted.supplier.name, mode: "insensitive" } },
+                { legalName: { contains: extracted.supplier.name, mode: "insensitive" } },
+              ],
             },
           });
-          supplierId = newSup.id;
+          if (foundSupplier) {
+            supplierId = foundSupplier.id;
+          }
         }
-      }
 
-      // Match Purchase Order if extracted
-      let purchaseOrderId = invoice.purchaseOrderId;
-      if (!purchaseOrderId && extracted.purchaseOrderNumber) {
-        const foundPo = await prisma.purchaseOrder.findFirst({
+        // Match Purchase Order if extracted
+        let purchaseOrderId = invoice.purchaseOrderId;
+        if (!purchaseOrderId && extracted.purchaseOrderNumber) {
+          const foundPo = await prisma.purchaseOrder.findFirst({
+            where: {
+              organizationId,
+              poNumber: extracted.purchaseOrderNumber,
+            },
+          });
+          if (foundPo) purchaseOrderId = foundPo.id;
+        }
+
+        if (extracted.lines && extracted.lines.length > 0) {
+          await applyExtractedLines(organizationId, invoiceId, extracted.lines);
+        }
+
+        await prisma.invoice.update({
           where: {
-            organizationId,
-            poNumber: extracted.purchaseOrderNumber,
+            id_organizationId: {
+              id: invoiceId,
+              organizationId,
+            },
+          },
+          data: {
+            aiConfidence: confidence,
+            supplierId: supplierId ?? undefined,
+            purchaseOrderId: purchaseOrderId ?? undefined,
+            invoiceNumber: extracted.invoiceNumber || invoice.invoiceNumber,
+            currency: extracted.currency || invoice.currency,
+            totalAmount: extracted.totalAmount || invoice.totalAmount,
+            subtotalAmount: extracted.subtotal || invoice.subtotalAmount,
+            taxAmount: extracted.taxAmount != null ? extracted.taxAmount : invoice.taxAmount,
+            invoiceDate: extracted.invoiceDate ? new Date(extracted.invoiceDate) : undefined,
+            dueDate: extracted.dueDate ? new Date(extracted.dueDate) : undefined,
           },
         });
-        if (foundPo) purchaseOrderId = foundPo.id;
-      }
-
-      // Populate extracted line items
-      if (extracted.lines && extracted.lines.length > 0) {
-        await prisma.invoiceLine.deleteMany({ where: { invoiceId } });
-        await prisma.invoiceLine.createMany({
-          data: extracted.lines.map((l) => ({
-            invoiceId,
-            lineNumber: l.lineNumber,
-            description: l.description,
-            quantity: l.quantity,
-            unitPrice: l.unitPrice,
-            lineAmount: l.lineAmount,
-          })),
+      } else {
+        // Medium/Low: record confidence and keep the extraction as a
+        // suggestion for the human reviewer. No invoice field is written.
+        await prisma.invoice.update({
+          where: {
+            id_organizationId: {
+              id: invoiceId,
+              organizationId,
+            },
+          },
+          data: { aiConfidence: confidence },
         });
       }
-
-      await prisma.invoice.update({
-        where: {
-          id_organizationId: {
-            id: invoiceId,
-            organizationId,
-          },
-        },
-        data: {
-          aiConfidence: confidence,
-          supplierId: supplierId ?? undefined,
-          purchaseOrderId: purchaseOrderId ?? undefined,
-          invoiceNumber: extracted.invoiceNumber || invoice.invoiceNumber,
-          currency: extracted.currency || invoice.currency,
-          totalAmount: extracted.totalAmount || invoice.totalAmount,
-          subtotalAmount: extracted.subtotal || invoice.subtotalAmount,
-          taxAmount: extracted.taxAmount != null ? extracted.taxAmount : invoice.taxAmount,
-          invoiceDate: extracted.invoiceDate ? new Date(extracted.invoiceDate) : undefined,
-          dueDate: extracted.dueDate ? new Date(extracted.dueDate) : undefined,
-        },
-      });
 
       await prisma.auditLog.create({
         data: {
@@ -477,6 +529,8 @@ export async function processInvoice(organizationId: string, invoiceId: string, 
           entityId: invoiceId,
           afterData: {
             confidence,
+            confidenceBand: band,
+            prefillApplied: canPrefill,
             boundingBoxes: extracted.fieldBoundingBoxes || null,
             extracted,
           } as unknown as Prisma.InputJsonValue,
@@ -805,83 +859,80 @@ export async function addDocumentToInvoice(
   }
 
   if (extracted) {
-    let supplierId = invoice.supplierId;
-    if (extracted.supplier?.name) {
-      const foundSupplier = await prisma.supplier.findFirst({
-        where: {
-          organizationId,
-          OR: [
-            ...(extracted.supplier.gstin ? [{ gstNumber: extracted.supplier.gstin }] : []),
-            { displayName: { contains: extracted.supplier.name, mode: "insensitive" } },
-            { legalName: { contains: extracted.supplier.name, mode: "insensitive" } },
-          ],
-        },
-      });
-      if (foundSupplier) {
-        supplierId = foundSupplier.id;
-      } else {
-        const newSup = await prisma.supplier.create({
-          data: {
+    const confidence = Math.round(extracted.overallConfidence * 100) / 100;
+    const band = confidenceBand(confidence);
+    const canPrefill = band === "HIGH";
+
+    if (canPrefill) {
+      // Match an existing supplier only; supplier creation requires a human.
+      let supplierId = invoice.supplierId;
+      if (extracted.supplier?.name) {
+        const foundSupplier = await prisma.supplier.findFirst({
+          where: {
             organizationId,
-            displayName: extracted.supplier.name,
-            legalName: extracted.supplier.name,
-            supplierCode: `SUP-${Date.now().toString().slice(-4)}`,
-            gstNumber: extracted.supplier.gstin || null,
-            address: extracted.supplier.address || "Verified Supplier Address",
-            country: extracted.supplier.country || "SG",
-            currency: extracted.currency || "SGD",
-            status: "ACTIVE",
+            OR: [
+              ...(extracted.supplier.gstin ? [{ gstNumber: extracted.supplier.gstin }] : []),
+              { displayName: { contains: extracted.supplier.name, mode: "insensitive" } },
+              { legalName: { contains: extracted.supplier.name, mode: "insensitive" } },
+            ],
           },
         });
-        supplierId = newSup.id;
+        if (foundSupplier) {
+          supplierId = foundSupplier.id;
+        }
       }
-    }
 
-    const updateData: Record<string, unknown> = {
-      supplierId,
-      currency: extracted.currency || invoice.currency,
-      totalAmount: extracted.totalAmount != null ? extracted.totalAmount : invoice.totalAmount,
-      subtotalAmount: extracted.subtotal != null ? extracted.subtotal : invoice.subtotalAmount,
-      taxAmount: extracted.taxAmount != null ? extracted.taxAmount : invoice.taxAmount,
-      aiConfidence: extracted.overallConfidence || 98.2,
-      source: "UPLOAD",
-    };
+      const updateData: Record<string, unknown> = {
+        supplierId,
+        currency: extracted.currency || invoice.currency,
+        totalAmount: extracted.totalAmount != null ? extracted.totalAmount : invoice.totalAmount,
+        subtotalAmount: extracted.subtotal != null ? extracted.subtotal : invoice.subtotalAmount,
+        taxAmount: extracted.taxAmount != null ? extracted.taxAmount : invoice.taxAmount,
+        aiConfidence: confidence,
+        source: "UPLOAD",
+      };
 
-    if (extracted.invoiceNumber) {
-      updateData.invoiceNumber = extracted.invoiceNumber;
-    }
-    if (extracted.invoiceDate) {
-      updateData.invoiceDate = new Date(extracted.invoiceDate);
-    }
-    if (extracted.dueDate) {
-      updateData.dueDate = new Date(extracted.dueDate);
-    }
-    if (extracted.purchaseOrderNumber) {
-      updateData.purchaseOrderId = extracted.purchaseOrderNumber;
-    }
+      if (extracted.invoiceNumber) {
+        updateData.invoiceNumber = extracted.invoiceNumber;
+      }
+      if (extracted.invoiceDate) {
+        updateData.invoiceDate = new Date(extracted.invoiceDate);
+      }
+      if (extracted.dueDate) {
+        updateData.dueDate = new Date(extracted.dueDate);
+      }
+      if (extracted.purchaseOrderNumber) {
+        const foundPo = await prisma.purchaseOrder.findFirst({
+          where: { organizationId, poNumber: extracted.purchaseOrderNumber },
+          select: { id: true },
+        });
+        if (foundPo) {
+          updateData.purchaseOrderId = foundPo.id;
+        }
+      }
 
-    await prisma.invoice.update({
-      where: {
-        id_organizationId: {
-          id: invoiceId,
-          organizationId,
+      await prisma.invoice.update({
+        where: {
+          id_organizationId: {
+            id: invoiceId,
+            organizationId,
+          },
         },
-      },
-      data: updateData,
-    });
+        data: updateData,
+      });
 
-    if (extracted.lines && extracted.lines.length > 0) {
-      await prisma.invoiceLine.deleteMany({ where: { invoiceId } });
-      await prisma.invoiceLine.createMany({
-        data: extracted.lines.map((l, idx) => ({
-          invoiceId,
-          lineNumber: l.lineNumber ?? idx + 1,
-          description: l.description,
-          quantity: l.quantity,
-          unitPrice: l.unitPrice,
-          taxAmount: l.taxRate ? (l.quantity * l.unitPrice * l.taxRate) / 100 : 0,
-          lineAmount: l.lineAmount,
-        })),
+      if (extracted.lines && extracted.lines.length > 0) {
+        await applyExtractedLines(organizationId, invoiceId, extracted.lines);
+      }
+    } else {
+      await prisma.invoice.update({
+        where: {
+          id_organizationId: {
+            id: invoiceId,
+            organizationId,
+          },
+        },
+        data: { aiConfidence: confidence },
       });
     }
 
@@ -893,7 +944,9 @@ export async function addDocumentToInvoice(
         entityId: invoiceId,
         userId: userId || null,
         afterData: {
-          confidence: extracted.overallConfidence || 98.2,
+          confidence,
+          confidenceBand: band,
+          prefillApplied: canPrefill,
           boundingBoxes: extracted.fieldBoundingBoxes || null,
           extracted,
           invoiceNumber: extracted.invoiceNumber || invoice.invoiceNumber,

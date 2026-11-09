@@ -46,7 +46,7 @@ billingRoutes.post(
     try {
       const orgId = req.auth!.organizationId;
       const { planTier } = req.body as { planTier: PlanTier };
-      const updated = await upgradeTenantPlan(orgId, planTier);
+      const updated = await upgradeTenantPlan(orgId, planTier, req.auth!.userId);
       res.json({ data: updated });
     } catch (err) {
       next(err);

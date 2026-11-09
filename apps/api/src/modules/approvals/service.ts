@@ -310,10 +310,10 @@ export async function approveApproval(
   overrideReason?: string,
 ) {
   const approval = await prisma.approval.findFirst({
-    where: { id: approvalId },
+    where: { id: approvalId, invoice: { organizationId } },
     include: { invoice: true },
   });
-  if (!approval || approval.invoice.organizationId !== organizationId) {
+  if (!approval) {
     throw ApiError.notFound("Approval not found");
   }
   if (approval.status !== "PENDING") {
@@ -332,8 +332,8 @@ export async function approveApproval(
     overrideReason,
   });
 
-  return prisma.approval.findUnique({
-    where: { id: approvalId },
+  return prisma.approval.findFirst({
+    where: { id: approvalId, invoice: { organizationId } },
     include: { invoice: { include: { supplier: true } } },
   });
 }
@@ -345,10 +345,10 @@ export async function rejectApproval(
   reason?: string,
 ) {
   const approval = await prisma.approval.findFirst({
-    where: { id: approvalId },
+    where: { id: approvalId, invoice: { organizationId } },
     include: { invoice: true },
   });
-  if (!approval || approval.invoice.organizationId !== organizationId) {
+  if (!approval) {
     throw ApiError.notFound("Approval not found");
   }
   if (approval.status !== "PENDING") {
@@ -369,8 +369,8 @@ export async function rejectApproval(
     reason,
   });
 
-  return prisma.approval.findUnique({
-    where: { id: approvalId },
+  return prisma.approval.findFirst({
+    where: { id: approvalId, invoice: { organizationId } },
     include: { invoice: { include: { supplier: true } } },
   });
 }

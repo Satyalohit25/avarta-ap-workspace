@@ -19,7 +19,6 @@ import {
   Moon,
   Sun,
   Layers,
-  FileDown,
   CheckCircle2,
   Shield,
   Filter,
@@ -57,35 +56,96 @@ export function Command({ isOpen, onClose }: CommandProps) {
 
   const q = query.toLowerCase().trim();
 
-  const filteredInvoices = invoices.filter(
-    (inv) =>
-      !q ||
-      inv.invoiceNumber.toLowerCase().includes(q) ||
-      (inv.supplier?.name && inv.supplier.name.toLowerCase().includes(q))
-  ).slice(0, 5);
+  const filteredInvoices = invoices
+    .filter(
+      (inv) =>
+        !q ||
+        inv.invoiceNumber.toLowerCase().includes(q) ||
+        (inv.supplier?.name && inv.supplier.name.toLowerCase().includes(q)),
+    )
+    .slice(0, 5);
 
-  const filteredSuppliers = suppliers.filter(
-    (s) => !q || s.displayName.toLowerCase().includes(q) || s.supplierCode.toLowerCase().includes(q)
-  ).slice(0, 4);
+  const filteredSuppliers = suppliers
+    .filter(
+      (s) =>
+        !q ||
+        s.displayName.toLowerCase().includes(q) ||
+        s.supplierCode.toLowerCase().includes(q),
+    )
+    .slice(0, 4);
   const navigationRoutes = [
-    { title: "Overview Dashboard", path: "/overview", keywords: ["dashboard", "home", "metrics"] },
-    { title: "Inbox (OCR Staging)", path: "/inbox", keywords: ["inbox", "mail", "intake"] },
-    { title: "Invoices Workspace", path: "/invoices", keywords: ["invoices", "bills", "vouchers"] },
-    { title: "Exceptions Workbench", path: "/exceptions", keywords: ["exceptions", "variance", "errors"] },
-    { title: "Approvals Queue", path: "/approvals", keywords: ["approvals", "signoff", "manager"] },
-    { title: "Payments Terminal", path: "/payments", keywords: ["payments", "schedule", "utr", "batch"] },
-    { title: "Suppliers Directory", path: "/suppliers", keywords: ["suppliers", "parties", "vendors"] },
-    { title: "Purchase Orders", path: "/purchase-orders", keywords: ["purchase orders", "po", "contracts"] },
-    { title: "Items Catalogue", path: "/items", keywords: ["items", "inventory", "products", "catalogue", "parts"] },
-    { title: "Bank Accounts", path: "/bank-accounts", keywords: ["bank accounts", "banking", "treasury", "settlement"] },
-    { title: "Reports & Auditing", path: "/reports", keywords: ["reports", "analytics", "compliance"] },
-    { title: "Archive & Ledger", path: "/archive", keywords: ["archive", "immutable", "certificates"] },
-    { title: "System Settings", path: "/settings", keywords: ["settings", "preferences", "config"] },
-  ].filter((r) => !q || r.title.toLowerCase().includes(q) || r.keywords.some((k) => k.includes(q)));
-
+    {
+      title: "Overview Dashboard",
+      path: "/overview",
+      keywords: ["dashboard", "home", "metrics"],
+    },
+    {
+      title: "Inbox (OCR Staging)",
+      path: "/inbox",
+      keywords: ["inbox", "mail", "intake"],
+    },
+    {
+      title: "Invoices Workspace",
+      path: "/invoices",
+      keywords: ["invoices", "bills", "vouchers"],
+    },
+    {
+      title: "Exceptions Workbench",
+      path: "/exceptions",
+      keywords: ["exceptions", "variance", "errors"],
+    },
+    {
+      title: "Approvals Queue",
+      path: "/approvals",
+      keywords: ["approvals", "signoff", "manager"],
+    },
+    {
+      title: "Payments Terminal",
+      path: "/payments",
+      keywords: ["payments", "schedule", "utr", "batch"],
+    },
+    {
+      title: "Suppliers Directory",
+      path: "/suppliers",
+      keywords: ["suppliers", "parties", "vendors"],
+    },
+    {
+      title: "Purchase Orders",
+      path: "/purchase-orders",
+      keywords: ["purchase orders", "po", "contracts"],
+    },
+    {
+      title: "Items Catalogue",
+      path: "/items",
+      keywords: ["items", "inventory", "products", "catalogue", "parts"],
+    },
+    {
+      title: "Reports & Auditing",
+      path: "/reports",
+      keywords: ["reports", "analytics", "compliance"],
+    },
+    {
+      title: "Archive & Ledger",
+      path: "/archive",
+      keywords: ["archive", "immutable", "certificates"],
+    },
+    {
+      title: "System Settings",
+      path: "/settings",
+      keywords: ["settings", "preferences", "config"],
+    },
+  ].filter(
+    (r) =>
+      !q ||
+      r.title.toLowerCase().includes(q) ||
+      r.keywords.some((k) => k.includes(q)),
+  );
 
   return (
-    <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <DialogPrimitive.Root
+      open={isOpen}
+      onOpenChange={(open) => !open && onClose()}
+    >
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/80 transition-opacity duration-150" />
         <DialogPrimitive.Content
@@ -94,7 +154,7 @@ export function Command({ isOpen, onClose }: CommandProps) {
         >
           <CommandPrimitive
             className={cn(
-              "relative bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg shadow-lg overflow-hidden flex flex-col duration-150 max-h-[82vh]"
+              "relative bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg shadow-lg overflow-hidden flex flex-col duration-150 max-h-[82vh]",
             )}
           >
             {/* Search Input Bar */}
@@ -143,12 +203,17 @@ export function Command({ isOpen, onClose }: CommandProps) {
                   className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-zinc-800 focus:bg-neutral-100 dark:focus:bg-zinc-800 focus:outline-none cursor-pointer text-body-sm transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
-                    <CheckCircle2 size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    <CheckCircle2
+                      size={15}
+                      className="text-indigo-600 dark:text-indigo-400 shrink-0"
+                    />
                     <span className="font-medium text-neutral-900 dark:text-zinc-100">
                       View Invoices Pending Approval
                     </span>
                   </div>
-                  <span className="text-micro font-mono text-neutral-400">Jump →</span>
+                  <span className="text-micro font-mono text-neutral-400">
+                    Jump →
+                  </span>
                 </CommandPrimitive.Item>
 
                 <CommandPrimitive.Item
@@ -157,7 +222,8 @@ export function Command({ isOpen, onClose }: CommandProps) {
                     navigate("/invoices");
                     toast({
                       title: "Filtered Due This Week",
-                      description: "Showing invoices scheduled for payment release within 7 days.",
+                      description:
+                        "Showing invoices scheduled for payment release within 7 days.",
                       type: "info",
                     });
                     onClose();
@@ -165,33 +231,17 @@ export function Command({ isOpen, onClose }: CommandProps) {
                   className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-zinc-800 focus:bg-neutral-100 dark:focus:bg-zinc-800 focus:outline-none cursor-pointer text-body-sm transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
-                    <Filter size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    <Filter
+                      size={15}
+                      className="text-indigo-600 dark:text-indigo-400 shrink-0"
+                    />
                     <span className="font-medium text-neutral-900 dark:text-zinc-100">
                       Filter Invoices Due This Week
                     </span>
                   </div>
-                  <span className="text-micro font-mono text-neutral-400">Filter →</span>
-                </CommandPrimitive.Item>
-
-                <CommandPrimitive.Item
-                  value="action-export-batch"
-                  onSelect={() => {
-                    toast({
-                      title: "Payment Batch Exported",
-                      description: "Batch manifest AVARTA-BATCH-FY26-089.csv generated successfully.",
-                      type: "success",
-                    });
-                    onClose();
-                  }}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-zinc-800 focus:bg-neutral-100 dark:focus:bg-zinc-800 focus:outline-none cursor-pointer text-body-sm transition-colors"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <FileDown size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
-                    <span className="font-medium text-neutral-900 dark:text-zinc-100">
-                      Export Current Payment Batch (CSV)
-                    </span>
-                  </div>
-                  <span className="text-micro font-mono text-neutral-400">Download →</span>
+                  <span className="text-micro font-mono text-neutral-400">
+                    Filter →
+                  </span>
                 </CommandPrimitive.Item>
 
                 <CommandPrimitive.Item
@@ -203,12 +253,19 @@ export function Command({ isOpen, onClose }: CommandProps) {
                   className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-zinc-800 focus:bg-neutral-100 dark:focus:bg-zinc-800 focus:outline-none cursor-pointer text-body-sm transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
-                    {theme === "dark" ? <Sun size={15} className="text-amber-400 shrink-0" /> : <Moon size={15} className="text-indigo-500 shrink-0" />}
+                    {theme === "dark" ? (
+                      <Sun size={15} className="text-amber-400 shrink-0" />
+                    ) : (
+                      <Moon size={15} className="text-indigo-500 shrink-0" />
+                    )}
                     <span className="font-medium text-neutral-900 dark:text-zinc-100">
-                      Toggle Theme ({theme === "dark" ? "Switch to Light" : "Switch to Dark"})
+                      Toggle Theme (
+                      {theme === "dark" ? "Switch to Light" : "Switch to Dark"})
                     </span>
                   </div>
-                  <span className="text-micro font-mono text-neutral-400">Toggle</span>
+                  <span className="text-micro font-mono text-neutral-400">
+                    Toggle
+                  </span>
                 </CommandPrimitive.Item>
               </CommandPrimitive.Group>
 
@@ -229,7 +286,10 @@ export function Command({ isOpen, onClose }: CommandProps) {
                       className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-zinc-800 focus:bg-neutral-100 dark:focus:bg-zinc-800 focus:outline-none cursor-pointer text-body-sm transition-colors"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <FileText size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                        <FileText
+                          size={15}
+                          className="text-indigo-600 dark:text-indigo-400 shrink-0"
+                        />
                         <span className="font-mono font-semibold text-neutral-900 dark:text-zinc-100">
                           {inv.invoiceNumber}
                         </span>
@@ -248,7 +308,6 @@ export function Command({ isOpen, onClose }: CommandProps) {
                 </CommandPrimitive.Group>
               )}
 
-
               {/* 5. Suppliers Navigation */}
               {filteredSuppliers.length > 0 && (
                 <CommandPrimitive.Group
@@ -266,7 +325,10 @@ export function Command({ isOpen, onClose }: CommandProps) {
                       className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-zinc-800 focus:bg-neutral-100 dark:focus:bg-zinc-800 focus:outline-none cursor-pointer text-body-sm transition-colors"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <Building2 size={15} className="text-cyan-600 dark:text-cyan-400 shrink-0" />
+                        <Building2
+                          size={15}
+                          className="text-cyan-600 dark:text-cyan-400 shrink-0"
+                        />
                         <span className="font-medium text-neutral-900 dark:text-zinc-100 truncate">
                           {s.displayName}
                         </span>
@@ -282,7 +344,7 @@ export function Command({ isOpen, onClose }: CommandProps) {
                 </CommandPrimitive.Group>
               )}
 
-              {/* 6. Navigation Routes (12 canonical screens) */}
+              {/* 6. Navigation Routes (11 canonical screens) */}
               {navigationRoutes.length > 0 && (
                 <CommandPrimitive.Group
                   heading="Workspace Navigation"
@@ -299,35 +361,46 @@ export function Command({ isOpen, onClose }: CommandProps) {
                       className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-zinc-800 focus:bg-neutral-100 dark:focus:bg-zinc-800 focus:outline-none cursor-pointer text-body-sm transition-colors"
                     >
                       <div className="flex items-center gap-2.5">
-                        <Layers size={15} className="text-neutral-500 dark:text-zinc-400 shrink-0" />
+                        <Layers
+                          size={15}
+                          className="text-neutral-500 dark:text-zinc-400 shrink-0"
+                        />
                         <span className="font-medium text-neutral-900 dark:text-zinc-100">
                           {route.title}
                         </span>
                       </div>
-                      <span className="text-micro font-mono text-neutral-400">Navigate →</span>
+                      <span className="text-micro font-mono text-neutral-400">
+                        Navigate →
+                      </span>
                     </CommandPrimitive.Item>
                   ))}
                 </CommandPrimitive.Group>
               )}
-
-
             </CommandPrimitive.List>
 
             {/* Pinned Keyboard Shortcuts Footer */}
             <div className="flex items-center justify-between px-4 py-2.5 bg-neutral-50 dark:bg-zinc-950/70 border-t border-neutral-200 dark:border-zinc-800 text-micro text-neutral-500 dark:text-zinc-400">
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1.5">
-                  <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 font-mono text-[10px] shadow-xs">↑</kbd>
-                  <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 font-mono text-[10px] shadow-xs">↓</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 font-mono text-[10px] shadow-xs">
+                    ↑
+                  </kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 font-mono text-[10px] shadow-xs">
+                    ↓
+                  </kbd>
                   <span>Navigate</span>
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 font-mono text-[10px] shadow-xs">↵</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 font-mono text-[10px] shadow-xs">
+                    ↵
+                  </kbd>
                   <span>Select</span>
                 </span>
               </div>
               <span className="flex items-center gap-1.5">
-                <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 font-mono text-[10px] shadow-xs">Esc</kbd>
+                <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 font-mono text-[10px] shadow-xs">
+                  Esc
+                </kbd>
                 <span>Close</span>
               </span>
             </div>

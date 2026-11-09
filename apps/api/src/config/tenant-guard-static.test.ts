@@ -33,6 +33,21 @@ const ORG_SCOPED_MODELS = new Set([
   "auditLog",
   "goodsReceipt",
   "idempotencyKey",
+  "item",
+  "sampleRecord",
+  "bankAccount",
+]);
+
+// Models scoped through a parent relation (no organizationId column).
+const RELATION_SCOPED_MODELS = new Set([
+  "invoiceLine",
+  "document",
+  "validation",
+  "approval",
+  "comment",
+  "goodsReceiptLine",
+  "workflowInstance",
+  "workflowTransition",
 ]);
 
 const GUARDED_ACTIONS = new Set([
@@ -59,6 +74,7 @@ function isInsideBypass(node: CallExpression): boolean {
         fnName.includes("runWithSystemJobBypass") ||
         fnName.includes("runWithAdminBackfillBypass") ||
         fnName.includes("runWithSeederBypass") ||
+        fnName.includes("runWithEngineBypass") ||
         fnName.includes("runWithTrackingLookupBypass")
       ) {
         return true;
@@ -162,7 +178,7 @@ export function scanSourceFileForViolations(sourceFile: SourceFile): {
 
     if (
       (caller === "prisma" || caller === "tx" || caller === "client") &&
-      ORG_SCOPED_MODELS.has(model) &&
+      (ORG_SCOPED_MODELS.has(model) || RELATION_SCOPED_MODELS.has(model)) &&
       GUARDED_ACTIONS.has(action)
     ) {
       if (isInsideBypass(callExpr)) {

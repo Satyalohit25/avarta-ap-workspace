@@ -39,11 +39,13 @@ import { useToast } from "../../components/ui/ToastContext";
 import { FilterTokenBar, FilterToken } from "../../components/ui/FilterTokenBar";
 import { formatCurrency, formatDate } from "../../lib/formatters";
 import { exportToCsv } from "../../lib/exportCsv";
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 
 type SortField = "invoiceNumber" | "vendor" | "amount" | "dueDate" | "invoiceDate";
 type SortOrder = "asc" | "desc";
 
 export default function InvoicesPage() {
+  useDocumentTitle("Invoices", "Track, filter, and audit incoming vouchers, matched line items, and approval states.");
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();

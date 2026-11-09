@@ -1,8 +1,10 @@
 import { Link, useNavigate } from "react-router-dom";
 import { ShieldAlert, ArrowLeft, Home, Mail } from "lucide-react";
 import { Button } from "../components/ui/Button";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 export default function ForbiddenPage() {
+  useDocumentTitle("403 - Access Restricted", "Your role does not have authorization to view this resource.");
   const navigate = useNavigate();
 
   return (

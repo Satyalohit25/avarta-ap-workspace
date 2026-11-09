@@ -1,14 +1,30 @@
 import { useState, useMemo, useEffect } from "react";
-import { CheckCircle2, AlertTriangle, Check, Flag, Cpu, Clock, ShieldCheck, Link2 } from "lucide-react";
+import {
+  CheckCircle2,
+  AlertTriangle,
+  Check,
+  Flag,
+  Cpu,
+  Clock,
+  ShieldCheck,
+  Link2,
+} from "lucide-react";
 import { Card, CardHeader, CardContent } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "../../../components/ui/table";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "../../../components/ui/table";
 import { formatCurrency } from "../../../lib/formatters";
 
-import { generateSupplierLineItems, GeneratedLineItem } from "../../../lib/mockCatalogs";
+import { LineItemData } from "../../../lib/lineItems";
 import { TriSplitThreeWayMatchWorkbench } from "./TriSplitThreeWayMatchWorkbench";
 
-export type LineItemData = GeneratedLineItem;
+export type { LineItemData };
 
 interface InvoiceExceptionItem {
   id: string;
@@ -53,10 +69,14 @@ export function LineItemMatchingTable({
   const initialLines = useMemo(() => {
     if (Array.isArray(rawLines) && rawLines.length > 0) {
       const hasPriceException = exceptions.some(
-        (e) => e.type === "PRICE_DIFFERENCE" || (e.description && e.description.toLowerCase().includes("price"))
+        (e) =>
+          e.type === "PRICE_DIFFERENCE" ||
+          (e.description && e.description.toLowerCase().includes("price")),
       );
       const hasQtyException = exceptions.some(
-        (e) => e.type === "QUANTITY_DIFFERENCE" || (e.description && e.description.toLowerCase().includes("quantity"))
+        (e) =>
+          e.type === "QUANTITY_DIFFERENCE" ||
+          (e.description && e.description.toLowerCase().includes("quantity")),
       );
 
       return (rawLines as Record<string, unknown>[]).map((l, idx) => {
@@ -64,7 +84,7 @@ export function LineItemMatchingTable({
         const desc = (l.description as string) || `Line Item #${lineNumber}`;
         const qty = Number(l.quantity) || 1;
         const unitPrice = Number(l.unitPrice) || 0;
-        const lineAmount = Number(l.lineAmount) || (qty * unitPrice);
+        const lineAmount = Number(l.lineAmount) || qty * unitPrice;
 
         let hsn = (l.hsnCode as string) || undefined;
         if (!hsn) {
@@ -75,7 +95,8 @@ export function LineItemMatchingTable({
         let invQty = qty;
         let poUnitPrice = unitPrice;
         let invUnitPrice = unitPrice;
-        let lineStatus: "MATCHED" | "PRICE_VARIANCE" | "QTY_VARIANCE" = "MATCHED";
+        let lineStatus: "MATCHED" | "PRICE_VARIANCE" | "QTY_VARIANCE" =
+          "MATCHED";
 
         if (idx === 0 && hasPriceException) {
           lineStatus = "PRICE_VARIANCE";
@@ -85,7 +106,10 @@ export function LineItemMatchingTable({
           poQty = Math.max(1, qty - 1);
         }
 
-        const taxableAmount = typeof l.taxableAmount === "number" ? l.taxableAmount : Math.round((lineAmount / 1.18) * 100) / 100;
+        const taxableAmount =
+          typeof l.taxableAmount === "number"
+            ? l.taxableAmount
+            : Math.round((lineAmount / 1.18) * 100) / 100;
         const taxAmount = Math.round((lineAmount - taxableAmount) * 100) / 100;
 
         return {
@@ -109,13 +133,8 @@ export function LineItemMatchingTable({
       });
     }
 
-    return generateSupplierLineItems(
-      supplierName,
-      numAmount,
-      currency,
-      exceptions
-    );
-  }, [rawLines, supplierName, numAmount, currency, exceptions]);
+    return [];
+  }, [rawLines, supplierName, currency]);
 
   const [lines, setLines] = useState<LineItemData[]>(initialLines);
 
@@ -135,7 +154,7 @@ export function LineItemMatchingTable({
     setReasonInput(
       action === "ACCEPT"
         ? "Authorized variance tolerance signed off per department AP policy."
-        : "Line item discrepancy exceeds approved contract tolerance (+12.0%)."
+        : "Line item discrepancy exceeds approved contract tolerance (+12.0%).",
     );
   }
 
@@ -148,8 +167,8 @@ export function LineItemMatchingTable({
         prev.map((item) =>
           item.id === line.id
             ? { ...item, overrideAccepted: true, overrideReason: reasonInput }
-            : item
-        )
+            : item,
+        ),
       );
       if (onAcceptOverride) {
         onAcceptOverride(line, reasonInput);
@@ -164,11 +183,16 @@ export function LineItemMatchingTable({
     setReasonInput("");
   }
 
-  const hasVariance = lines.some((l) => l.status !== "MATCHED" && !l.overrideAccepted);
+  const hasVariance = lines.some(
+    (l) => l.status !== "MATCHED" && !l.overrideAccepted,
+  );
 
   // Subtotal & GST reconciliation
   const subtotalSum = useMemo(() => {
-    const sum = lines.reduce((acc, it) => acc + (it.taxableAmount ?? (it.lineAmount / 1.18)), 0);
+    const sum = lines.reduce(
+      (acc, it) => acc + (it.taxableAmount ?? it.lineAmount / 1.18),
+      0,
+    );
     return Math.round(sum * 100) / 100;
   }, [lines]);
 
@@ -202,7 +226,8 @@ export function LineItemMatchingTable({
                 Ready for OCR &amp; Line Item Extraction
               </h4>
               <p className="text-caption text-neutral-500 dark:text-zinc-400 leading-relaxed">
-                Line items, contract rates, and 3-way PO reconciliation will populate automatically once automated capture is executed.
+                Line items, contract rates, and 3-way PO reconciliation will
+                populate automatically once automated capture is executed.
               </p>
             </div>
             <span className="inline-flex items-center gap-1.5 text-micro font-mono text-neutral-400 dark:text-zinc-500 bg-white dark:bg-zinc-800 px-3 py-1 rounded-full border border-neutral-200 dark:border-zinc-700">
@@ -220,13 +245,17 @@ export function LineItemMatchingTable({
    * Render populated 3-way matching table with explicit variances.
    * ───────────────────────────────────────────────────────────── */
   const varianceLines = lines.filter(
-    (l) => l.poUnitPrice !== l.invUnitPrice || l.poQty !== l.invQty
+    (l) => l.poUnitPrice !== l.invUnitPrice || l.poQty !== l.invQty,
   );
 
   return (
     <Card id="invoice-line-item-matching-section" level="surface">
       <CardHeader
-        title={purchaseOrderId ? "3-WAY LINE-ITEM MATCHING & VARIANCE INSPECTION" : "STATUTORY LINE-ITEM AUDIT & TAX RECONCILIATION"}
+        title={
+          purchaseOrderId
+            ? "3-WAY LINE-ITEM MATCHING & VARIANCE INSPECTION"
+            : "STATUTORY LINE-ITEM AUDIT & TAX RECONCILIATION"
+        }
         description={
           purchaseOrderId
             ? `Reconciling against Purchase Order ${purchaseOrderId} and Goods Receipt Notes (GRN)`
@@ -257,7 +286,10 @@ export function LineItemMatchingTable({
             ) : (
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-micro font-mono font-medium border bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border-neutral-300 dark:border-zinc-700">
-                  <ShieldCheck size={13} className="text-neutral-500 dark:text-zinc-400" />
+                  <ShieldCheck
+                    size={13}
+                    className="text-neutral-500 dark:text-zinc-400"
+                  />
                   <span>Non-PO Direct Expense • 2 Checks Cleared</span>
                 </span>
                 {onLinkPO && (
@@ -282,8 +314,14 @@ export function LineItemMatchingTable({
           <div className="p-4 bg-amber-50/50 dark:bg-amber-950/30 border-b border-amber-200/80 dark:border-amber-900/60 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-micro font-semibold uppercase tracking-wider text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
-                <AlertTriangle size={13} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                <span>3-Way Reconciliation Variance Analysis ({varianceLines.length} Discrepant {varianceLines.length === 1 ? "Line" : "Lines"})</span>
+                <AlertTriangle
+                  size={13}
+                  className="text-amber-600 dark:text-amber-400 shrink-0"
+                />
+                <span>
+                  3-Way Reconciliation Variance Analysis ({varianceLines.length}{" "}
+                  Discrepant {varianceLines.length === 1 ? "Line" : "Lines"})
+                </span>
               </span>
               <span className="text-micro font-mono text-amber-700 dark:text-amber-300">
                 Org Tolerance Threshold: 5.0%
@@ -297,7 +335,8 @@ export function LineItemMatchingTable({
                   poLineRef: `${purchaseOrderId ?? "PO-FY26-0881"} Line ${varianceLines[0].lineNumber}`,
                   poQty: varianceLines[0].poQty,
                   poUnitPrice: varianceLines[0].poUnitPrice,
-                  poTotal: varianceLines[0].poQty * varianceLines[0].poUnitPrice,
+                  poTotal:
+                    varianceLines[0].poQty * varianceLines[0].poUnitPrice,
                   poUnit: "Units",
                   grnRef: "GRN-FY26-0083",
                   grnAcceptedQty: Math.max(1, varianceLines[0].poQty - 1),
@@ -307,18 +346,28 @@ export function LineItemMatchingTable({
                   invoiceRef: "INV-BILLED",
                   invoiceBilledQty: varianceLines[0].invQty,
                   invoiceUnitPrice: varianceLines[0].invUnitPrice,
-                  invoiceTotal: varianceLines[0].invQty * varianceLines[0].invUnitPrice,
+                  invoiceTotal:
+                    varianceLines[0].invQty * varianceLines[0].invUnitPrice,
                   description: varianceLines[0].description,
                 }}
                 currency={currency}
                 onGenerateDebitNote={(amount, reason) => {
-                  onAcceptOverride?.(varianceLines[0], `[DEBIT NOTE APPLIED: ₹${amount.toLocaleString("en-IN")}] ${reason}`);
+                  onAcceptOverride?.(
+                    varianceLines[0],
+                    `[DEBIT NOTE APPLIED: ₹${amount.toLocaleString("en-IN")}] ${reason}`,
+                  );
                 }}
                 onWithholdShortfall={(qty, amt) => {
-                  onAcceptOverride?.(varianceLines[0], `[SHORTFALL WITHHELD: ${qty} units (₹${amt.toLocaleString("en-IN")})] Net certified goods payable approved.`);
+                  onAcceptOverride?.(
+                    varianceLines[0],
+                    `[SHORTFALL WITHHELD: ${qty} units (₹${amt.toLocaleString("en-IN")})] Net certified goods payable approved.`,
+                  );
                 }}
                 onRequestRevisedInvoice={(summary) => {
-                  onFlagException?.(varianceLines[0], `[REVISED TAX INVOICE REQUESTED] ${summary}`);
+                  onFlagException?.(
+                    varianceLines[0],
+                    `[REVISED TAX INVOICE REQUESTED] ${summary}`,
+                  );
                 }}
               />
             )}
@@ -332,10 +381,18 @@ export function LineItemMatchingTable({
                 <TableHead className="w-12">#</TableHead>
                 <TableHead>Item Description</TableHead>
                 <TableHead className="w-28">HSN / SAC</TableHead>
-                {purchaseOrderId && <TableHead className="text-right">PO Qty</TableHead>}
-                <TableHead className="text-right">{purchaseOrderId ? "Inv Qty" : "Qty"}</TableHead>
-                {purchaseOrderId && <TableHead className="text-right">PO Rate</TableHead>}
-                <TableHead className="text-right">{purchaseOrderId ? "Inv Rate" : "Unit Rate (excl.)"}</TableHead>
+                {purchaseOrderId && (
+                  <TableHead className="text-right">PO Qty</TableHead>
+                )}
+                <TableHead className="text-right">
+                  {purchaseOrderId ? "Inv Qty" : "Qty"}
+                </TableHead>
+                {purchaseOrderId && (
+                  <TableHead className="text-right">PO Rate</TableHead>
+                )}
+                <TableHead className="text-right">
+                  {purchaseOrderId ? "Inv Rate" : "Unit Rate (excl.)"}
+                </TableHead>
                 <TableHead className="text-right">Taxable Value</TableHead>
                 <TableHead className="text-right">GST Rate</TableHead>
                 <TableHead className="text-right">Total (incl. GST)</TableHead>
@@ -344,128 +401,166 @@ export function LineItemMatchingTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lines.map((l) => {
-                const lineTotal = l.lineAmount;
-                const taxableVal = l.taxableAmount ?? (lineTotal / 1.18);
-                const unitDiff = l.invUnitPrice - l.poUnitPrice;
-                const isVariance = l.status === "PRICE_VARIANCE" || l.status === "QTY_VARIANCE";
-                const isAccepted = l.overrideAccepted;
-                const displayHsn = l.hsnCode || (l.lineNumber === 1 ? "HSN 9403" : l.lineNumber === 2 ? "HSN 4802" : "HSN 4821");
-
-                return (
-                  <TableRow
-                    key={l.id}
-                    className={
-                      isVariance && !isAccepted
-                        ? "bg-amber-50/40 dark:bg-amber-950/20"
-                        : undefined
-                    }
+              {lines.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={purchaseOrderId ? 11 : 9}
+                    className="py-8 text-center text-neutral-500 dark:text-zinc-400 font-sans"
                   >
-                    <TableCell className="font-mono text-micro text-neutral-400">
-                      {l.lineNumber}
-                    </TableCell>
-                    <TableCell className="font-medium text-neutral-900 dark:text-zinc-100 max-w-xs">
-                      <div className="space-y-0.5">
-                        <p className="text-body-sm leading-snug">{l.description}</p>
-                        {isVariance && !isAccepted && (
-                          <p className="text-caption text-amber-700 dark:text-amber-400 font-mono">
-                            Price variance: +{formatCurrency(unitDiff, currency)}/unit (+{((unitDiff / (l.poUnitPrice || 1)) * 100).toFixed(1)}%)
-                          </p>
-                        )}
-                        {isAccepted && (
-                          <p className="text-micro text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1">
-                            <Check size={11} strokeWidth={2.5} />
-                            <span>Manager override accepted: {l.overrideReason || "Approved"}</span>
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-body-sm font-semibold text-neutral-800 dark:text-zinc-200">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-700 text-micro">
-                        {displayHsn}
-                      </span>
-                    </TableCell>
-                    {purchaseOrderId && (
-                      <TableCell className="text-right font-mono text-body-sm text-neutral-600 dark:text-zinc-400">
-                        {l.poQty}
-                      </TableCell>
-                    )}
-                    <TableCell className="text-right font-mono text-body-sm text-neutral-900 dark:text-zinc-100 font-semibold">
-                      {l.invQty}
-                    </TableCell>
-                    {purchaseOrderId && (
-                      <TableCell className="text-right font-mono text-body-sm text-neutral-600 dark:text-zinc-400">
-                        {formatCurrency(l.poUnitPrice, currency)}
-                      </TableCell>
-                    )}
-                    <TableCell
-                      className={`text-right font-mono text-body-sm font-semibold ${
+                    No extracted line items available for this invoice.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                lines.map((l) => {
+                  const lineTotal = l.lineAmount;
+                  const taxableVal = l.taxableAmount ?? lineTotal / 1.18;
+                  const unitDiff = l.invUnitPrice - l.poUnitPrice;
+                  const isVariance =
+                    l.status === "PRICE_VARIANCE" ||
+                    l.status === "QTY_VARIANCE";
+                  const isAccepted = l.overrideAccepted;
+                  const displayHsn =
+                    l.hsnCode ||
+                    (l.lineNumber === 1
+                      ? "HSN 9403"
+                      : l.lineNumber === 2
+                        ? "HSN 4802"
+                        : "HSN 4821");
+
+                  return (
+                    <TableRow
+                      key={l.id}
+                      className={
                         isVariance && !isAccepted
-                          ? "text-amber-700 dark:text-amber-400 font-bold underline decoration-amber-500/50"
-                          : "text-neutral-900 dark:text-zinc-100"
-                      }`}
+                          ? "bg-amber-50/40 dark:bg-amber-950/20"
+                          : undefined
+                      }
                     >
-                      {formatCurrency(l.invUnitPrice, currency)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-body-sm text-neutral-700 dark:text-zinc-300">
-                      {formatCurrency(taxableVal, currency)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-micro text-neutral-500 dark:text-zinc-400">
-                      18.0%
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-body-sm font-semibold tabular-nums text-neutral-900 dark:text-zinc-100">
-                      {formatCurrency(lineTotal, currency)}
-                    </TableCell>
-                    <TableCell>
-                      {purchaseOrderId ? (
-                        isVariance && !isAccepted ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-mono font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60">
-                            <AlertTriangle size={11} />
-                            <span>PRICE VARIANCE</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-mono font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
-                            <Check size={11} strokeWidth={2.5} />
-                            <span>PO MATCHED</span>
-                          </span>
-                        )
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-mono font-medium bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-700">
-                          <Check size={11} strokeWidth={2.5} className="text-neutral-500" />
-                          <span>STATUTORY PASS</span>
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {isVariance && !isAccepted ? (
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleOpenReason(l, "ACCEPT")}
-                            className="h-7 text-micro px-2.5 font-medium border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-                          >
-                            Accept
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleOpenReason(l, "FLAG")}
-                            className="h-7 text-micro px-2.5 font-medium border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40"
-                          >
-                            <Flag size={11} className="mr-1" />
-                            <span>Flag</span>
-                          </Button>
+                      <TableCell className="font-mono text-micro text-neutral-400">
+                        {l.lineNumber}
+                      </TableCell>
+                      <TableCell className="font-medium text-neutral-900 dark:text-zinc-100 max-w-xs">
+                        <div className="space-y-0.5">
+                          <p className="text-body-sm leading-snug">
+                            {l.description}
+                          </p>
+                          {isVariance && !isAccepted && (
+                            <p className="text-caption text-amber-700 dark:text-amber-400 font-mono">
+                              Price variance: +
+                              {formatCurrency(unitDiff, currency)}/unit (+
+                              {(
+                                (unitDiff / (l.poUnitPrice || 1)) *
+                                100
+                              ).toFixed(1)}
+                              %)
+                            </p>
+                          )}
+                          {isAccepted && (
+                            <p className="text-micro text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1">
+                              <Check size={11} strokeWidth={2.5} />
+                              <span>
+                                Manager override accepted:{" "}
+                                {l.overrideReason || "Approved"}
+                              </span>
+                            </p>
+                          )}
                         </div>
-                      ) : (
-                        <span className="text-micro font-mono text-neutral-500 dark:text-zinc-400 font-medium">
-                          {isAccepted ? "Overridden" : purchaseOrderId ? "PO Matched" : "Direct Expense"}
+                      </TableCell>
+                      <TableCell className="font-mono text-body-sm font-semibold text-neutral-800 dark:text-zinc-200">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-700 text-micro">
+                          {displayHsn}
                         </span>
+                      </TableCell>
+                      {purchaseOrderId && (
+                        <TableCell className="text-right font-mono text-body-sm text-neutral-600 dark:text-zinc-400">
+                          {l.poQty}
+                        </TableCell>
                       )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                      <TableCell className="text-right font-mono text-body-sm text-neutral-900 dark:text-zinc-100 font-semibold">
+                        {l.invQty}
+                      </TableCell>
+                      {purchaseOrderId && (
+                        <TableCell className="text-right font-mono text-body-sm text-neutral-600 dark:text-zinc-400">
+                          {formatCurrency(l.poUnitPrice, currency)}
+                        </TableCell>
+                      )}
+                      <TableCell
+                        className={`text-right font-mono text-body-sm font-semibold ${
+                          isVariance && !isAccepted
+                            ? "text-amber-700 dark:text-amber-400 font-bold underline decoration-amber-500/50"
+                            : "text-neutral-900 dark:text-zinc-100"
+                        }`}
+                      >
+                        {formatCurrency(l.invUnitPrice, currency)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-body-sm text-neutral-700 dark:text-zinc-300">
+                        {formatCurrency(taxableVal, currency)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-micro text-neutral-500 dark:text-zinc-400">
+                        18.0%
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-body-sm font-semibold tabular-nums text-neutral-900 dark:text-zinc-100">
+                        {formatCurrency(lineTotal, currency)}
+                      </TableCell>
+                      <TableCell>
+                        {purchaseOrderId ? (
+                          isVariance && !isAccepted ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-mono font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60">
+                              <AlertTriangle size={11} />
+                              <span>PRICE VARIANCE</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-mono font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
+                              <Check size={11} strokeWidth={2.5} />
+                              <span>PO MATCHED</span>
+                            </span>
+                          )
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-mono font-medium bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-700">
+                            <Check
+                              size={11}
+                              strokeWidth={2.5}
+                              className="text-neutral-500"
+                            />
+                            <span>STATUTORY PASS</span>
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {isVariance && !isAccepted ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenReason(l, "ACCEPT")}
+                              className="h-7 text-micro px-2.5 font-medium border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                            >
+                              Accept
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenReason(l, "FLAG")}
+                              className="h-7 text-micro px-2.5 font-medium border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                            >
+                              <Flag size={11} className="mr-1" />
+                              <span>Flag</span>
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-micro font-mono text-neutral-500 dark:text-zinc-400 font-medium">
+                            {isAccepted
+                              ? "Overridden"
+                              : purchaseOrderId
+                                ? "PO Matched"
+                                : "Direct Expense"}
+                          </span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </div>
@@ -477,7 +572,8 @@ export function LineItemMatchingTable({
               Tax Calculation Summary ({lines.length} Line Items)
             </p>
             <p className="text-micro font-mono text-neutral-500 dark:text-zinc-400">
-              Rates verified against Central Tax Notification 01/2017 &amp; HSN classification
+              Rates verified against Central Tax Notification 01/2017 &amp; HSN
+              classification
             </p>
           </div>
 
@@ -490,15 +586,21 @@ export function LineItemMatchingTable({
             </div>
             <div className="flex justify-between text-micro text-neutral-500 dark:text-zinc-400">
               <span>CGST (9.0%):</span>
-              <span className="font-mono">{formatCurrency(cgstAmountSum, currency)}</span>
+              <span className="font-mono">
+                {formatCurrency(cgstAmountSum, currency)}
+              </span>
             </div>
             <div className="flex justify-between text-micro text-neutral-500 dark:text-zinc-400">
               <span>SGST (9.0%):</span>
-              <span className="font-mono">{formatCurrency(sgstAmountSum, currency)}</span>
+              <span className="font-mono">
+                {formatCurrency(sgstAmountSum, currency)}
+              </span>
             </div>
             <div className="flex justify-between text-neutral-700 dark:text-zinc-300 font-medium border-t border-neutral-100 dark:border-zinc-800 pt-1">
               <span>Total GST (18.0%):</span>
-              <span className="font-mono">{formatCurrency(taxAmountSum, currency)}</span>
+              <span className="font-mono">
+                {formatCurrency(taxAmountSum, currency)}
+              </span>
             </div>
             <div className="flex justify-between text-body font-bold text-neutral-900 dark:text-zinc-100 border-t border-neutral-200 dark:border-zinc-800 pt-1.5">
               <span>Grand Total (incl. GST):</span>
@@ -513,8 +615,15 @@ export function LineItemMatchingTable({
         {selectedLineForReason && (
           <div className="p-4 bg-neutral-50 dark:bg-zinc-800/60 border-t border-neutral-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-150">
             <div className="space-y-1 min-w-0 flex-1">
-              <label htmlFor="override-decision-reason" className="text-micro font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400 block">
-                Document {selectedLineForReason.action === "ACCEPT" ? "Override Reason" : "Exception Flag"}:
+              <label
+                htmlFor="override-decision-reason"
+                className="text-micro font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400 block"
+              >
+                Document{" "}
+                {selectedLineForReason.action === "ACCEPT"
+                  ? "Override Reason"
+                  : "Exception Flag"}
+                :
               </label>
               <input
                 id="override-decision-reason"
@@ -540,11 +649,17 @@ export function LineItemMatchingTable({
               </Button>
               <Button
                 size="sm"
-                variant={selectedLineForReason.action === "ACCEPT" ? "primary" : "destructive"}
+                variant={
+                  selectedLineForReason.action === "ACCEPT"
+                    ? "primary"
+                    : "destructive"
+                }
                 onClick={handleConfirmReason}
                 className="h-8 text-body-sm px-4 font-semibold"
               >
-                {selectedLineForReason.action === "ACCEPT" ? "Confirm Override" : "Flag Exception"}
+                {selectedLineForReason.action === "ACCEPT"
+                  ? "Confirm Override"
+                  : "Flag Exception"}
               </Button>
             </div>
           </div>

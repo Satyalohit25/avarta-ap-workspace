@@ -20,7 +20,6 @@ export const ERP_OPTIONS = [
   { value: "SAP", label: "SAP S/4HANA & Business One" },
   { value: "NetSuite", label: "Oracle NetSuite ERP" },
   { value: "QuickBooks", label: "QuickBooks Online (Intuit)" },
-  { value: "Xero", label: "Xero Cloud Accounting" },
   { value: "Tally", label: "Tally Prime ERP" },
 ];
 
@@ -62,7 +61,9 @@ export function ErpSyncModal({
   useEffect(() => {
     if (isOpen) {
       // Generate a stable key and date when the modal opens — never during render
-      setIdempotencyKey(`idemp-sync-${invoiceId}-${performance.now().toFixed(0)}`);
+      setIdempotencyKey(
+        `idemp-sync-${invoiceId}-${performance.now().toFixed(0)}`,
+      );
       setPostingDate(new Date().toISOString().split("T")[0]);
       setLifecycle("PREVIEW");
       setErrorMessage("");
@@ -86,7 +87,10 @@ export function ErpSyncModal({
       await onConfirmSync(targetErp, idempotencyKey);
       setLifecycle("SUCCESS");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : `Failed to post double-entry voucher to ${targetErp}.`;
+      const msg =
+        err instanceof Error
+          ? err.message
+          : `Failed to post double-entry voucher to ${targetErp}.`;
       setErrorMessage(msg);
       setLifecycle("FAILED");
     }
@@ -98,48 +102,62 @@ export function ErpSyncModal({
     setTimeout(() => setCopiedVoucher(false), 2000);
   }
 
-  const selectedErpLabel = ERP_OPTIONS.find((e) => e.value === targetErp)?.label ?? targetErp;
+  const selectedErpLabel =
+    ERP_OPTIONS.find((e) => e.value === targetErp)?.label ?? targetErp;
 
-  const simulatedPayload = useMemo(() => ({
-    destination_erp: targetErp,
-    voucher_type: "PURCHASE_INVOICE_JOURNAL",
-    posting_date: postingDate,
-    reference_number: invoiceNumber,
-    vendor_entity: {
-      name: vendorName,
-      subsidiary_code: "SUB-PRIMARY",
-      tax_id: "VENDOR_TAX_REGISTRATION",
-    },
-    currency: currency,
-    exchange_rate: 1.0,
-    journal_lines: [
-      {
-        line_no: 1,
-        account_code: "5010-COGS",
-        account_name: "Cost of Goods & Production Materials",
-        type: "DEBIT",
-        amount: netAmount,
-        cost_center: "CC-OPS-MUMBAI",
+  const simulatedPayload = useMemo(
+    () => ({
+      destination_erp: targetErp,
+      voucher_type: "PURCHASE_INVOICE_JOURNAL",
+      posting_date: postingDate,
+      reference_number: invoiceNumber,
+      vendor_entity: {
+        name: vendorName,
+        subsidiary_code: "SUB-PRIMARY",
+        tax_id: "VENDOR_TAX_REGISTRATION",
       },
-      {
-        line_no: 2,
-        account_code: "2210-GST-ITC",
-        account_name: "Input GST / VAT Recoverable Tax Credit",
-        type: "DEBIT",
-        amount: taxAmount,
-        tax_rate: "18.00%",
-      },
-      {
-        line_no: 3,
-        account_code: "2010-AP-TRADE",
-        account_name: "Trade Accounts Payable Control Liability",
-        type: "CREDIT",
-        amount: numTotal,
-        payment_terms: "NET30",
-      },
+      currency: currency,
+      exchange_rate: 1.0,
+      journal_lines: [
+        {
+          line_no: 1,
+          account_code: "5010-COGS",
+          account_name: "Cost of Goods & Production Materials",
+          type: "DEBIT",
+          amount: netAmount,
+          cost_center: "CC-OPS-MUMBAI",
+        },
+        {
+          line_no: 2,
+          account_code: "2210-GST-ITC",
+          account_name: "Input GST / VAT Recoverable Tax Credit",
+          type: "DEBIT",
+          amount: taxAmount,
+          tax_rate: "18.00%",
+        },
+        {
+          line_no: 3,
+          account_code: "2010-AP-TRADE",
+          account_name: "Trade Accounts Payable Control Liability",
+          type: "CREDIT",
+          amount: numTotal,
+          payment_terms: "NET30",
+        },
+      ],
+      idempotency_key: idempotencyKey,
+    }),
+    [
+      targetErp,
+      invoiceNumber,
+      vendorName,
+      currency,
+      netAmount,
+      taxAmount,
+      numTotal,
+      idempotencyKey,
+      postingDate,
     ],
-    idempotency_key: idempotencyKey,
-  }), [targetErp, invoiceNumber, vendorName, currency, netAmount, taxAmount, numTotal, idempotencyKey, postingDate]);
+  );
 
   return (
     <Dialog
@@ -150,15 +168,15 @@ export function ErpSyncModal({
         lifecycle === "SUCCESS"
           ? "General Ledger Voucher Confirmed"
           : lifecycle === "FAILED"
-          ? "ERP Synchronization Failed"
-          : `Post to ERP (${selectedErpLabel.split(" ")[0]} & Others)`
+            ? "ERP Synchronization Failed"
+            : `Post to ERP (${selectedErpLabel.split(" ")[0]} & Others)`
       }
       description={
         lifecycle === "SUCCESS"
           ? `Journal voucher posted to ${selectedErpLabel}.`
           : lifecycle === "FAILED"
-          ? `Could not transmit journal entry to ${selectedErpLabel}.`
-          : `Post balanced double-entry accounting journal entries for Invoice ${invoiceNumber}.`
+            ? `Could not transmit journal entry to ${selectedErpLabel}.`
+            : `Post balanced double-entry accounting journal entries for Invoice ${invoiceNumber}.`
       }
     >
       <div className="space-y-4 pt-1">
@@ -176,20 +194,30 @@ export function ErpSyncModal({
                   Double-Entry Journal Successfully Posted &amp; Balanced
                 </h4>
                 <p className="text-caption text-emerald-800 dark:text-emerald-300">
-                  Transmitted to <strong className="font-semibold">{selectedErpLabel}</strong>. Invoice state transitioned to <strong className="font-semibold font-mono">SYNCED</strong>.
+                  Transmitted to{" "}
+                  <strong className="font-semibold">{selectedErpLabel}</strong>.
+                  Invoice state transitioned to{" "}
+                  <strong className="font-semibold font-mono">SYNCED</strong>.
                 </p>
               </div>
             </div>
 
             {/* Voucher Confirmation Receipt */}
             <div className="relative p-4 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-neutral-50/70 dark:bg-zinc-900/60 space-y-3 font-mono text-caption overflow-hidden">
-              <AvartaCrest variant="watermark" className="opacity-[0.04] dark:opacity-[0.05]" />
-              
+              <AvartaCrest
+                variant="watermark"
+                className="opacity-[0.04] dark:opacity-[0.05]"
+              />
+
               {/* Institutional Voucher Proof Header */}
               <div className="relative z-10 flex items-center justify-between border-b border-neutral-200 dark:border-zinc-800 pb-2.5">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-neutral-100 dark:bg-zinc-800 border border-neutral-200/80 dark:border-zinc-700/80 flex items-center justify-center p-0.5 shadow-2xs">
-                    <AvartaCrest variant="shield" glow className="w-full h-full" />
+                    <AvartaCrest
+                      variant="shield"
+                      glow
+                      className="w-full h-full"
+                    />
                   </div>
                   <div>
                     <span className="font-semibold text-body-sm text-neutral-900 dark:text-zinc-100 block font-sans">
@@ -202,7 +230,9 @@ export function ErpSyncModal({
                 </div>
 
                 <div className="text-right">
-                  <span className="text-micro text-neutral-400 dark:text-zinc-500 uppercase block">Posting Status</span>
+                  <span className="text-micro text-neutral-400 dark:text-zinc-500 uppercase block">
+                    Posting Status
+                  </span>
                   <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold text-micro">
                     <Check size={12} strokeWidth={3} />
                     <span>POSTED (DR = CR)</span>
@@ -212,9 +242,13 @@ export function ErpSyncModal({
 
               <div className="relative z-10 flex items-center justify-between border-b border-neutral-200/60 dark:border-zinc-800/60 pb-2">
                 <div>
-                  <span className="text-micro text-neutral-400 dark:text-zinc-500 uppercase block">Voucher Reference</span>
+                  <span className="text-micro text-neutral-400 dark:text-zinc-500 uppercase block">
+                    Voucher Reference
+                  </span>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-body-sm text-neutral-900 dark:text-zinc-100">{voucherRef}</span>
+                    <span className="font-bold text-body-sm text-neutral-900 dark:text-zinc-100">
+                      {voucherRef}
+                    </span>
                     <button
                       type="button"
                       onClick={handleCopyVoucher}
@@ -233,20 +267,36 @@ export function ErpSyncModal({
 
               <div className="relative z-10 grid grid-cols-2 gap-2 text-micro">
                 <div>
-                  <span className="text-neutral-400 block">Total Invoiced:</span>
-                  <span className="font-bold text-neutral-900 dark:text-zinc-100">{formatCurrency(numTotal, currency)}</span>
+                  <span className="text-neutral-400 block">
+                    Total Invoiced:
+                  </span>
+                  <span className="font-bold text-neutral-900 dark:text-zinc-100">
+                    {formatCurrency(numTotal, currency)}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-neutral-400 block">Claimable Tax (ITC):</span>
-                  <span className="font-bold text-neutral-900 dark:text-zinc-100">{formatCurrency(taxAmount, currency)}</span>
+                  <span className="text-neutral-400 block">
+                    Claimable Tax (ITC):
+                  </span>
+                  <span className="font-bold text-neutral-900 dark:text-zinc-100">
+                    {formatCurrency(taxAmount, currency)}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-neutral-400 block">Supplier Entity:</span>
-                  <span className="text-neutral-800 dark:text-zinc-200">{vendorName}</span>
+                  <span className="text-neutral-400 block">
+                    Supplier Entity:
+                  </span>
+                  <span className="text-neutral-800 dark:text-zinc-200">
+                    {vendorName}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-neutral-400 block">Destination Ledger:</span>
-                  <span className="text-neutral-800 dark:text-zinc-200">{targetErp} Main Ledger</span>
+                  <span className="text-neutral-400 block">
+                    Destination Ledger:
+                  </span>
+                  <span className="text-neutral-800 dark:text-zinc-200">
+                    {targetErp} Main Ledger
+                  </span>
                 </div>
               </div>
             </div>
@@ -277,7 +327,8 @@ export function ErpSyncModal({
                   ERP Voucher Transmission Failed
                 </h4>
                 <p className="text-caption text-red-800 dark:text-red-300 leading-relaxed">
-                  {errorMessage || "The external accounting gateway rejected or failed to process the double-entry voucher."}
+                  {errorMessage ||
+                    "The external accounting gateway rejected or failed to process the double-entry voucher."}
                 </p>
               </div>
             </div>
@@ -292,7 +343,9 @@ export function ErpSyncModal({
                 <span>{voucherRef}</span>
               </div>
               <p className="pt-1.5 border-t border-neutral-200/60 dark:border-zinc-800/60 text-neutral-500 font-sans">
-                <strong>Safety Notice:</strong> No journal entries were committed. You can safely modify destination options or retry the synchronization.
+                <strong>Safety Notice:</strong> No journal entries were
+                committed. You can safely modify destination options or retry
+                the synchronization.
               </p>
             </div>
 
@@ -328,7 +381,10 @@ export function ErpSyncModal({
           <>
             {/* ERP Target Selector */}
             <div className="space-y-1.5">
-              <label htmlFor="erp-select-input" className="text-label text-neutral-700 dark:text-zinc-300 block">
+              <label
+                htmlFor="erp-select-input"
+                className="text-label text-neutral-700 dark:text-zinc-300 block"
+              >
                 Destination Accounting / ERP Gateway
               </label>
               <Select
@@ -381,7 +437,10 @@ export function ErpSyncModal({
                 <div className="flex items-center justify-between text-caption font-medium border-b border-neutral-200/80 dark:border-zinc-800 pb-2">
                   <span className="flex items-center gap-1.5 text-neutral-800 dark:text-zinc-200">
                     <Building2 size={13} className="text-neutral-500" />
-                    <span>Supplier: <strong className="font-semibold">{vendorName}</strong></span>
+                    <span>
+                      Supplier:{" "}
+                      <strong className="font-semibold">{vendorName}</strong>
+                    </span>
                   </span>
                   <span className="font-mono text-neutral-500 text-micro">
                     Voucher Ref: GL-INV-{invoiceNumber}
@@ -390,7 +449,9 @@ export function ErpSyncModal({
 
                 <div className="text-caption space-y-1">
                   <div className="grid grid-cols-12 font-semibold text-neutral-400 dark:text-zinc-500 pb-1.5 border-b border-neutral-200/60 dark:border-zinc-800/60 text-micro uppercase tracking-wider">
-                    <span className="col-span-7">GL Account &amp; Cost Category</span>
+                    <span className="col-span-7">
+                      GL Account &amp; Cost Category
+                    </span>
                     <span className="col-span-2 text-right">Debit (DR)</span>
                     <span className="col-span-3 text-right">Credit (CR)</span>
                   </div>
@@ -401,12 +462,16 @@ export function ErpSyncModal({
                       <p className="font-mono text-neutral-900 dark:text-zinc-100 font-medium">
                         5010 • Production Materials Expense
                       </p>
-                      <p className="text-micro text-neutral-500">Cost of Goods Invoiced (Tax-Exclusive)</p>
+                      <p className="text-micro text-neutral-500">
+                        Cost of Goods Invoiced (Tax-Exclusive)
+                      </p>
                     </div>
                     <span className="col-span-2 text-right font-mono font-semibold text-neutral-900 dark:text-zinc-100 tabular-nums">
                       {formatCurrency(netAmount, currency)}
                     </span>
-                    <span className="col-span-3 text-right font-mono text-neutral-400 tabular-nums">0.00</span>
+                    <span className="col-span-3 text-right font-mono text-neutral-400 tabular-nums">
+                      0.00
+                    </span>
                   </div>
 
                   {/* Line 2: Input GST Tax Credit (Debit) */}
@@ -415,12 +480,16 @@ export function ErpSyncModal({
                       <p className="font-mono text-neutral-900 dark:text-zinc-100 font-medium">
                         2210 • Input GST/VAT Recoverable Credit
                       </p>
-                      <p className="text-micro text-neutral-500">Claimable ITC @ 18% Rate</p>
+                      <p className="text-micro text-neutral-500">
+                        Claimable ITC @ 18% Rate
+                      </p>
                     </div>
                     <span className="col-span-2 text-right font-mono font-semibold text-neutral-900 dark:text-zinc-100 tabular-nums">
                       {formatCurrency(taxAmount, currency)}
                     </span>
-                    <span className="col-span-3 text-right font-mono text-neutral-400 tabular-nums">0.00</span>
+                    <span className="col-span-3 text-right font-mono text-neutral-400 tabular-nums">
+                      0.00
+                    </span>
                   </div>
 
                   {/* Line 3: Accounts Payable (Credit) */}
@@ -429,9 +498,13 @@ export function ErpSyncModal({
                       <p className="font-mono text-neutral-900 dark:text-zinc-100 font-medium">
                         2010 • Accounts Payable Control
                       </p>
-                      <p className="text-micro text-neutral-500">Net Liability Payable to {vendorName}</p>
+                      <p className="text-micro text-neutral-500">
+                        Net Liability Payable to {vendorName}
+                      </p>
                     </div>
-                    <span className="col-span-2 text-right font-mono text-neutral-400 tabular-nums">0.00</span>
+                    <span className="col-span-2 text-right font-mono text-neutral-400 tabular-nums">
+                      0.00
+                    </span>
                     <span className="col-span-3 text-right font-mono font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
                       {formatCurrency(numTotal, currency)}
                     </span>
@@ -439,7 +512,9 @@ export function ErpSyncModal({
 
                   {/* Summary Balance Line */}
                   <div className="grid grid-cols-12 text-micro pt-2 border-t border-neutral-300 dark:border-zinc-700 font-semibold font-mono text-neutral-700 dark:text-zinc-300">
-                    <span className="col-span-7 uppercase">Total Double-Entry Verification</span>
+                    <span className="col-span-7 uppercase">
+                      Total Double-Entry Verification
+                    </span>
                     <span className="col-span-2 text-right text-indigo-600 dark:text-indigo-400">
                       {formatCurrency(numTotal, currency)}
                     </span>
@@ -459,11 +534,18 @@ export function ErpSyncModal({
             {/* Voucher Reference Footer */}
             <div className="pt-2 text-micro font-mono text-neutral-400 dark:text-zinc-500 flex items-center justify-between border-t border-neutral-100 dark:border-zinc-800">
               <span className="truncate max-w-[320px]">Ref: {voucherRef}</span>
-              <span className="text-micro font-sans text-neutral-400">Idempotent Sync Voucher</span>
+              <span className="text-micro font-sans text-neutral-400">
+                Idempotent Sync Voucher
+              </span>
             </div>
 
             <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-neutral-200 dark:border-zinc-800">
-              <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isPending}
+              >
                 Cancel
               </Button>
               <Button

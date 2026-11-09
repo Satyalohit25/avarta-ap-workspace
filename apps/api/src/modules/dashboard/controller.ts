@@ -376,7 +376,7 @@ export async function overviewHandler(req: Request, res: Response, next: NextFun
         statusVariant,
         amount: Number(inv.totalAmount) || 0,
         currency: inv.currency || "INR",
-        confidence: inv.aiConfidence ?? 96,
+        confidence: inv.aiConfidence != null ? Number(inv.aiConfidence) : null,
       };
     });
 

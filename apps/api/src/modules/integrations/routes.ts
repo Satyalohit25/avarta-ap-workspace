@@ -122,8 +122,7 @@ integrationRoutes.post("/erp/sync-now", requireRole("ADMINISTRATOR"), async (req
 /**
  * POST /api/integrations/payment-gateway/test
  * Tests a Payment Gateway (RazorpayX, Cashfree, Stripe, Manual) and optionally saves it.
- */
-integrationRoutes.post("/payment-gateway/test", requireRole("ADMINISTRATOR"), async (req: Request, res: Response, next: NextFunction) => {
+ */integrationRoutes.post("/payment-gateway/test", requireRole("ADMINISTRATOR"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const organizationId = req.auth!.organizationId;
     const { provider, config, save } = req.body;
@@ -139,6 +138,75 @@ integrationRoutes.post("/payment-gateway/test", requireRole("ADMINISTRATOR"), as
       save !== false
     );
 
+    return res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+const EMAIL_PROVIDERS = ["SMTP", "RESEND", "SENDGRID", "POSTMARK", "MAILGUN"] as const;
+
+/**
+ * POST /api/integrations/email/test
+ * Sends a real test message (or verifies SMTP credentials) and optionally
+ * encrypts & saves the connector.
+ */
+integrationRoutes.post("/email/test", requireRole("ADMINISTRATOR"), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const organizationId = req.auth!.organizationId;
+    const { provider, config, save, testRecipient } = req.body as {
+      provider?: string;
+      config?: Record<string, unknown>;
+      save?: boolean;
+      testRecipient?: string;
+    };
+
+    const normalizedProvider = (provider || "").toUpperCase() as (typeof EMAIL_PROVIDERS)[number];
+    if (!EMAIL_PROVIDERS.includes(normalizedProvider)) {
+      throw ApiError.badRequest(
+        "Field 'provider' must be one of SMTP, RESEND, SENDGRID, POSTMARK, MAILGUN."
+      );
+    }
+
+    const result = await IntegrationsService.testAndSaveEmail(
+      organizationId,
+      {
+        ...(config || {}),
+        provider: normalizedProvider,
+      } as Parameters<typeof IntegrationsService.testAndSaveEmail>[1],
+      save !== false,
+      typeof testRecipient === "string" ? testRecipient : undefined
+    );
+
+    return res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/integrations/:type/disconnect
+ * Revokes a connector. The record is marked DISCONNECTED, never deleted.
+ */
+integrationRoutes.post("/:type/disconnect", requireRole("ADMINISTRATOR"), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const organizationId = req.auth!.organizationId;
+    const type = req.params.type.toUpperCase();
+    const { provider } = req.body as { provider?: string };
+
+    const allowed = ["BYOK_AI", "BYODB", "ERP", "PAYMENT_GATEWAY", "EMAIL"];
+    if (!allowed.includes(type)) {
+      throw ApiError.badRequest(`Unsupported connector type: ${type}`);
+    }
+    if (!provider) {
+      throw ApiError.badRequest("Field 'provider' is required.");
+    }
+
+    const result = await IntegrationsService.disconnect(
+      organizationId,
+      type as "BYOK_AI" | "BYODB" | "ERP" | "PAYMENT_GATEWAY" | "EMAIL",
+      provider
+    );
     return res.json({ data: result });
   } catch (err) {
     next(err);

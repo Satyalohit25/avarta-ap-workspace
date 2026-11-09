@@ -127,4 +127,17 @@ describe("Integrations & Invoice Extraction RBAC Protection (ACT-P0-11 & Extract
     // Status is 200 (or if db mocks needed, not 403 Forbidden)
     expect(res.status).not.toBe(403);
   });
+
+  it("strictly rejects Tally SSRF probe against http://127.0.0.1:54321 on POST /erp/test", async () => {
+    const res = await dispatch(appIntegrations, "POST", "/test/erp/test", "ADMINISTRATOR", {
+      provider: "tally",
+      config: {
+        gatewayUrl: "http://127.0.0.1:54321",
+      },
+      save: false,
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.data.success).toBe(false);
+    expect(res.body.data.message).toBe("SSRF Rejection: Loopback address prohibited: 127.0.0.1");
+  });
 });

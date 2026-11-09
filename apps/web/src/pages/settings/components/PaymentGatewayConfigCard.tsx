@@ -310,7 +310,7 @@ export function PaymentGatewayConfigCard() {
                 <p className="font-semibold">{testResult.message}</p>
                 {testResult.availableBalance !== undefined && (
                   <p className="text-micro font-mono text-neutral-600 dark:text-zinc-400">
-                    Live Balance: {testResult.balanceCurrency} {testResult.availableBalance.toLocaleString()} • Latency: {testResult.latencyMs}ms
+                    Provider balance: {testResult.balanceCurrency} {testResult.availableBalance.toLocaleString()} • Latency: {testResult.latencyMs}ms
                   </p>
                 )}
               </div>

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 function walk(dir) {
   let results = [];
@@ -16,7 +17,7 @@ function walk(dir) {
   return results;
 }
 
-const files = walk(path.resolve('./src'));
+const files = walk(fileURLToPath(new URL('../src', import.meta.url)));
 const violations = [];
 
 const rules = [

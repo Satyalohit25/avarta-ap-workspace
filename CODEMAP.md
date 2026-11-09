@@ -1,7 +1,7 @@
 # CODEMAP.md — Avarta AP Workspace Architecture & System Map
 <!-- Auto-maintained structural map & capability catalog for engineering agents & external analysis (Argon).
-     Last Updated: 2026-10-24
-     Test Verification: 217 passing unit/integration tests across 38 suites | Zero TypeScript errors across apps/api and apps/web. -->
+     Last Updated: 2026-11-09
+     Test Verification: 340 passing unit/integration tests across 50 suites | Zero TypeScript errors across apps/api and apps/web. -->
 
 ## 1. Workspace Overview
 
@@ -18,7 +18,7 @@ ap-saas/
 │   │       ├── config/           # env.ts, tenant-guard.ts, tenant-guard-static.test.ts
 │   │       ├── lib/              # crypto.ts (AES-256-GCM), test-db-guard.ts, errors.ts
 │   │       ├── middleware/       # auth.ts, permissions.ts, idempotency.ts, error-handler.ts
-│   │       ├── modules/          # 18 domain modules
+│   │       ├── modules/          # 24 domain modules
 │   │       └── workflow/         # Workflow State Machine (states, transitions, engine)
 │   └── web/                      # React 18 + Vite + Tailwind CSS SPA
 │       ├── e2e/                  # Playwright end-to-end automation specs
@@ -183,6 +183,54 @@ All authenticated API routes are mounted under `/api/v1` in [`apps/api/src/app/r
 - **Module Path:** `apps/api/src/modules/users/`
   - Service & Repository: Manages user status, organization assignments, and permission queries supporting `/auth/team/members`.
 
+### 2.19 `/items` — Item & Services Catalogue
+- **Routes:** [`apps/api/src/modules/items/routes.ts`](file:///d:/Antigravity/ap-saas/apps/api/src/modules/items/routes.ts)
+  - `GET /`: Tenant-scoped catalogue list with search, category, and status filters.
+  - `POST /`: Create an item (item code, name, category, HSN/SAC, UoM, standard price, currency).
+  - `POST /:itemId/toggle-status`: Archive/restore an item by toggling `ACTIVE`/`INACTIVE` (never deletes).
+- **Prisma Models:** `Item`
+- **Security:** Tenant guard requires `organizationId` on every query; the `Item` model carries `organizationId`.
+
+### 2.20 `/bank-accounts` — Supplier Settlement Accounts
+- **Routes:** [`apps/api/src/modules/bank_accounts/routes.ts`](file:///d:/Antigravity/ap-saas/apps/api/src/modules/bank_accounts/routes.ts)
+  - `GET /`: Tenant-scoped list of supplier bank accounts (masked account numbers only).
+  - `POST /`: Register an account; the full number is encrypted with AES-256-GCM and only the last four digits are stored in clear.
+  - `POST /:accountId/verify`: Mark an account verified (`PENDING` → `VERIFIED`); no synthetic penny-drop reference is fabricated.
+  - `POST /:accountId/primary`: Promote one account to primary for its supplier, demoting the previous primary.
+- **Prisma Models:** `BankAccount`
+- **Security:** Tenant guard requires `organizationId`; `supplierId` is verified against the caller's organization before linking.
+
+### 2.21 `/organization` — Workspace Profile & Settings Persistence
+- **Routes:** [`apps/api/src/modules/organization/routes.ts`](file:///d:/Antigravity/ap-saas/apps/api/src/modules/organization/routes.ts)
+  - `GET /settings`: Returns the tenant's legal profile, `gstin`, and JSON `settings` (approval, notification, locale, and accounting preferences).
+  - `PATCH /settings`: Administrator-only merge-update of the JSON settings blob and GSTIN; every change is audit-logged.
+- **Prisma Models:** `Organization` (`gstin`, `settings`)
+- **Notes:** Settings are server-persisted per tenant — never `localStorage`. API keys are blocked from this route.
+
+### 2.22 `/notifications` — Real Notification Feed & Channel Preferences
+- **Routes:** [`apps/api/src/modules/notifications/routes.ts`](file:///d:/Antigravity/ap-saas/apps/api/src/modules/notifications/routes.ts)
+  - `GET /`: Paginated tenant-scoped notification feed.
+  - `POST /:notificationId/read`, `POST /read-all`: Mark individual or all notifications read.
+  - `GET /preferences`, `PATCH /preferences`: Read/update email and Slack channel preferences (`ADMINISTRATOR`, `FINANCE_MANAGER`).
+  - `POST /test-email`, `POST /test-webhook`: Send a real test through the tenant's configured email connector or Slack webhook.
+- **Prisma Models:** `Notification`, `NotificationPreference`
+- **Notes:** Approval creation emits an `APPROVAL_REQUEST` notification. Delivery is not automatic; channel sends use the configured tenant connectors.
+
+### 2.23 `/api-keys` — Machine Access Credentials
+- **Routes:** [`apps/api/src/modules/api_keys/routes.ts`](file:///d:/Antigravity/ap-saas/apps/api/src/modules/api_keys/routes.ts)
+  - `GET /`: List keys (prefix + metadata only, never the secret).
+  - `POST /`: Create a key; returns the `apk_...` plaintext exactly once, stores only a SHA-256 hash, and inherits the creator's role.
+  - `POST /:apiKeyId/revoke`: Revoke a key (`revokedAt` set; never deleted).
+- **Prisma Models:** `ApiKey`
+- **Security:** API-key sessions cannot call auth, billing, settings, integrations, organization, api-keys, demo, notification-preference, or data-export routes.
+
+### 2.24 `/data-export` — Tenant-Scoped Data Sovereignty Exports
+- **Routes:** [`apps/api/src/modules/data_export/routes.ts`](file:///d:/Antigravity/ap-saas/apps/api/src/modules/data_export/routes.ts)
+  - `GET /:dataset`: Streams `invoices`, `suppliers`, or `payments` as UTF-8 CSV (`ADMINISTRATOR`, `FINANCE_MANAGER`).
+  - Caps each file at 10,000 rows, neutralises spreadsheet formula injection, and writes a `WORKSPACE_DATA_EXPORTED` audit event.
+  - Response headers `X-Export-Row-Count` and `X-Export-Truncated` are CORS-exposed for the web client.
+- **Notes:** Supports the BYODB flow: Avarta verifies and stores a tenant database connection, while CSV export performs the actual register migration until managed onboarding completes record routing.
+
 ---
 
 ## 3. Workflow State Machine Architecture (`apps/api/src/workflow/`)
@@ -290,12 +338,12 @@ React 18 Single-Page Application configured with Vite, React Router v6, Tailwind
 | `/payments` | `PaymentsPage.tsx` | Finance Manager / Admin | Backend `/api/v1/payments`, `/payments/export-file`, `/batch/run`. |
 | `/suppliers` | `SuppliersPage.tsx` | Authenticated | Backend `/api/v1/suppliers`. |
 | `/purchase-orders` | `PurchaseOrdersPage.tsx` | Authenticated | Backend `/api/v1/purchase-orders`. |
-| `/items` | `ItemsPage.tsx` | Authenticated | **Client-side persistent catalogue** (`apps/web/src/api/items.ts` with `localStorage` scoped to `avarta_items_catalogue_${orgId}`). |
-| `/bank-accounts` | `BankAccountsPage.tsx` | Finance Manager / Admin | Configured corporate accounts linked to `/settings/integrations` & `/payments`. |
+| `/items` | `ItemsPage.tsx` | Authenticated | Backend `/api/v1/items` (tenant-scoped catalogue). |
+| `/bank-accounts` | `BankAccountsPage.tsx` | Finance Manager / Admin | Backend `/api/v1/bank-accounts` (supplier settlement accounts, encrypted numbers, masked display). |
 | `/reports` | `ReportsPage.tsx` | Finance Manager / Admin | Backend `/api/v1/reports/operational`, `/aging`, `/cash-outflow`. |
 | `/archive` | `ArchivePage.tsx` | Authenticated | Filtered query on backend `GET /api/v1/invoices?status=ARCHIVED`. |
-| `/settings` | `SettingsPage.tsx` | Administrator | Backend `/api/v1/auth/team`, `/settings/integrations`, `/billing`. |
-| `/notifications` | `NotificationsPage.tsx` | Authenticated | **Client-side notification feed** (`INITIAL_NOTIFICATIONS` + `localStorage` webhook preferences; no dedicated backend REST route). |
+| `/settings` | `SettingsPage.tsx` | Administrator | Backend `/api/v1/organization/settings`, `/auth/team`, `/settings/integrations`, `/billing`, `/api-keys`, `/notifications/preferences`. |
+| `/notifications` | `NotificationsPage.tsx` | Authenticated | Backend `/api/v1/notifications` feed, read receipts, and channel preferences. |
 | `/profile` | `ProfilePage.tsx` | Authenticated | User account details from authenticated session (`req.auth`). |
 
 ---
@@ -314,13 +362,20 @@ React 18 Single-Page Application configured with Vite, React Router v6, Tailwind
 | **Audit & Forensic** | Immutable `AuditLog` table with JSON before/after state diffs, P2025 standard error envelopes, SIEM logging with `req.auth`. | `error-handler.ts`, `audit-rbac.test.ts` |
 | **ERP Integration** | Adapters for QuickBooks, Xero, SAP, NetSuite, Tally with journal mapping; live OAuth connections stubbed. | `erp-adapters.test.ts`, `erp/service.ts` |
 | **Security Controls** | AST query-level tenant isolation, strict Rule 4 write guard, rate limiting, token revocation blacklist, AES-256-GCM. | `tenant-guard.ts`, `auth-security.test.ts` |
+| **Workspace Settings** | Server-persisted organization profile, GSTIN, approval/locale preferences, team management, and audit trail. | `organization/service.ts`, `SettingsPage.tsx` |
+| **BYOK AI** | Tenant supplies its own AI provider key (OpenAI/Anthropic/Gemini/custom); keys encrypted with AES-256-GCM, connection tested before save. | `byok-tester.ts`, `integrations/service.ts` |
+| **BYODB** | Verifies and stores an encrypted PostgreSQL connection. Live record routing is performed during managed onboarding; tenant-scoped CSV exports cover self-service migration. | `tenant-db-manager.ts`, `data_export/service.ts` |
+| **API Access** | `apk_` keys with SHA-256 storage, creator-role inheritance, allow-once reveal, scoped revocation, and blocked admin surfaces. | `api_keys/service.ts`, `api-keys.test.ts` |
+| **Email Connector** | SMTP (nodemailer) plus Resend, SendGrid, Postmark, and Mailgun HTTP delivery; invitations and password resets use the tenant connector. | `lib/email-sender.ts`, `email-sender.test.ts` |
+| **Notifications** | DB-backed feed, read receipts, channel preferences, approval-request emission, and live test sends. | `notifications/*`, `notifications.test.ts` |
+| **Billing** | Subscription and receipt records persisted in the database; plan switching is an audited admin action (no fabricated checkout). | `billing/*`, `BillingPlanCard.tsx` |
 
 ---
 
 ## 7. Automated Test Suite & Quality Gates
 
 - **Test Runner:** Vitest with dynamic test reconciliation ([`apps/api/scripts/reconcile-tests.ts`](file:///d:/Antigravity/ap-saas/apps/api/scripts/reconcile-tests.ts)).
-- **Current Verified Suite:** **217 passing unit & integration tests across 38 suites (0 failures).**
+- **Current Verified Suite:** **340 passing unit & integration tests across 50 suites (0 failures).**
 - **AST Tenant Security Scanner:** [`apps/api/src/config/tenant-guard-static.test.ts`](file:///d:/Antigravity/ap-saas/apps/api/src/config/tenant-guard-static.test.ts) parses all TypeScript files in `apps/api/src` to mathematically verify every Prisma query includes tenant scoping.
 - **Type Safety:** Both `apps/api` and `apps/web` pass `tsc --noEmit` with zero errors.
 - **End-to-End Suite:** Playwright tests in `apps/web/e2e/` covering authentication, invoice processing, exception resolution, and payment runs.

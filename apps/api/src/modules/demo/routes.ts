@@ -20,7 +20,7 @@ demoRoutes.use(requireAuth);
 
 demoRoutes.post(
   "/reset",
-  requireRole("ADMINISTRATOR", "FINANCE_MANAGER"),
+  requireRole("ADMINISTRATOR"),
   resetDemoHandler
 );
 

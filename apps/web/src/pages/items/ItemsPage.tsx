@@ -1,19 +1,12 @@
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useState, useEffect, useMemo, FormEvent } from "react";
 import {
-  Package,
   Search,
   Plus,
-  Filter,
-  ArrowUpDown,
-  Tag,
-  DollarSign,
-  FileText,
-  SlidersHorizontal,
   ChevronRight,
   ShieldCheck,
   CheckCircle2,
   XCircle,
-  Eye,
   PowerOff,
   RotateCcw,
 } from "lucide-react";
@@ -35,7 +28,7 @@ import {
   TableCell,
 } from "../../components/ui/table";
 import { useToast } from "../../components/ui/ToastContext";
-import { formatCurrency, formatDate } from "../../lib/formatters";
+import { formatCurrency } from "../../lib/formatters";
 import {
   Item,
   listItems,
@@ -57,6 +50,7 @@ const CATEGORIES = [
 const UNITS_OF_MEASURE = ["Pcs", "MT", "Kg", "Mtr", "Units", "Days", "Hours", "Boxes"];
 
 export default function ItemsPage() {
+  useDocumentTitle("Items & Catalog", "Procurement item catalog, HSN/SAC statutory codes, unit rates, and inventory mapping.");
   const { toast } = useToast();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,6 +91,8 @@ export default function ItemsPage() {
 
   useEffect(() => {
     loadItems();
+    // Initial load only; loadItems closes over the current toast instance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredItems = useMemo(() => {

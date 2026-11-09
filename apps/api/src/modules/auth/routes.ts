@@ -7,6 +7,7 @@ import {
   meHandler,
   listTeamHandler,
   inviteTeamHandler,
+  acceptInviteHandler,
   deactivateTeamHandler,
   forgotPasswordHandler,
   resetPasswordHandler,
@@ -21,6 +22,7 @@ export const authRoutes = Router();
 
 authRoutes.get("/config", authConfigHandler);
 authRoutes.post("/signup", authRateLimiter, signupHandler);
+authRoutes.post("/register", authRateLimiter, signupHandler);
 authRoutes.post("/login", authRateLimiter, loginHandler);
 authRoutes.post("/refresh", authRateLimiter, refreshHandler);
 authRoutes.post("/logout", requireAuth, logoutHandler);
@@ -41,6 +43,9 @@ authRoutes.post(
   requireRole("ADMINISTRATOR"),
   deactivateTeamHandler
 );
+
+// Public invitation acceptance (the invitee has no session yet).
+authRoutes.post("/invite/accept", authRateLimiter, acceptInviteHandler);
 
 // Account recovery & password reset endpoints
 authRoutes.post("/forgot-password", authRateLimiter, forgotPasswordHandler);

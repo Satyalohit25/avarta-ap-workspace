@@ -1,3 +1,4 @@
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useState, FormEvent } from "react";
 import { useAuth } from "../../app/AuthContext";
 import {
@@ -31,6 +32,7 @@ interface ApiToken {
 }
 
 export default function ProfilePage() {
+  useDocumentTitle("My Profile", "Manage your user profile, credentials, and notification preferences.");
   const { user } = useAuth();
   const { toast } = useToast();
   const [saved, setSaved] = useState(false);

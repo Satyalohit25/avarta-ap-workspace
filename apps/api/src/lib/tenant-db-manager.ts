@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { prisma as defaultPrisma } from "../config/database";
+import { validateDatabaseUrlSsrf } from "../security/ssrf";
 
 export interface DatabaseTestResult {
   success: boolean;
@@ -82,8 +83,8 @@ class TenantDatabaseManager {
       };
     }
 
-    // SSRF & TLS Security Audit Gate
-    const securityCheck = validateDatabaseUrlSecurity(connectionUrl);
+    // SSRF & TLS Security Audit Gate with DNS Resolution
+    const securityCheck = await validateDatabaseUrlSsrf(connectionUrl);
     if (!securityCheck.safe) {
       return {
         success: false,

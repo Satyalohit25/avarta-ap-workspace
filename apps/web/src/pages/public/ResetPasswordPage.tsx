@@ -1,3 +1,4 @@
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Shield, Lock, CheckCircle2, ArrowLeft } from "lucide-react";
@@ -8,6 +9,7 @@ import { Alert } from "../../components/ui/Alert";
 import { apiRequest, ApiRequestError } from "../../api/client";
 
 export default function ResetPasswordPage() {
+  useDocumentTitle("Reset Password", "Set a new secure password for your Avarta AP Workspace account.");
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") || "";
 
@@ -26,8 +28,8 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters long.");
+    if (newPassword.length < 12) {
+      setError("Password must be at least 12 characters long.");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -66,7 +68,7 @@ export default function ResetPasswordPage() {
           Create new password
         </h2>
         <p className="mt-1 text-center text-caption text-neutral-500 dark:text-zinc-400">
-          Choose a strong password with minimum 8 characters to secure your workspace.
+          Choose a strong password with minimum 12 characters to secure your workspace.
         </p>
       </div>
 
@@ -105,7 +107,7 @@ export default function ResetPasswordPage() {
                   required
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Minimum 8 characters"
+                  placeholder="Minimum 12 characters"
                   leftIcon={<Lock size={16} />}
                 />
 

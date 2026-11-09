@@ -2,21 +2,20 @@ import { prisma } from "../../config/database";
 import { SAAS_PLANS, PlanTier, PlanDefinition } from "./plans";
 import { ApiError } from "../../lib/errors";
 
-// In-memory tenant plan cache / override store (can be backed by DB/Stripe)
-const tenantPlanStore = new Map<string, { planId: PlanTier; status: "ACTIVE" | "PAST_DUE" | "CANCELED"; periodEnd: Date }>();
-
 export interface TenantUsageSummary {
   plan: PlanDefinition;
   status: "ACTIVE" | "PAST_DUE" | "CANCELED";
   periodEnd: string;
   usage: {
     invoicesUsed: number;
-    invoicesLimit: number;
-    invoicesRemaining: number;
+    /** null means unlimited */
+    invoicesLimit: number | null;
+    invoicesRemaining: number | null;
     invoiceQuotaPercentage: number;
     seatsUsed: number;
-    seatsLimit: number;
-    seatsRemaining: number;
+    /** null means unlimited */
+    seatsLimit: number | null;
+    seatsRemaining: number | null;
   };
   features: PlanDefinition["features"];
 }
@@ -28,53 +27,63 @@ export interface BillingInvoiceReceipt {
   amount: number;
   currency: string;
   status: "PAID" | "PENDING" | "FAILED";
-  pdfDownloadUrl: string;
+  pdfDownloadUrl: string | null;
 }
 
-export async function getTenantPlan(organizationId: string): Promise<{ planId: PlanTier; status: "ACTIVE" | "PAST_DUE" | "CANCELED"; periodEnd: Date }> {
-  const existing = tenantPlanStore.get(organizationId);
+interface TenantPlanRecord {
+  planId: PlanTier;
+  status: "ACTIVE" | "PAST_DUE" | "CANCELED";
+  periodEnd: Date;
+}
+
+function normalizePlanTier(value: string): PlanTier {
+  return value === "STARTER" || value === "ENTERPRISE" ? value : "GROWTH";
+}
+
+function normalizeStatus(value: string): "ACTIVE" | "PAST_DUE" | "CANCELED" {
+  return value === "PAST_DUE" || value === "CANCELED" ? value : "ACTIVE";
+}
+
+async function ensureSubscription(organizationId: string) {
+  const existing = await prisma.subscription.findUnique({ where: { organizationId } });
   if (existing) return existing;
 
-  // Default demo / new organization plan is GROWTH
-  const defaultSub = {
-    planId: "GROWTH" as PlanTier,
-    status: "ACTIVE" as const,
-    periodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+  return prisma.subscription.create({
+    data: {
+      organizationId,
+      planTier: "GROWTH",
+      status: "ACTIVE",
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
+  });
+}
+
+export async function getTenantPlan(organizationId: string): Promise<TenantPlanRecord> {
+  const subscription = await ensureSubscription(organizationId);
+  return {
+    planId: normalizePlanTier(subscription.planTier),
+    status: normalizeStatus(subscription.status),
+    periodEnd: subscription.currentPeriodEnd,
   };
-  tenantPlanStore.set(organizationId, defaultSub);
-  return defaultSub;
 }
 
 export async function getTenantUsage(organizationId: string): Promise<TenantUsageSummary> {
   const sub = await getTenantPlan(organizationId);
   const plan = SAAS_PLANS[sub.planId] || SAAS_PLANS.GROWTH;
 
-  // Calculate start of current billing month
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  // Count invoices created this billing month
   const invoicesUsed = await prisma.invoice.count({
-    where: {
-      organizationId,
-      createdAt: { gte: startOfMonth },
-    },
+    where: { organizationId, createdAt: { gte: startOfMonth } },
   });
 
-  // Count active users in this organization
   const seatsUsed = await prisma.user.count({
-    where: {
-      organizationId,
-      status: "ACTIVE",
-    },
+    where: { organizationId, status: "ACTIVE" },
   });
 
-  const invoicesLimit = plan.monthlyInvoiceLimit;
-  const invoicesRemaining = invoicesLimit === Infinity ? Infinity : Math.max(0, invoicesLimit - invoicesUsed);
-  const invoiceQuotaPercentage = invoicesLimit === Infinity ? 0 : Math.min(100, Math.round((invoicesUsed / invoicesLimit) * 100));
-
-  const seatsLimit = plan.seatLimit;
-  const seatsRemaining = seatsLimit === Infinity ? Infinity : Math.max(0, seatsLimit - seatsUsed);
+  const unlimitedInvoices = plan.monthlyInvoiceLimit === Infinity;
+  const unlimitedSeats = plan.seatLimit === Infinity;
 
   return {
     plan,
@@ -82,12 +91,16 @@ export async function getTenantUsage(organizationId: string): Promise<TenantUsag
     periodEnd: sub.periodEnd.toISOString(),
     usage: {
       invoicesUsed,
-      invoicesLimit,
-      invoicesRemaining,
-      invoiceQuotaPercentage,
+      invoicesLimit: unlimitedInvoices ? null : plan.monthlyInvoiceLimit,
+      invoicesRemaining: unlimitedInvoices
+        ? null
+        : Math.max(0, plan.monthlyInvoiceLimit - invoicesUsed),
+      invoiceQuotaPercentage: unlimitedInvoices
+        ? 0
+        : Math.min(100, Math.round((invoicesUsed / plan.monthlyInvoiceLimit) * 100)),
       seatsUsed,
-      seatsLimit,
-      seatsRemaining,
+      seatsLimit: unlimitedSeats ? null : plan.seatLimit,
+      seatsRemaining: unlimitedSeats ? null : Math.max(0, plan.seatLimit - seatsUsed),
     },
     features: plan.features,
   };
@@ -96,9 +109,14 @@ export async function getTenantUsage(organizationId: string): Promise<TenantUsag
 export async function checkCanCreateInvoice(organizationId: string): Promise<void> {
   const usage = await getTenantUsage(organizationId);
   if (usage.status === "PAST_DUE" || usage.status === "CANCELED") {
-    throw ApiError.forbidden("Subscription is past due or inactive. Please update your payment method to process invoices.");
+    throw ApiError.forbidden(
+      "Subscription is past due or inactive. Please update your payment method to process invoices."
+    );
   }
-  if (usage.usage.invoicesLimit !== Infinity && usage.usage.invoicesUsed >= usage.usage.invoicesLimit) {
+  if (
+    usage.usage.invoicesLimit !== null &&
+    usage.usage.invoicesUsed >= usage.usage.invoicesLimit
+  ) {
     throw ApiError.badRequest(
       `Monthly invoice processing limit reached (${usage.usage.invoicesUsed}/${usage.usage.invoicesLimit} on ${usage.plan.name} plan). Please upgrade to Growth or Enterprise to continue.`
     );
@@ -107,51 +125,78 @@ export async function checkCanCreateInvoice(organizationId: string): Promise<voi
 
 export async function checkCanInviteUser(organizationId: string): Promise<void> {
   const usage = await getTenantUsage(organizationId);
-  if (usage.usage.seatsLimit !== Infinity && usage.usage.seatsUsed >= usage.usage.seatsLimit) {
+  if (
+    usage.usage.seatsLimit !== null &&
+    usage.usage.seatsUsed >= usage.usage.seatsLimit
+  ) {
     throw ApiError.badRequest(
       `Team seat limit reached (${usage.usage.seatsUsed}/${usage.usage.seatsLimit} on ${usage.plan.name} plan). Upgrade your subscription to add more team members.`
     );
   }
 }
 
-export async function upgradeTenantPlan(organizationId: string, newPlanId: PlanTier): Promise<TenantUsageSummary> {
+export async function upgradeTenantPlan(
+  organizationId: string,
+  newPlanId: PlanTier,
+  actorUserId?: string
+): Promise<TenantUsageSummary> {
   if (!SAAS_PLANS[newPlanId]) {
     throw ApiError.badRequest(`Invalid plan tier: ${newPlanId}`);
   }
 
-  const updated = {
-    planId: newPlanId,
-    status: "ACTIVE" as const,
-    periodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-  };
-  tenantPlanStore.set(organizationId, updated);
+  const before = await getTenantPlan(organizationId);
+  const currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+  await prisma.subscription.upsert({
+    where: { organizationId },
+    create: {
+      organizationId,
+      planTier: newPlanId,
+      status: "ACTIVE",
+      currentPeriodEnd,
+    },
+    update: {
+      planTier: newPlanId,
+      status: "ACTIVE",
+      currentPeriodStart: new Date(),
+      currentPeriodEnd,
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      organizationId,
+      userId: actorUserId || null,
+      action: "SUBSCRIPTION_PLAN_CHANGED",
+      entityType: "subscription",
+      entityId: organizationId,
+      beforeData: { planTier: before.planId, status: before.status },
+      afterData: { planTier: newPlanId, status: "ACTIVE" },
+    },
+  });
 
   return getTenantUsage(organizationId);
 }
 
-export async function getBillingReceipts(organizationId: string): Promise<BillingInvoiceReceipt[]> {
-  const sub = await getTenantPlan(organizationId);
-  const plan = SAAS_PLANS[sub.planId] || SAAS_PLANS.GROWTH;
+export async function getBillingReceipts(
+  organizationId: string
+): Promise<BillingInvoiceReceipt[]> {
+  const receipts = await prisma.billingReceipt.findMany({
+    where: { organizationId },
+    orderBy: { issuedAt: "desc" },
+    take: 50,
+  });
 
-  // Return generated/historical SaaS receipts
-  return [
-    {
-      id: `rcpt_${organizationId.slice(0, 8)}_01`,
-      invoiceNumber: `AV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      amount: plan.priceMonthlyInr,
-      currency: "INR",
-      status: "PAID",
-      pdfDownloadUrl: `/api/billing/receipts/latest.pdf`,
-    },
-    {
-      id: `rcpt_${organizationId.slice(0, 8)}_02`,
-      invoiceNumber: `AV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      date: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      amount: plan.priceMonthlyInr,
-      currency: "INR",
-      status: "PAID",
-      pdfDownloadUrl: `/api/billing/receipts/previous.pdf`,
-    },
-  ];
+  return receipts.map((receipt) => ({
+    id: receipt.id,
+    invoiceNumber: receipt.invoiceNumber,
+    date: receipt.issuedAt.toISOString().split("T")[0],
+    amount: Number(receipt.amount),
+    currency: receipt.currency,
+    status:
+      receipt.status === "PENDING" || receipt.status === "FAILED"
+        ? receipt.status
+        : "PAID",
+    pdfDownloadUrl: receipt.pdfUrl,
+  }));
 }

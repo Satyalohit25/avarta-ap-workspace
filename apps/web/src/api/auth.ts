@@ -29,79 +29,109 @@ export async function fetchAuthConfig(): Promise<AuthConfig> {
 }
 
 export async function signup(payload: SignupPayload): Promise<CurrentUser> {
-  const result = await apiRequest<{ user: CurrentUser; accessToken: string; refreshToken?: string }>("/auth/signup", {
+  const result = await apiRequest<{ user: CurrentUser; accessToken: string }>("/auth/signup", {
     method: "POST",
     body: payload,
   });
   setAccessToken(result.accessToken);
-  if (result.refreshToken) {
-    localStorage.setItem("avarta_refresh_token", result.refreshToken);
-  }
-  localStorage.setItem("avarta_user", JSON.stringify(result.user));
   localStorage.setItem("avarta_is_new_user", "true");
   return result.user;
 }
 
 export async function login(email: string, password: string): Promise<CurrentUser> {
   const normalizedEmail = email.trim().toLowerCase();
-  const result = await apiRequest<{ user: CurrentUser; accessToken: string; refreshToken?: string }>("/auth/login", {
+  const result = await apiRequest<{ user: CurrentUser; accessToken: string }>("/auth/login", {
     method: "POST",
     body: { email: normalizedEmail, password },
   });
   setAccessToken(result.accessToken);
-  if (result.refreshToken) {
-    localStorage.setItem("avarta_refresh_token", result.refreshToken);
-  }
-  localStorage.setItem("avarta_user", JSON.stringify(result.user));
   return result.user;
 }
 
 export async function refreshAuthToken(): Promise<string> {
-  const currentRefreshToken = localStorage.getItem("avarta_refresh_token");
-  if (!currentRefreshToken) {
-    throw new Error("No refresh token stored");
-  }
-  const result = await apiRequest<{ accessToken: string; refreshToken: string }>("/auth/refresh", {
+  // The refresh token is an httpOnly cookie; no request body is needed.
+  const result = await apiRequest<{ accessToken: string }>("/auth/refresh", {
     method: "POST",
-    body: { refreshToken: currentRefreshToken },
   });
   setAccessToken(result.accessToken);
-  localStorage.setItem("avarta_refresh_token", result.refreshToken);
   return result.accessToken;
 }
 
 export async function fetchCurrentUser(): Promise<CurrentUser> {
-  try {
-    return await apiRequest<CurrentUser>("/auth/me");
-  } catch (err) {
-    const cached = localStorage.getItem("avarta_user");
-    if (cached) {
-      try {
-        return JSON.parse(cached) as CurrentUser;
-      } catch {
-        // ignore JSON parse error
-      }
-    }
-    throw err;
-  }
+  return await apiRequest<CurrentUser>("/auth/me");
+}
+
+export async function acceptInvite(payload: {
+  token: string;
+  fullName: string;
+  password: string;
+}): Promise<void> {
+  await apiRequest("/auth/invite/accept", {
+    method: "POST",
+    body: payload,
+  });
 }
 
 export async function logout(): Promise<void> {
-  const refreshToken = localStorage.getItem("avarta_refresh_token");
   try {
-    await apiRequest("/auth/logout", {
-      method: "POST",
-      body: refreshToken ? { refreshToken } : undefined,
-    });
+    await apiRequest("/auth/logout", { method: "POST" });
   } catch {
     // Network errors during logout should not prevent local session cleanup
   } finally {
     setAccessToken(null);
-    localStorage.removeItem("avarta_user");
-    localStorage.removeItem("avarta_refresh_token");
     localStorage.removeItem("avarta_is_new_user");
     localStorage.removeItem("avarta_email_verified");
     sessionStorage.clear();
     window.dispatchEvent(new Event("auth:logout"));
   }
+}
+
+export type TeamRole =
+  | "ADMINISTRATOR"
+  | "FINANCE_MANAGER"
+  | "FINANCE_EXECUTIVE"
+  | "APPROVER"
+  | "READ_ONLY";
+
+export interface TeamMemberRecord {
+  id: string;
+  fullName: string;
+  email: string;
+  role: TeamRole;
+  status: "ACTIVE" | "DEACTIVATED";
+  createdAt: string;
+}
+
+export interface InvitationResult {
+  id: string;
+  email: string;
+  role: TeamRole;
+  invitationId: string;
+  token?: string;
+  inviteUrl?: string;
+  emailSent: boolean;
+  emailDeliveryError?: string;
+  expiresAt: string;
+  message: string;
+}
+
+export async function fetchTeamMembers(): Promise<TeamMemberRecord[]> {
+  const res = await apiRequest<{ data: TeamMemberRecord[] }>("/auth/team");
+  return res.data;
+}
+
+export async function inviteTeamMember(payload: {
+  email: string;
+  fullName: string;
+  role: TeamRole;
+}): Promise<InvitationResult> {
+  const res = await apiRequest<{ data: InvitationResult }>("/auth/team/invite", {
+    method: "POST",
+    body: payload,
+  });
+  return res.data;
+}
+
+export async function deactivateTeamMember(userId: string): Promise<void> {
+  await apiRequest(`/auth/team/${userId}/deactivate`, { method: "POST" });
 }

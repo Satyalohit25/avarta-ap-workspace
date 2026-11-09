@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import {
   Calendar,
   Building2,
@@ -126,24 +127,32 @@ function buildInvoiceAuditTimeline(
           break;
         case "VALIDATION_FLAGGED": {
           actorName = "Validation Engine";
-          const firstEx = invoice.exceptions && invoice.exceptions.length > 0 ? invoice.exceptions[0] : null;
-          const exType = firstEx?.type || String(data.rule || data.exceptionType || "STATUTORY_RULE");
-          const exDesc = firstEx?.description || firstEx?.title || String(data.details || "");
+          const firstEx =
+            invoice.exceptions && invoice.exceptions.length > 0
+              ? invoice.exceptions[0]
+              : null;
+          const exType =
+            firstEx?.type ||
+            String(data.rule || data.exceptionType || "STATUTORY_RULE");
+          const exDesc =
+            firstEx?.description ||
+            firstEx?.title ||
+            String(data.details || "");
 
           actionTitle = `Validation Flagged: ${exType}`;
-          details = exDesc || (
-            exType === "MISSING_PO"
+          details =
+            exDesc ||
+            (exType === "MISSING_PO"
               ? "Missing PO: Invoice value exceeds ₹5,000 non-PO discretionary threshold"
               : exType === "TAX_DIFFERENCE"
-              ? "Statutory GST variance: Declared tax differs from computed statutory rate"
-              : exType === "PRICE_DIFFERENCE"
-              ? "Unit price variance exceeds contracted purchase order tolerance"
-              : exType === "QUANTITY_DIFFERENCE"
-              ? "Billed quantity exceeds authorized goods receipt note delivery"
-              : exType === "DUPLICATE_INVOICE"
-              ? "Duplicate invoice number detected for vendor in current fiscal year"
-              : "Rule validation failed: Variance detected requiring authorized resolution"
-          );
+                ? "Statutory GST variance: Declared tax differs from computed statutory rate"
+                : exType === "PRICE_DIFFERENCE"
+                  ? "Unit price variance exceeds contracted purchase order tolerance"
+                  : exType === "QUANTITY_DIFFERENCE"
+                    ? "Billed quantity exceeds authorized goods receipt note delivery"
+                    : exType === "DUPLICATE_INVOICE"
+                      ? "Duplicate invoice number detected for vendor in current fiscal year"
+                      : "Rule validation failed: Variance detected requiring authorized resolution");
           type = "warning";
           break;
         }
@@ -156,12 +165,13 @@ function buildInvoiceAuditTimeline(
           break;
         case "PO_MATCH_FAILED": {
           actorName = "Matching Engine";
-          const poRef = invoice.purchaseOrderId || String(data.poNumber || "Linked PO");
+          const poRef =
+            invoice.purchaseOrderId || String(data.poNumber || "Linked PO");
           actionTitle = `3-Way PO Variance Flagged (${poRef})`;
           details = String(
             data.reason ||
-            data.details ||
-            `Discrepancy against ${poRef}: Rate or quantity exceeds contract tolerance threshold.`
+              data.details ||
+              `Discrepancy against ${poRef}: Rate or quantity exceeds contract tolerance threshold.`,
           );
           type = "warning";
           break;
@@ -297,15 +307,19 @@ function buildInvoiceAuditTimeline(
         context.status === "EXCEPTION" ||
         (invoice.validations &&
           invoice.validations.some((v) => v.status !== "PASSED"));
-      const firstEx = invoice.exceptions && invoice.exceptions.length > 0 ? invoice.exceptions[0] : null;
+      const firstEx =
+        invoice.exceptions && invoice.exceptions.length > 0
+          ? invoice.exceptions[0]
+          : null;
       const exType = firstEx?.type || "MISSING_PO";
-      const exDetail = firstEx?.description || firstEx?.title || (
-        exType === "MISSING_PO"
+      const exDetail =
+        firstEx?.description ||
+        firstEx?.title ||
+        (exType === "MISSING_PO"
           ? "Missing PO: Invoice value exceeds ₹5,000 non-PO discretionary ceiling"
           : exType === "TAX_DIFFERENCE"
-          ? "Tax Mismatch: Statutory GST calculation variance detected"
-          : "Statutory validation discrepancy identified for manual review"
-      );
+            ? "Tax Mismatch: Statutory GST calculation variance detected"
+            : "Statutory validation discrepancy identified for manual review");
       stageEvents.push({
         id: "syn-3-val",
         timestamp: eventTime(7),
@@ -451,6 +465,15 @@ export default function InvoiceDetailPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [invoice, setInvoice] = useState<InvoiceDetailData | null>(null);
+
+  useDocumentTitle(
+    invoice?.invoiceNumber
+      ? `Invoice ${invoice.invoiceNumber}`
+      : "Invoice Details",
+    invoice?.invoiceNumber
+      ? `Audit ledger voucher ${invoice.invoiceNumber}, line items, 3-way match workbench, and workflow status.`
+      : "Detailed invoice voucher, line items, 3-way match workbench, and audit history.",
+  );
   const [loading, setLoading] = useState(true);
   const [actionPending, setActionPending] = useState(false);
   const [showErpModal, setShowErpModal] = useState(false);
@@ -691,7 +714,9 @@ export default function InvoiceDetailPage() {
           "Supplier Linked & Persisted",
           `Master vendor "${name}" saved to invoice.`,
         );
-        setInvoice((prev) => (prev ? { ...prev, supplier: { id, name } } : prev));
+        setInvoice((prev) =>
+          prev ? { ...prev, supplier: { id, name } } : prev,
+        );
         setDynamicAuditEvents((prev) => [
           {
             id: `audit-link-vendor-${Date.now()}`,
@@ -739,7 +764,9 @@ export default function InvoiceDetailPage() {
     } catch (err: unknown) {
       toast.error(
         "Linking Failed",
-        err instanceof Error ? err.message : "Failed to persist entity link to database.",
+        err instanceof Error
+          ? err.message
+          : "Failed to persist entity link to database.",
       );
     } finally {
       setActionPending(false);
@@ -774,7 +801,10 @@ export default function InvoiceDetailPage() {
     ]);
   }
 
-  async function handleInlineResolveException(exceptionId: string, resolution: string) {
+  async function handleInlineResolveException(
+    exceptionId: string,
+    resolution: string,
+  ) {
     if (!invoiceId) return;
     setActionPending(true);
     try {
@@ -848,7 +878,7 @@ export default function InvoiceDetailPage() {
         {
           overrideSoloAdmin: confirmDialog.overrideSoloAdmin,
           overrideReason: confirmDialog.overrideReason || confirmDialog.comment,
-        }
+        },
       );
       if (confirmDialog.action === "APPROVE") {
         toast.success(
@@ -875,8 +905,8 @@ export default function InvoiceDetailPage() {
             confirmDialog.action === "APPROVE"
               ? "Invoice Approved for Payment"
               : confirmDialog.action === "HOLD_REQUEST_CORRECTION"
-              ? "Invoice Placed On Hold"
-              : "Invoice Rejected",
+                ? "Invoice Placed On Hold"
+                : "Invoice Rejected",
           details: confirmDialog.comment || "Action signed off from workspace",
           type: confirmDialog.action === "APPROVE" ? "success" : "error",
         },
@@ -888,14 +918,14 @@ export default function InvoiceDetailPage() {
           confirmDialog.action === "APPROVE"
             ? "Invoice Approved"
             : confirmDialog.action === "HOLD_REQUEST_CORRECTION"
-            ? "Invoice On Hold"
-            : "Invoice Rejected",
+              ? "Invoice On Hold"
+              : "Invoice Rejected",
         message:
           confirmDialog.action === "APPROVE"
             ? `Invoice ${invoice?.invoiceNumber} has been approved and moved to Waiting for Scheduling.`
             : confirmDialog.action === "HOLD_REQUEST_CORRECTION"
-            ? `Invoice ${invoice?.invoiceNumber} is on hold awaiting vendor response.`
-            : `Invoice ${invoice?.invoiceNumber} has been rejected and marked in workflow engine.`,
+              ? `Invoice ${invoice?.invoiceNumber} is on hold awaiting vendor response.`
+              : `Invoice ${invoice?.invoiceNumber} has been rejected and marked in workflow engine.`,
       });
       setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
       await load();
@@ -931,7 +961,9 @@ export default function InvoiceDetailPage() {
           } catch (err: unknown) {
             toast.error(
               "Transition Failed",
-              err instanceof Error ? err.message : "Failed to submit for approval",
+              err instanceof Error
+                ? err.message
+                : "Failed to submit for approval",
             );
           } finally {
             setActionPending(false);
@@ -996,31 +1028,68 @@ export default function InvoiceDetailPage() {
   function handleExportPdf() {
     if (!invoice) return;
     if (invoice.documents && invoice.documents[0]?.id) {
-      window.open(`/api/v1/invoices/${invoice.id}/document/${invoice.documents[0].id}`, "_blank");
+      window.open(
+        `/api/v1/invoices/${invoice.id}/document/${invoice.documents[0].id}`,
+        "_blank",
+      );
     } else {
       window.print();
     }
-    toast.success("PDF Voucher Ready", `Statutory voucher generated for ${invoice.invoiceNumber}`);
+    toast.success(
+      "PDF Voucher Ready",
+      `Statutory voucher generated for ${invoice.invoiceNumber}`,
+    );
   }
 
   function handleExportCsv() {
     if (!invoice) return;
-    const rawLines = (invoice.lines && invoice.lines.length > 0 ? invoice.lines : [
-      { lineNo: 1, description: "Procured Items & Services", quantity: 1, unitPrice: invoice.totalAmount, lineAmount: invoice.totalAmount, hsnCode: "8471" }
-    ]) as Array<{ lineNo?: number; description?: string; hsnCode?: string; quantity?: number; unitPrice?: number | string; lineAmount?: number | string }>;
-    const headers = ["Invoice Number", "Vendor", "Line No", "Description", "HSN/SAC", "Quantity", "Unit Price", "Currency", "Line Amount"];
+    const rawLines = (
+      invoice.lines && invoice.lines.length > 0
+        ? invoice.lines
+        : [
+            {
+              lineNo: 1,
+              description: "Procured Items & Services",
+              quantity: 1,
+              unitPrice: invoice.totalAmount,
+              lineAmount: invoice.totalAmount,
+              hsnCode: "8471",
+            },
+          ]
+    ) as Array<{
+      lineNo?: number;
+      description?: string;
+      hsnCode?: string;
+      quantity?: number;
+      unitPrice?: number | string;
+      lineAmount?: number | string;
+    }>;
+    const headers = [
+      "Invoice Number",
+      "Vendor",
+      "Line No",
+      "Description",
+      "HSN/SAC",
+      "Quantity",
+      "Unit Price",
+      "Currency",
+      "Line Amount",
+    ];
     const rows = rawLines.map((l, idx) => [
       `"${invoice.invoiceNumber}"`,
-      `"${invoice.supplier?.name || ''}"`,
-      l.lineNo || (idx + 1),
-      `"${(l.description || '').replace(/"/g, '""')}"`,
-      `"${l.hsnCode || ''}"`,
+      `"${invoice.supplier?.name || ""}"`,
+      l.lineNo || idx + 1,
+      `"${(l.description || "").replace(/"/g, '""')}"`,
+      `"${l.hsnCode || ""}"`,
       l.quantity || 1,
       l.unitPrice || invoice.totalAmount,
-      `"${invoice.currency || 'INR'}"`,
+      `"${invoice.currency || "INR"}"`,
       l.lineAmount || invoice.totalAmount,
     ]);
-    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((r) => r.join(",")),
+    ].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -1029,12 +1098,17 @@ export default function InvoiceDetailPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success("CSV Export Complete", `Line items exported for ${invoice.invoiceNumber}`);
+    toast.success(
+      "CSV Export Complete",
+      `Line items exported for ${invoice.invoiceNumber}`,
+    );
   }
 
   function handleExportJson() {
     if (!invoice) return;
-    const blob = new Blob([JSON.stringify(invoice, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(invoice, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -1042,14 +1116,34 @@ export default function InvoiceDetailPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success("JSON Export Complete", `Audit pack exported for ${invoice.invoiceNumber}`);
+    toast.success(
+      "JSON Export Complete",
+      `Audit pack exported for ${invoice.invoiceNumber}`,
+    );
   }
 
   const location = useLocation();
-  const originState = location.state as { from?: string; fromLabel?: string } | null;
+  const originState = location.state as {
+    from?: string;
+    fromLabel?: string;
+  } | null;
   const backHref = originState?.from || "/invoices";
-  const backLabel = originState?.fromLabel || (backHref.includes("payments") ? "Back to Payments" : backHref.includes("exceptions") ? "Back to Exceptions" : backHref.includes("approvals") ? "Back to Approvals" : "Back to Invoices");
-  const parentBreadcrumbLabel = backHref.includes("payments") ? "Payments" : backHref.includes("exceptions") ? "Exceptions" : backHref.includes("approvals") ? "Approvals" : "Invoices";
+  const backLabel =
+    originState?.fromLabel ||
+    (backHref.includes("payments")
+      ? "Back to Payments"
+      : backHref.includes("exceptions")
+        ? "Back to Exceptions"
+        : backHref.includes("approvals")
+          ? "Back to Approvals"
+          : "Back to Invoices");
+  const parentBreadcrumbLabel = backHref.includes("payments")
+    ? "Payments"
+    : backHref.includes("exceptions")
+      ? "Exceptions"
+      : backHref.includes("approvals")
+        ? "Approvals"
+        : "Invoices";
 
   function handleActionItemClick(type: ActionItem["type"]) {
     if (type === "doc") {
@@ -1130,13 +1224,17 @@ export default function InvoiceDetailPage() {
               <button
                 type="button"
                 disabled={!prevInvoice}
-                onClick={() => prevInvoice && navigate(`/invoices/${prevInvoice.id}`)}
+                onClick={() =>
+                  prevInvoice && navigate(`/invoices/${prevInvoice.id}`)
+                }
                 title="Previous invoice (Shortcut: K)"
                 className="px-2 py-1 rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 disabled:opacity-40 hover:bg-neutral-50 dark:hover:bg-zinc-800 flex items-center gap-1 transition-colors cursor-pointer disabled:cursor-not-allowed shadow-2xs text-[11px] font-medium"
               >
                 <ChevronLeft size={13} />
                 <span>Prev</span>
-                <kbd className="font-mono text-[9px] px-1 py-0.2 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700">K</kbd>
+                <kbd className="font-mono text-[9px] px-1 py-0.2 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700">
+                  K
+                </kbd>
               </button>
               {currentIndex >= 0 && (
                 <span className="px-1.5 font-mono text-[10px] text-neutral-400">
@@ -1146,12 +1244,16 @@ export default function InvoiceDetailPage() {
               <button
                 type="button"
                 disabled={!nextInvoice}
-                onClick={() => nextInvoice && navigate(`/invoices/${nextInvoice.id}`)}
+                onClick={() =>
+                  nextInvoice && navigate(`/invoices/${nextInvoice.id}`)
+                }
                 title="Next invoice (Shortcut: J)"
                 className="px-2 py-1 rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 disabled:opacity-40 hover:bg-neutral-50 dark:hover:bg-zinc-800 flex items-center gap-1 transition-colors cursor-pointer disabled:cursor-not-allowed shadow-2xs text-[11px] font-medium"
               >
                 <span>Next</span>
-                <kbd className="font-mono text-[9px] px-1 py-0.2 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700">J</kbd>
+                <kbd className="font-mono text-[9px] px-1 py-0.2 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700">
+                  J
+                </kbd>
                 <ChevronRight size={13} />
               </button>
             </div>
@@ -1228,7 +1330,9 @@ export default function InvoiceDetailPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    void navigator.clipboard?.writeText(trackingInfo.trackingUrl);
+                    void navigator.clipboard?.writeText(
+                      trackingInfo.trackingUrl,
+                    );
                     setCopiedPortalLink(true);
                     toast.success(
                       "Link copied to clipboard",
@@ -1277,7 +1381,10 @@ export default function InvoiceDetailPage() {
               >
                 <Download size={14} className="text-neutral-500" />
                 <span>Export</span>
-                <ChevronDown size={12} className={`text-neutral-400 transition-transform ${showExportMenu ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  size={12}
+                  className={`text-neutral-400 transition-transform ${showExportMenu ? "rotate-180" : ""}`}
+                />
               </Button>
 
               {showExportMenu && (
@@ -1295,10 +1402,17 @@ export default function InvoiceDetailPage() {
                       }}
                       className="w-full px-3 py-2 text-left hover:bg-neutral-50 dark:hover:bg-zinc-800 flex items-center gap-2.5 text-neutral-800 dark:text-zinc-200 transition-colors"
                     >
-                      <Download size={14} className="text-indigo-600 dark:text-indigo-400" />
+                      <Download
+                        size={14}
+                        className="text-indigo-600 dark:text-indigo-400"
+                      />
                       <div>
-                        <div className="font-semibold font-sans">Statutory AP Voucher (PDF)</div>
-                        <div className="text-micro text-neutral-400">Print / statutory slip</div>
+                        <div className="font-semibold font-sans">
+                          Statutory AP Voucher (PDF)
+                        </div>
+                        <div className="text-micro text-neutral-400">
+                          Print / statutory slip
+                        </div>
                       </div>
                     </button>
                     <button
@@ -1309,10 +1423,17 @@ export default function InvoiceDetailPage() {
                       }}
                       className="w-full px-3 py-2 text-left hover:bg-neutral-50 dark:hover:bg-zinc-800 flex items-center gap-2.5 text-neutral-800 dark:text-zinc-200 border-t border-neutral-100 dark:border-zinc-800/80 transition-colors"
                     >
-                      <FileSpreadsheet size={14} className="text-emerald-600 dark:text-emerald-400" />
+                      <FileSpreadsheet
+                        size={14}
+                        className="text-emerald-600 dark:text-emerald-400"
+                      />
                       <div>
-                        <div className="font-semibold font-sans">Line Items (CSV)</div>
-                        <div className="text-micro text-neutral-400">HSN &amp; tax breakdown</div>
+                        <div className="font-semibold font-sans">
+                          Line Items (CSV)
+                        </div>
+                        <div className="text-micro text-neutral-400">
+                          HSN &amp; tax breakdown
+                        </div>
                       </div>
                     </button>
                     <button
@@ -1323,10 +1444,17 @@ export default function InvoiceDetailPage() {
                       }}
                       className="w-full px-3 py-2 text-left hover:bg-neutral-50 dark:hover:bg-zinc-800 flex items-center gap-2.5 text-neutral-800 dark:text-zinc-200 border-t border-neutral-100 dark:border-zinc-800/80 transition-colors"
                     >
-                      <FileCode size={14} className="text-amber-600 dark:text-amber-400" />
+                      <FileCode
+                        size={14}
+                        className="text-amber-600 dark:text-amber-400"
+                      />
                       <div>
-                        <div className="font-semibold font-sans">Audit Pack (JSON)</div>
-                        <div className="text-micro text-neutral-400">Machine-readable payload</div>
+                        <div className="font-semibold font-sans">
+                          Audit Pack (JSON)
+                        </div>
+                        <div className="text-micro text-neutral-400">
+                          Machine-readable payload
+                        </div>
                       </div>
                     </button>
                   </div>
@@ -1467,7 +1595,9 @@ export default function InvoiceDetailPage() {
         supplierName={invoice.supplier?.name}
         purchaseOrderId={invoice.purchaseOrderId}
         status={context.status}
-        openException={invoice.exceptions?.find((e) => e.status === "OPEN") ?? null}
+        openException={
+          invoice.exceptions?.find((e) => e.status === "OPEN") ?? null
+        }
         onResolveException={handleInlineResolveException}
         viewMode={viewMode}
         onChangeViewMode={setViewMode}
@@ -1574,7 +1704,8 @@ export default function InvoiceDetailPage() {
                   Complete Audit Trail &amp; Workflow Transition Logs
                 </h3>
                 <p className="text-caption text-neutral-500 dark:text-zinc-400">
-                  Chronological audit history of all document captures, validations, approver sign-offs, and workflow transitions.
+                  Chronological audit history of all document captures,
+                  validations, approver sign-offs, and workflow transitions.
                 </p>
               </div>
               <span className="text-micro font-mono bg-neutral-100 dark:bg-zinc-800 px-3 py-1 rounded-full text-neutral-600 dark:text-zinc-400 border border-neutral-200 dark:border-zinc-700">
@@ -1642,58 +1773,61 @@ export default function InvoiceDetailPage() {
         onConfirm={handleConfirmAction}
         variant={confirmDialog.action === "REJECT" ? "destructive" : "primary"}
         isPending={actionPending}
-        confirmDisabled={
-          Boolean(
-            confirmDialog.overrideSoloAdmin &&
-            (!confirmDialog.overrideReason || confirmDialog.overrideReason.trim().length < 10)
-          )
-        }
+        confirmDisabled={Boolean(
+          confirmDialog.overrideSoloAdmin &&
+          (!confirmDialog.overrideReason ||
+            confirmDialog.overrideReason.trim().length < 10),
+        )}
       >
         {confirmDialog.action === "APPROVE" &&
-          (user?.role?.toUpperCase() === "ADMINISTRATOR" || user?.role === "Administrator") &&
+          (user?.role?.toUpperCase() === "ADMINISTRATOR" ||
+            user?.role === "Administrator") &&
           Boolean(user?.isSoloAdmin) && (
-          <div className="pt-3 border-t border-neutral-100 dark:border-zinc-800 space-y-3">
-            <label className="flex items-start gap-2.5 cursor-pointer text-body-sm text-neutral-800 dark:text-zinc-200">
-              <input
-                type="checkbox"
-                checked={confirmDialog.overrideSoloAdmin || false}
-                onChange={(e) =>
-                  setConfirmDialog((prev) => ({
-                    ...prev,
-                    overrideSoloAdmin: e.target.checked,
-                  }))
-                }
-                className="mt-0.5 rounded border-neutral-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500"
-              />
-              <div>
-                <span className="font-semibold block">Solo Administrator Override</span>
-                <span className="text-caption text-neutral-500 dark:text-zinc-400 block">
-                  Check this only if you are the sole administrator in the organization approving an invoice you created/uploaded.
-                </span>
-              </div>
-            </label>
-
-            {confirmDialog.overrideSoloAdmin && (
-              <div className="space-y-1.5 pl-6">
-                <label className="text-caption font-medium text-neutral-700 dark:text-zinc-300">
-                  Override Justification (10+ characters) *
-                </label>
-                <textarea
-                  value={confirmDialog.overrideReason || ""}
+            <div className="pt-3 border-t border-neutral-100 dark:border-zinc-800 space-y-3">
+              <label className="flex items-start gap-2.5 cursor-pointer text-body-sm text-neutral-800 dark:text-zinc-200">
+                <input
+                  type="checkbox"
+                  checked={confirmDialog.overrideSoloAdmin || false}
                   onChange={(e) =>
                     setConfirmDialog((prev) => ({
                       ...prev,
-                      overrideReason: e.target.value,
+                      overrideSoloAdmin: e.target.checked,
                     }))
                   }
-                  placeholder="Enter business justification for single-admin self-approval..."
-                  rows={2}
-                  className="w-full text-body-sm rounded-lg border border-neutral-300 dark:border-zinc-700 p-2.5 bg-white dark:bg-zinc-800 text-neutral-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="mt-0.5 rounded border-neutral-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500"
                 />
-              </div>
-            )}
-          </div>
-        )}
+                <div>
+                  <span className="font-semibold block">
+                    Solo Administrator Override
+                  </span>
+                  <span className="text-caption text-neutral-500 dark:text-zinc-400 block">
+                    Check this only if you are the sole administrator in the
+                    organization approving an invoice you created/uploaded.
+                  </span>
+                </div>
+              </label>
+
+              {confirmDialog.overrideSoloAdmin && (
+                <div className="space-y-1.5 pl-6">
+                  <label className="text-caption font-medium text-neutral-700 dark:text-zinc-300">
+                    Override Justification (10+ characters) *
+                  </label>
+                  <textarea
+                    value={confirmDialog.overrideReason || ""}
+                    onChange={(e) =>
+                      setConfirmDialog((prev) => ({
+                        ...prev,
+                        overrideReason: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter business justification for single-admin self-approval..."
+                    rows={2}
+                    className="w-full text-body-sm rounded-lg border border-neutral-300 dark:border-zinc-700 p-2.5 bg-white dark:bg-zinc-800 text-neutral-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+              )}
+            </div>
+          )}
       </Dialog>
 
       {/* Enterprise Audit History Slide-Out Drawer */}

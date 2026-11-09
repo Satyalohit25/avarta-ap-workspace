@@ -127,21 +127,36 @@ model Organization {
   id              String   @id @default(uuid())
   name            String
   legalName       String?
+  gstin           String?
   country         String   @default("IN")
   defaultCurrency String   @default("INR")
   timezone        String   @default("Asia/Kolkata")
   dateFormat      String   @default("DD MMM YYYY")
+  debitAccountNumberLast4 String?
+  // Tenant financial controls: match tolerance, idempotency expiry,
+  // auto-archive days, branding, etc. Stored as JSON so the settings surface
+  // can evolve without a migration per field.
+  settings        Json?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  users         User[]
-  suppliers     Supplier[]
-  purchaseOrders PurchaseOrder[]
-  invoices      Invoice[]
-  exceptions    Exception[]
-  payments      Payment[]
-  notifications Notification[]
-  auditLogs     AuditLog[]
+  users               User[]
+  suppliers           Supplier[]
+  purchaseOrders      PurchaseOrder[]
+  invoices            Invoice[]
+  exceptions          Exception[]
+  payments            Payment[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  items               Item[]
+  sampleRecords       SampleRecord[]
+  invitations         OrganizationInvitation[]
+  passwordResetTokens PasswordResetToken[]
+  bankAccounts        BankAccount[]
+  integrations        OrganizationIntegration[]
+  subscription        Subscription?
+  billingReceipts     BillingReceipt[]
+  apiKeys             ApiKey[]
 }
 
 model User {
@@ -162,9 +177,12 @@ model User {
   assignedInvoices   Invoice[]   @relation("InvoiceOwner")
   approvals          Approval[]
   comments           Comment[]
-  notifications      Notification[]
-  tokenVersion       Int         @default(0)
-  refreshTokens      RefreshToken[]
+  notifications       Notification[]
+  tokenVersion        Int                      @default(0)
+  refreshTokens       RefreshToken[]
+  recordedPayments    Payment[]                @relation("PaymentRecordedBy")
+  createdInvitations  OrganizationInvitation[] @relation("CreatedInvitations")
+  passwordResetTokens PasswordResetToken[]
 
   @@unique([organizationId, email])
 }
@@ -187,6 +205,14 @@ model Supplier {
   phone   String?
   address String?
 
+  encryptedAccountNumber String? // v1:<iv>:<authTag>:<ciphertext>
+  accountNumberLast4     String?
+  bankName               String?
+  ifscCode               String?
+  beneficiaryName        String?
+  paymentMethod          String?  @default("BANK_TRANSFER")
+  panNumber              String?
+
   outstandingBalance Decimal @default(0) @db.Decimal(18, 2)
 
   createdAt DateTime @default(now())
@@ -194,6 +220,7 @@ model Supplier {
 
   purchaseOrders PurchaseOrder[]
   invoices       Invoice[]
+  bankAccounts   BankAccount[]
 
   @@unique([organizationId, supplierCode])
 }
@@ -294,12 +321,14 @@ model Document {
   invoiceId String
   invoice   Invoice @relation(fields: [invoiceId], references: [id])
 
-  fileName        String
-  mimeType        String
-  storageKey      String
-  fileSize        Int
-  ocrStatus       String @default("PENDING")
-  extractionStatus String @default("PENDING")
+  fileName         String
+  mimeType         String
+  storageKey       String
+  storageProvider  String  @default("LOCAL")
+  s3ObjectKey      String?
+  fileSize         Int
+  ocrStatus        String  @default("PENDING")
+  extractionStatus String  @default("PENDING")
 
   createdAt DateTime @default(now())
 }
@@ -371,6 +400,16 @@ model Payment {
   paymentMethod    String  @default("BANK_TRANSFER")
   scheduledDate    DateTime?
   processedAt      DateTime?
+  settlementDate   DateTime?
+  notes            String?
+  recordedById     String?
+  recordedBy       User?   @relation("PaymentRecordedBy", fields: [recordedById], references: [id])
+
+  // Beneficiary snapshot
+  beneficiaryAccountNumberLast4 String?
+  beneficiaryIfsc               String?
+  beneficiaryName               String?
+
   status           PaymentStatus @default(AWAITING_SCHEDULE)
   failureReason    String?
 
@@ -378,6 +417,7 @@ model Payment {
   updatedAt DateTime @updatedAt
 
   @@unique([id, organizationId])
+  @@unique([organizationId, utrNumber])
   @@index([organizationId, status])
 }
 
@@ -542,4 +582,178 @@ model RevokedToken {
   @@index([tokenHash])
   @@index([expiresAt])
 }
+
+// Tenant-scoped catalog model for purchase items and inventory categories
+model Item {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  itemCode       String
+  description    String
+  category       String
+  unitPrice      Decimal      @db.Decimal(18, 2)
+  uom            String
+  taxRate        Decimal?     @default(18) @db.Decimal(5, 2)
+  hsnSac         String       @default("")
+  currency       String       @default("INR")
+  status         String       @default("ACTIVE")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, itemCode])
+  @@index([organizationId])
+}
+
+// Supplier settlement bank accounts. Account numbers are encrypted at rest;
+// only the masked form is ever returned to clients.
+model BankAccount {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  supplierId     String?
+  supplier       Supplier?    @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+
+  supplierName           String
+  encryptedAccountNumber String
+  accountNumberLast4     String
+  bankName               String
+  ifscSwift              String
+  accountType            String  @default("CURRENT")
+  branchName             String?
+  isPrimary              Boolean @default(false)
+  status                 String  @default("PENDING")
+  verifiedAt             DateTime?
+  pennyDropRef           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, supplierName])
+}
+
+// SampleRecord replaces isDemo column across business tables
+model SampleRecord {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  entityType     String
+  entityId       String
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, entityType])
+  @@index([entityId])
+}
+
+// Database-backed invitation tokens with expiration and single-use enforcement
+model OrganizationInvitation {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedById    String
+  invitedBy      User         @relation("CreatedInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
+  email          String
+  role           Role
+  tokenHash      String       @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, email])
+  @@index([invitedById])
+  @@index([expiresAt])
+}
+
+// Tenant-scoped connector credentials (BYOK AI, BYODB, ERP, payment gateway,
+// email). Secrets are encrypted at rest with AES-256-GCM; only masked values
+// are ever returned to clients.
+model OrganizationIntegration {
+  id              String   @id @default(uuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type            String
+  provider        String
+  encryptedConfig String
+  settings        Json?
+  status          String   @default("DISCONNECTED")
+  lastTestedAt    DateTime?
+  lastSyncAt      DateTime?
+  errorMessage    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([organizationId, type, provider])
+  @@index([organizationId, type])
+}
+
+// Persisted SaaS subscription. Replaces the previous in-memory plan map so
+// entitlements survive restarts and are consistent across API instances.
+model Subscription {
+  id                 String   @id @default(uuid())
+  organizationId     String   @unique
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  planTier           String   @default("GROWTH")
+  status             String   @default("ACTIVE") // ACTIVE | PAST_DUE | CANCELED
+  currentPeriodStart DateTime @default(now())
+  currentPeriodEnd   DateTime
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+// Append-only SaaS billing receipts. A receipt is only created when a real
+// payment provider confirms the charge; nothing is fabricated.
+model BillingReceipt {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoiceNumber  String
+  amount         Decimal  @db.Decimal(18, 2)
+  currency       String   @default("INR")
+  status         String   @default("PAID") // PAID | PENDING | FAILED
+  issuedAt       DateTime @default(now())
+  pdfUrl         String?
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, invoiceNumber])
+  @@index([organizationId, issuedAt])
+}
+
+// Customer-managed API keys. Only the SHA-256 hash is stored; the plaintext
+// key is shown exactly once at creation time.
+model ApiKey {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  keyPrefix      String
+  keyHash        String   @unique
+  scopes         Json?
+  createdById    String?
+  lastUsedAt     DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId])
+}
+
+// Database-backed single-use password reset tokens with expiration
+model PasswordResetToken {
+  id             String       @id @default(uuid())
+  tokenHash      String       @unique
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([expiresAt])
+}
+
 

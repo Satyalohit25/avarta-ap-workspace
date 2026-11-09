@@ -12,8 +12,10 @@ import { APRecentStreamCard } from "./components/APRecentStreamCard";
 
 import { EmptyDashboardChecklist } from "./components/EmptyDashboardChecklist";
 import { ProductTourModal } from "../../components/layout/ProductTourModal";
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 
 export default function OverviewPage() {
+  useDocumentTitle("Overview", "Operational cash horizon, actionable work queue, and straight-through invoice velocity.");
   const navigate = useNavigate();
   const { toast } = useToast();
   const [data, setData] = useState<DashboardOverview | null>(null);

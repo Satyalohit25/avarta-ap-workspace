@@ -1,3 +1,4 @@
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { listInvoices, InvoiceListItem } from "../../api/invoices";
@@ -38,7 +39,6 @@ import { useAuth } from "../../app/AuthContext";
 
 interface ArchivedAuditCertificate {
   invoice: InvoiceListItem;
-  sha256Hash: string;
   erpJournalId: string;
   retentionUntil: string;
   sealedAt: string;
@@ -47,6 +47,10 @@ interface ArchivedAuditCertificate {
 }
 
 export default function ArchivePage() {
+  useDocumentTitle(
+    "Ledger Archive",
+    "Historical invoice records, completed disbursements, and immutable audit logs.",
+  );
   const { user } = useAuth();
   const { toast } = useToast();
   const [invoices, setInvoices] = useState<InvoiceListItem[]>([]);
@@ -54,7 +58,8 @@ export default function ArchivePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [selectedCertificate, setSelectedCertificate] = useState<ArchivedAuditCertificate | null>(null);
+  const [selectedCertificate, setSelectedCertificate] =
+    useState<ArchivedAuditCertificate | null>(null);
 
   useEffect(() => {
     listInvoices({ status: "ARCHIVED,SYNCED" })
@@ -73,13 +78,13 @@ export default function ArchivePage() {
     return invoices.filter(
       (inv) =>
         inv.invoiceNumber.toLowerCase().includes(query) ||
-        inv.supplier?.name.toLowerCase().includes(query)
+        inv.supplier?.name.toLowerCase().includes(query),
     );
   }, [invoices, searchQuery]);
 
   const totalArchivedAmount = invoices.reduce(
     (acc, inv) => acc + (Number(inv.totalAmount) || 0),
-    0
+    0,
   );
   const primaryCurrency = invoices[0]?.currency ?? "INR";
 
@@ -92,99 +97,89 @@ export default function ArchivePage() {
     return filteredInvoices.slice(start, start + pageSize);
   }, [filteredInvoices, safePage, pageSize]);
 
-  function getDeterministicHash(invoiceNumber: string) {
-    let hash = 0;
-    for (let i = 0; i < invoiceNumber.length; i++) {
-      hash = (hash << 5) - hash + invoiceNumber.charCodeAt(i);
-      hash |= 0;
-    }
-    const hex = Math.abs(hash).toString(16).padStart(8, "0");
-    return `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852${hex.slice(0, 8)}`;
-  }
-
-  function getDeterministicJournal(invoiceNumber: string) {
-    const digits = invoiceNumber.replace(/\D/g, "") || "1000";
-    return `TALLY-JV-2026-${digits.padStart(4, "0")}`;
-  }
-
   function handleInspectCertificate(inv: InvoiceListItem) {
     setSelectedCertificate({
       invoice: inv,
-      sha256Hash: getDeterministicHash(inv.invoiceNumber),
-      erpJournalId: getDeterministicJournal(inv.invoiceNumber),
+      erpJournalId: inv.id,
       retentionUntil: "31 Mar 2033 (7-Year Statutory Hold)",
-      sealedAt: inv.dueDate ? formatDate(inv.dueDate) : "24 Jul 2026",
-      signoffSigner: "Arjun Approver (Director)",
-      settlementAccount: "HDFC Corporate Current (****4920)",
+      sealedAt: inv.dueDate
+        ? formatDate(inv.dueDate)
+        : formatDate(new Date().toISOString()),
+      signoffSigner: "Finance Manager",
+      settlementAccount: "Bank Account (Primary)",
     });
   }
 
   function handleDownloadAuditPack() {
-    const orgName = user?.organizationName || "Avarta AP Workspace";
-    const orgCode = user?.organizationId ? user.organizationId.slice(0, 8).toUpperCase() : "ORG-DEFAULT";
-    const content = `
-================================================================================
-           AVARTA AP WORKSPACE — STATUTORY COMPLIANCE AUDIT PACK
-                              "आत्मानं विद्धि"
-================================================================================
-Organization       : ${orgName} (${orgCode})
-Audit Timestamp    : ${new Date().toISOString()}
-Total Records      : ${invoices.length} Verified Archived Invoices
-Total Settled Sum  : ${formatCurrency(totalArchivedAmount, primaryCurrency)}
-Integrity Status   : 100% SHA-256 Cryptographically Sealed (AES-256 GCM)
-Authority Seal     : AVARTA-HERALDIC-VAULT-AUTHENTICATED
-================================================================================
-ITEMIZED VAULT REGISTER:
-${invoices.map((inv, idx) => `${idx + 1}. ${inv.invoiceNumber} | ${inv.supplier?.name ?? "Vendor"} | ${inv.currency} ${inv.totalAmount} | Journal: ${getDeterministicJournal(inv.invoiceNumber)} | Hash: ${getDeterministicHash(inv.invoiceNumber).slice(0, 16)}...`).join("\n")}
-================================================================================
-This archive package is an immutable statutory ledger export compliant with Indian accounting standards.
-    `.trim();
-
-    const blob = new Blob([content], { type: "text/plain" });
+    const headers = [
+      "Invoice Number",
+      "Supplier",
+      "Currency",
+      "Total Amount",
+      "Due Date",
+      "Status",
+    ];
+    const rows = invoices.map((inv) => [
+      `"${inv.invoiceNumber.replace(/"/g, '""')}"`,
+      `"${(inv.supplier?.name ?? "Direct Expense").replace(/"/g, '""')}"`,
+      `"${inv.currency ?? "INR"}"`,
+      `"${Number(inv.totalAmount).toFixed(2)}"`,
+      `"${inv.dueDate ? formatDate(inv.dueDate) : ""}"`,
+      `"${inv.status}"`,
+    ]);
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((r) => r.join(",")),
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Avarta_Statutory_Audit_Pack_${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `Avarta_Archived_Invoices_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Audit Pack Downloaded", "Statutory audit register exported successfully.");
+    toast.success(
+      "Audit Export Downloaded",
+      "Archived invoice records exported successfully.",
+    );
   }
 
   function handleDownloadSingleCertificate(cert: ArchivedAuditCertificate) {
     const certText = `
 ================================================================================
-                AVARTA STATUTORY COMPLIANCE VAULT CERTIFICATE
-                              "आत्मानं विद्धि"
+                AVARTA STATUTORY COMPLIANCE ARCHIVE RECORD
 ================================================================================
 INVOICE NUMBER      : ${cert.invoice.invoiceNumber}
 SUPPLIER / PAYEE    : ${cert.invoice.supplier?.name ?? "Direct Expense"}
 TOTAL SETTLED SUM   : ${cert.invoice.currency} ${Number(cert.invoice.totalAmount).toFixed(2)}
-ERP JOURNAL REF     : ${cert.erpJournalId}
+REFERENCE ID        : ${cert.erpJournalId}
 TREASURY ACCOUNT    : ${cert.settlementAccount}
 AUTHORIZED SIGNER   : ${cert.signoffSigner}
-VAULT ARCHIVE DATE  : ${cert.sealedAt}
+ARCHIVE DATE        : ${cert.sealedAt}
 STATUTORY HOLD END  : ${cert.retentionUntil}
-CRYPTOGRAPHIC HASH  : ${cert.sha256Hash}
-STATUS              : IMMUTABLE HISTORICAL RECORD (ARCHIVED)
+STATUS              : HISTORICAL RECORD (ARCHIVED)
 ================================================================================
-Verified by Avarta Workflow & Compliance Engine (Doc 01 §1.4).
+Archived by Avarta Accounts Payable Workspace.
     `.trim();
 
-    const blob = new Blob([certText], { type: "text/plain" });
+    const blob = new Blob([certText], { type: "text/plain;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Certificate_${cert.invoice.invoiceNumber}.txt`;
+    a.download = `Archive_Record_${cert.invoice.invoiceNumber}.txt`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Certificate Exported", `Audit certificate for ${cert.invoice.invoiceNumber} downloaded.`);
+    toast.success(
+      "Record Exported",
+      `Audit record for ${cert.invoice.invoiceNumber} downloaded.`,
+    );
   }
 
   return (
     <div className="space-y-5 pb-16">
       <PageHeader
-        title="Compliance Archive Vault"
-        subtitle="Stage 8: Fully settled, ERP-synchronized, and cryptographically sealed historical AP records."
+        title="Compliance Archive"
+        subtitle="Stage 8: Fully settled, ERP-synchronized historical AP records."
       />
 
       {/* ── Statutory Compliance Vault Banner ── */}
@@ -199,12 +194,14 @@ Verified by Avarta Workflow & Compliance Engine (Doc 01 §1.4).
                 Statutory 7-Year Tax &amp; Audit Hold Vault
               </span>
               <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-semibold border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
-                <ShieldCheck size={11} />
-                <span>SHA-256 Tamper-Proof Sealed</span>
+                <CheckCircle2 size={11} />
+                <span>Statutory Hold Active</span>
               </span>
             </div>
             <p className="text-caption text-neutral-600 dark:text-zinc-400">
-              Enforcing Section 44AA (Income Tax Act) and Rule 56 (CGST Act). Records synchronized to ERP cannot be altered, overwritten, or deleted.
+              Enforcing Section 44AA (Income Tax Act) and Rule 56 (CGST Act).
+              Records synchronized to ERP cannot be altered, overwritten, or
+              deleted.
             </p>
           </div>
         </div>
@@ -217,7 +214,7 @@ Verified by Avarta Workflow & Compliance Engine (Doc 01 §1.4).
             className="h-8 text-[11px] font-semibold gap-1.5 shadow-2xs"
           >
             <FileCheck2 size={13} />
-            <span>Generate Statutory Ledger</span>
+            <span>Export Archived Invoices (CSV)</span>
           </Button>
         </div>
       </div>
@@ -228,7 +225,12 @@ Verified by Avarta Workflow & Compliance Engine (Doc 01 §1.4).
           title="Archived Vault Records"
           value={invoices.length}
           subtitle="Immutable historical records"
-          icon={<Archive size={16} className="text-indigo-600 dark:text-indigo-400" />}
+          icon={
+            <Archive
+              size={16}
+              className="text-indigo-600 dark:text-indigo-400"
+            />
+          }
         />
         <StatsCard
           title="Total Reconciled Value"
@@ -240,13 +242,20 @@ Verified by Avarta Workflow & Compliance Engine (Doc 01 §1.4).
           title="Statutory Retention Horizon"
           value="31 Mar 2033"
           subtitle="7-Year mandatory legal lock"
-          icon={<Clock size={16} className="text-amber-600 dark:text-amber-400" />}
+          icon={
+            <Clock size={16} className="text-amber-600 dark:text-amber-400" />
+          }
         />
         <StatsCard
-          title="Cryptographic Ledger Health"
-          value="100% Valid"
-          subtitle="Zero hash chain tampering"
-          icon={<ShieldCheck size={16} className="text-emerald-600 dark:text-emerald-400" />}
+          title="Archive Sync Status"
+          value="100% Synced"
+          subtitle="All records posted to ledger"
+          icon={
+            <CheckCircle2
+              size={16}
+              className="text-emerald-600 dark:text-emerald-400"
+            />
+          }
         />
       </div>
 
@@ -312,20 +321,22 @@ Verified by Avarta Workflow & Compliance Engine (Doc 01 §1.4).
                   <TableHead className="w-40">Invoice #</TableHead>
                   <TableHead>Supplier / Payee</TableHead>
                   <TableHead className="text-right">Total Settled</TableHead>
-                  <TableHead>ERP Journal Ref</TableHead>
+                  <TableHead>Record Reference</TableHead>
                   <TableHead>Archive Date</TableHead>
                   <TableHead>Statutory Hold End</TableHead>
-                  <TableHead>Integrity Stamp</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Audit Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedInvoices.map((inv) => {
-                  const journalRef = getDeterministicJournal(inv.invoiceNumber);
-                  const hashSnippet = getDeterministicHash(inv.invoiceNumber).slice(0, 10);
+                  const recordRef = `REC-${inv.id.slice(0, 8).toUpperCase()}`;
 
                   return (
-                    <TableRow key={inv.id} className="hover:bg-neutral-50/70 dark:hover:bg-zinc-800/40 transition-colors">
+                    <TableRow
+                      key={inv.id}
+                      className="hover:bg-neutral-50/70 dark:hover:bg-zinc-800/40 transition-colors"
+                    >
                       <TableCell className="font-mono font-medium">
                         <Link
                           to={`/invoices/${inv.id}`}
@@ -343,7 +354,7 @@ Verified by Avarta Workflow & Compliance Engine (Doc 01 §1.4).
                       </TableCell>
                       <TableCell className="font-mono text-micro text-neutral-600 dark:text-zinc-400">
                         <span className="px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700">
-                          {journalRef}
+                          {recordRef}
                         </span>
                       </TableCell>
                       <TableCell className="text-neutral-500 dark:text-zinc-400 font-mono text-micro">
@@ -353,12 +364,9 @@ Verified by Avarta Workflow & Compliance Engine (Doc 01 §1.4).
                         31 Mar 2033
                       </TableCell>
                       <TableCell>
-                        <span
-                          className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-200 dark:border-emerald-800"
-                          title={`SHA-256 Digest: ${getDeterministicHash(inv.invoiceNumber)}`}
-                        >
-                          <ShieldCheck size={11} />
-                          <span>SHA-{hashSnippet}</span>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-200 dark:border-emerald-800">
+                          <CheckCircle2 size={11} />
+                          <span>ARCHIVED</span>
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
@@ -396,7 +404,7 @@ Verified by Avarta Workflow & Compliance Engine (Doc 01 §1.4).
         isOpen={selectedCertificate !== null}
         onClose={() => setSelectedCertificate(null)}
         title={`Statutory Compliance Certificate — ${selectedCertificate?.invoice.invoiceNumber ?? ""}`}
-        subtitle="Tamper-proof cryptographic record sealed in accordance with statutory accounting retention rules."
+        subtitle="Archived historical record retained in accordance with statutory accounting retention rules."
         width="max-w-2xl"
       >
         {selectedCertificate && (
@@ -412,90 +420,109 @@ Verified by Avarta Workflow & Compliance Engine (Doc 01 §1.4).
               </span>
             </div>
 
-            {/* Certificate Header Banner */}
-            <div className="p-3.5 rounded-xl border border-emerald-200/80 dark:border-emerald-900/60 bg-emerald-50/50 dark:bg-emerald-950/30 space-y-1.5">
+            {/* Record Status Banner */}
+            <div className="p-3.5 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-neutral-50/50 dark:bg-zinc-900/40 space-y-1.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck size={18} className="text-emerald-600 dark:text-emerald-400" />
-                  <span className="font-bold text-body-sm text-emerald-900 dark:text-emerald-100">
-                    Cryptographic Seal Intact
+                  <CheckCircle2
+                    size={18}
+                    className="text-emerald-600 dark:text-emerald-400"
+                  />
+                  <span className="font-bold text-body-sm text-neutral-900 dark:text-zinc-100">
+                    Settled &amp; Archived Record
                   </span>
                 </div>
-                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
-                  AES-256 GCM
+                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300">
+                  Statutory Archive
                 </span>
               </div>
-              <p className="text-caption text-emerald-800 dark:text-emerald-300 leading-relaxed">
-                This invoice completed all 8 workflow stages. The final ledger snapshot is sealed with a SHA-256 digital digest and cannot be modified or purged prior to statutory expiry.
+              <p className="text-caption text-neutral-600 dark:text-zinc-400 leading-relaxed">
+                This invoice completed all workflow stages and is preserved for
+                statutory accounting and compliance reporting.
               </p>
             </div>
 
             {/* Cryptographic Key-Value Ledger */}
             <div className="relative rounded-xl border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3 overflow-hidden">
-              <AvartaCrest variant="watermark" className="opacity-[0.04] dark:opacity-[0.05]" />
+              <AvartaCrest
+                variant="watermark"
+                className="opacity-[0.04] dark:opacity-[0.05]"
+              />
               <div className="relative z-10">
-              <span className="text-[10.5px] font-bold uppercase tracking-wider text-neutral-500 dark:text-zinc-400 block pb-1 border-b border-neutral-100 dark:border-zinc-800">
-                Immutable Ledger Specifications
-              </span>
+                <span className="text-[10.5px] font-bold uppercase tracking-wider text-neutral-500 dark:text-zinc-400 block pb-1 border-b border-neutral-100 dark:border-zinc-800">
+                  Archived Record Specifications
+                </span>
 
-              <div className="grid grid-cols-2 gap-3 text-caption">
-                <div>
-                  <span className="text-neutral-400 block text-micro font-mono">Invoice Number</span>
-                  <span className="font-mono font-bold text-neutral-900 dark:text-zinc-100 text-body-sm">
-                    {selectedCertificate.invoice.invoiceNumber}
-                  </span>
+                <div className="grid grid-cols-2 gap-3 text-caption">
+                  <div>
+                    <span className="text-neutral-400 block text-micro font-mono">
+                      Invoice Number
+                    </span>
+                    <span className="font-mono font-bold text-neutral-900 dark:text-zinc-100 text-body-sm">
+                      {selectedCertificate.invoice.invoiceNumber}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-400 block text-micro font-mono">
+                      Total Settled Sum
+                    </span>
+                    <span className="font-mono font-bold text-neutral-900 dark:text-zinc-100 text-body-sm">
+                      {formatCurrency(
+                        selectedCertificate.invoice.totalAmount,
+                        selectedCertificate.invoice.currency,
+                      )}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-400 block text-micro font-mono">
+                      Supplier Master Record
+                    </span>
+                    <span className="font-medium text-neutral-900 dark:text-zinc-100">
+                      {selectedCertificate.invoice.supplier?.name ??
+                        "Direct Expense"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-400 block text-micro font-mono">
+                      ERP Reference / Record ID
+                    </span>
+                    <span className="font-mono font-semibold text-indigo-600 dark:text-indigo-400">
+                      {selectedCertificate.erpJournalId}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-400 block text-micro font-mono">
+                      Authorized Signoff
+                    </span>
+                    <span className="font-medium text-neutral-900 dark:text-zinc-100">
+                      {selectedCertificate.signoffSigner}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-400 block text-micro font-mono">
+                      Settlement Account
+                    </span>
+                    <span className="font-mono text-neutral-900 dark:text-zinc-100">
+                      {selectedCertificate.settlementAccount}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-400 block text-micro font-mono">
+                      Vault Archival Timestamp
+                    </span>
+                    <span className="font-mono text-neutral-900 dark:text-zinc-100">
+                      {selectedCertificate.sealedAt}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-400 block text-micro font-mono">
+                      Mandatory Retention Expiry
+                    </span>
+                    <span className="font-mono font-semibold text-amber-700 dark:text-amber-400">
+                      {selectedCertificate.retentionUntil}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-neutral-400 block text-micro font-mono">Total Settled Sum</span>
-                  <span className="font-mono font-bold text-neutral-900 dark:text-zinc-100 text-body-sm">
-                    {formatCurrency(selectedCertificate.invoice.totalAmount, selectedCertificate.invoice.currency)}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-neutral-400 block text-micro font-mono">Supplier Master Record</span>
-                  <span className="font-medium text-neutral-900 dark:text-zinc-100">
-                    {selectedCertificate.invoice.supplier?.name ?? "Direct Expense"}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-neutral-400 block text-micro font-mono">ERP Synchronized Journal</span>
-                  <span className="font-mono font-semibold text-indigo-600 dark:text-indigo-400">
-                    {selectedCertificate.erpJournalId}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-neutral-400 block text-micro font-mono">Authorized Signoff</span>
-                  <span className="font-medium text-neutral-900 dark:text-zinc-100">
-                    {selectedCertificate.signoffSigner}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-neutral-400 block text-micro font-mono">Settlement Account</span>
-                  <span className="font-mono text-neutral-900 dark:text-zinc-100">
-                    {selectedCertificate.settlementAccount}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-neutral-400 block text-micro font-mono">Vault Archival Timestamp</span>
-                  <span className="font-mono text-neutral-900 dark:text-zinc-100">
-                    {selectedCertificate.sealedAt}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-neutral-400 block text-micro font-mono">Mandatory Retention Expiry</span>
-                  <span className="font-mono font-semibold text-amber-700 dark:text-amber-400">
-                    {selectedCertificate.retentionUntil}
-                  </span>
-                </div>
-              </div>
-
-              {/* Full SHA-256 Digest Box */}
-              <div className="pt-2 border-t border-neutral-100 dark:border-zinc-800 space-y-1">
-                <span className="text-micro font-mono text-neutral-400 block">SHA-256 Cryptographic Hash Digest</span>
-                <div className="p-2 rounded bg-neutral-100 dark:bg-zinc-800/80 font-mono text-micro text-neutral-700 dark:text-zinc-300 break-all select-all">
-                  {selectedCertificate.sha256Hash}
-                </div>
-              </div>
               </div>
             </div>
 
@@ -508,35 +535,53 @@ Verified by Avarta Workflow & Compliance Engine (Doc 01 §1.4).
               <div className="space-y-2 text-caption font-mono">
                 <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 size={13} />
-                  <span>1. Intake: Inbound capture logged via secure upload channel</span>
+                  <span>
+                    1. Intake: Inbound capture logged via secure upload channel
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 size={13} />
-                  <span>2. OCR Capture: Verified key financial fields (98% confidence)</span>
+                  <span>
+                    2. OCR Capture: Verified key financial fields (98%
+                    confidence)
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 size={13} />
-                  <span>3. Validation: GSTIN, arithmetic, and PAN compliance rules passed</span>
+                  <span>
+                    3. Validation: GSTIN, arithmetic, and PAN compliance rules
+                    passed
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 size={13} />
-                  <span>4. 3-Way Match: PO unit rates &amp; receipt lines reconciled</span>
+                  <span>
+                    4. 3-Way Match: PO unit rates &amp; receipt lines reconciled
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 size={13} />
-                  <span>5. Approval: Signed off by authorized executive authority</span>
+                  <span>
+                    5. Approval: Signed off by authorized executive authority
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 size={13} />
-                  <span>6. Payment: Electronic banking disbursement executed</span>
+                  <span>
+                    6. Payment: Electronic banking disbursement executed
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 size={13} />
-                  <span>7. ERP Sync: Bi-directional purchase voucher posted</span>
+                  <span>
+                    7. ERP Sync: Bi-directional purchase voucher posted
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold">
                   <Lock size={13} />
-                  <span>8. Compliance Archive: Immutable statutory lock applied</span>
+                  <span>
+                    8. Compliance Archive: Archived for statutory retention
+                  </span>
                 </div>
               </div>
             </div>
@@ -545,7 +590,9 @@ Verified by Avarta Workflow & Compliance Engine (Doc 01 §1.4).
             <div className="flex flex-col gap-2 pt-2 border-t border-neutral-200 dark:border-zinc-800">
               <Button
                 variant="primary"
-                onClick={() => handleDownloadSingleCertificate(selectedCertificate)}
+                onClick={() =>
+                  handleDownloadSingleCertificate(selectedCertificate)
+                }
                 className="w-full gap-1.5 h-10 font-semibold"
               >
                 <Download size={14} />

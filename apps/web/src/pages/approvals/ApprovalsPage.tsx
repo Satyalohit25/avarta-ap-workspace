@@ -1,7 +1,13 @@
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../app/AuthContext";
-import { listApprovals, approveApproval, rejectApproval, ApprovalRow } from "../../api/approvals";
+import {
+  listApprovals,
+  approveApproval,
+  rejectApproval,
+  ApprovalRow,
+} from "../../api/approvals";
 import { getInvoice, InvoiceListItem } from "../../api/invoices";
 import { SkeletonRows } from "../../components/Skeleton";
 import { EmptyState } from "../../components/EmptyState";
@@ -23,7 +29,6 @@ import { Alert } from "../../components/ui/Alert";
 import { PropertyInspector } from "../../components/ui/PropertyInspector";
 import { formatCurrency, formatDate } from "../../lib/formatters";
 import { cn } from "../../lib/utils";
-import { generateSupplierLineItems } from "../../lib/mockCatalogs";
 import { UrgencyBadge, UrgencySeverity } from "../../components/StatusBadge";
 import {
   CheckSquare,
@@ -57,15 +62,18 @@ interface InvoiceApprovalDetails extends Omit<InvoiceListItem, "supplier"> {
   lines?: InvoiceLineItem[];
 }
 
-function computeSlaBadge(row: ApprovalRow): { label: string; urgency: UrgencySeverity } {
+function computeSlaBadge(row: ApprovalRow): {
+  label: string;
+  urgency: UrgencySeverity;
+} {
   const reqTime = row.requestedAt
     ? new Date(row.requestedAt).getTime()
     : row.dueDate
-    ? new Date(row.dueDate).getTime() - 48 * 3600 * 1000
-    : Date.now() - 20 * 3600 * 1000;
+      ? new Date(row.dueDate).getTime() - 48 * 3600 * 1000
+      : Date.now() - 20 * 3600 * 1000;
   const elapsedHours = Math.max(
     1,
-    Math.round((Date.now() - reqTime) / (1000 * 60 * 60))
+    Math.round((Date.now() - reqTime) / (1000 * 60 * 60)),
   );
   const slaThresholdHours = 48;
 
@@ -88,6 +96,10 @@ function computeSlaBadge(row: ApprovalRow): { label: string; urgency: UrgencySev
 }
 
 export default function ApprovalsPage() {
+  useDocumentTitle(
+    "Approvals",
+    "Review and approve pending invoice vouchers within your designated signing authority threshold.",
+  );
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const targetInvoiceId = searchParams.get("invoiceId");
@@ -99,8 +111,11 @@ export default function ApprovalsPage() {
 
   const [rows, setRows] = useState<ApprovalRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedApproval, setSelectedApproval] = useState<ApprovalRow | null>(null);
-  const [invoiceDetails, setInvoiceDetails] = useState<InvoiceApprovalDetails | null>(null);
+  const [selectedApproval, setSelectedApproval] = useState<ApprovalRow | null>(
+    null,
+  );
+  const [invoiceDetails, setInvoiceDetails] =
+    useState<InvoiceApprovalDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [actionPending, setActionPending] = useState(false);
   const [rejectComment, setRejectComment] = useState("");
@@ -126,7 +141,7 @@ export default function ApprovalsPage() {
   useEffect(() => {
     if (targetInvoiceId && rows.length > 0 && !selectedApproval) {
       const match = rows.find(
-        (r) => r.invoiceId === targetInvoiceId || r.id === targetInvoiceId
+        (r) => r.invoiceId === targetInvoiceId || r.id === targetInvoiceId,
       );
       if (match) {
         setSelectedApproval(match);
@@ -143,7 +158,9 @@ export default function ApprovalsPage() {
     setLoadingDetails(true);
     getInvoice(selectedApproval.invoiceId)
       .then((res) => {
-        setInvoiceDetails(res.data as InvoiceListItem & { lines?: InvoiceLineItem[] });
+        setInvoiceDetails(
+          res.data as InvoiceListItem & { lines?: InvoiceLineItem[] },
+        );
       })
       .catch(() => setInvoiceDetails(null))
       .finally(() => setLoadingDetails(false));
@@ -162,7 +179,10 @@ export default function ApprovalsPage() {
       setSelectedApproval(null);
       load();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Approval failed due to a server error.";
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Approval failed due to a server error.";
       setFeedbackBanner({
         type: "error",
         title: "Approval Failed",
@@ -189,7 +209,10 @@ export default function ApprovalsPage() {
       setRejectComment("");
       load();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Rejection failed due to a server error.";
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Rejection failed due to a server error.";
       setFeedbackBanner({
         type: "error",
         title: "Rejection Failed",
@@ -203,12 +226,18 @@ export default function ApprovalsPage() {
   const [filterTab, setFilterTab] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const atRiskCount = rows.filter((r) => computeSlaBadge(r).urgency !== "routine").length;
-  const routineCount = rows.filter((r) => computeSlaBadge(r).urgency === "routine").length;
+  const atRiskCount = rows.filter(
+    (r) => computeSlaBadge(r).urgency !== "routine",
+  ).length;
+  const routineCount = rows.filter(
+    (r) => computeSlaBadge(r).urgency === "routine",
+  ).length;
 
   const displayedRows = rows.filter((r) => {
-    if (filterTab === "AT_RISK" && computeSlaBadge(r).urgency === "routine") return false;
-    if (filterTab === "ROUTINE" && computeSlaBadge(r).urgency !== "routine") return false;
+    if (filterTab === "AT_RISK" && computeSlaBadge(r).urgency === "routine")
+      return false;
+    if (filterTab === "ROUTINE" && computeSlaBadge(r).urgency !== "routine")
+      return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       return (
@@ -314,9 +343,21 @@ export default function ApprovalsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <Tabs
           tabs={[
-            { id: "ALL", label: `All Approvals (${rows.length})`, content: null },
-            { id: "AT_RISK", label: `At Risk / Breached SLA (${atRiskCount})`, content: null },
-            { id: "ROUTINE", label: `Routine SLA (${routineCount})`, content: null },
+            {
+              id: "ALL",
+              label: `All Approvals (${rows.length})`,
+              content: null,
+            },
+            {
+              id: "AT_RISK",
+              label: `At Risk / Breached SLA (${atRiskCount})`,
+              content: null,
+            },
+            {
+              id: "ROUTINE",
+              label: `Routine SLA (${routineCount})`,
+              content: null,
+            },
           ]}
           defaultTabId={filterTab}
           variant="pill"
@@ -356,7 +397,11 @@ export default function ApprovalsPage() {
           </div>
         ) : displayedRows.length === 0 ? (
           <EmptyState
-            title={searchQuery ? "No approvals match your search." : "No approvals matching this filter."}
+            title={
+              searchQuery
+                ? "No approvals match your search."
+                : "No approvals matching this filter."
+            }
             description={
               searchQuery
                 ? `No approval requests found matching "${searchQuery}".`
@@ -387,20 +432,21 @@ export default function ApprovalsPage() {
               {displayedRows.map((r, idx) => {
                 const sla = computeSlaBadge(r);
 
-                  const isRowFocused = focusedRowIndex === idx;
+                const isRowFocused = focusedRowIndex === idx;
 
-                  return (
-                    <TableRow
-                      key={r.id}
-                      onClick={() => {
-                        setSelectedApproval(r);
-                        setShowRejectForm(false);
-                      }}
-                      className={cn(
-                        "cursor-pointer hover:bg-neutral-50/80 dark:hover:bg-zinc-900/60 transition-colors",
-                        isRowFocused && "bg-indigo-50/70 dark:bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/30"
-                      )}
-                    >
+                return (
+                  <TableRow
+                    key={r.id}
+                    onClick={() => {
+                      setSelectedApproval(r);
+                      setShowRejectForm(false);
+                    }}
+                    className={cn(
+                      "cursor-pointer hover:bg-neutral-50/80 dark:hover:bg-zinc-900/60 transition-colors",
+                      isRowFocused &&
+                        "bg-indigo-50/70 dark:bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/30",
+                    )}
+                  >
                     <TableCell className="font-mono font-medium text-neutral-900 dark:text-zinc-100">
                       <span className="text-indigo-600 dark:text-indigo-400 hover:underline">
                         {r.invoiceNumber}
@@ -461,7 +507,10 @@ export default function ApprovalsPage() {
             <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50/80 via-white to-neutral-50 dark:from-indigo-950/40 dark:via-zinc-900 dark:to-zinc-900 border-2 border-indigo-500/30 dark:border-indigo-500/40 shadow-xs space-y-3.5">
               <div className="flex items-center justify-between">
                 <span className="text-micro font-mono font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
-                  <PackageCheck size={14} className="text-indigo-600 dark:text-indigo-400" />
+                  <PackageCheck
+                    size={14}
+                    className="text-indigo-600 dark:text-indigo-400"
+                  />
                   <span>Mandatory Approval Sign-Off Scope</span>
                 </span>
                 <span className="text-micro font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
@@ -476,11 +525,19 @@ export default function ApprovalsPage() {
                     Disbursable Net Amount Authorized
                   </span>
                   <span className="font-mono text-2xl font-bold text-neutral-900 dark:text-zinc-50 tracking-tight block mt-0.5">
-                    {formatCurrency(selectedApproval.amount, selectedApproval.currency ?? "INR")}
+                    {formatCurrency(
+                      selectedApproval.amount,
+                      selectedApproval.currency ?? "INR",
+                    )}
                   </span>
                 </div>
                 <div className="text-left sm:text-right font-mono text-micro text-neutral-600 dark:text-zinc-400">
-                  <div>Vendor: <strong className="text-neutral-900 dark:text-zinc-200">{selectedApproval.vendor}</strong></div>
+                  <div>
+                    Vendor:{" "}
+                    <strong className="text-neutral-900 dark:text-zinc-200">
+                      {selectedApproval.vendor}
+                    </strong>
+                  </div>
                   <div className="text-emerald-700 dark:text-emerald-400 font-medium mt-0.5">
                     • Bank &amp; GSTIN Verified
                   </div>
@@ -494,20 +551,38 @@ export default function ApprovalsPage() {
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-micro font-mono text-neutral-700 dark:text-zinc-300">
                   <div className="flex items-center gap-1.5 bg-neutral-100/70 dark:bg-zinc-800/50 px-2 py-1 rounded">
-                    <CheckSquare size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <CheckSquare
+                      size={12}
+                      className="text-emerald-600 dark:text-emerald-400 shrink-0"
+                    />
                     <span className="truncate">Goods / Services Received</span>
                   </div>
                   <div className="flex items-center gap-1.5 bg-neutral-100/70 dark:bg-zinc-800/50 px-2 py-1 rounded">
-                    <CheckSquare size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span className="truncate">PO Contract Rates Reconciled</span>
+                    <CheckSquare
+                      size={12}
+                      className="text-emerald-600 dark:text-emerald-400 shrink-0"
+                    />
+                    <span className="truncate">
+                      PO Contract Rates Reconciled
+                    </span>
                   </div>
                   <div className="flex items-center gap-1.5 bg-neutral-100/70 dark:bg-zinc-800/50 px-2 py-1 rounded">
-                    <CheckSquare size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span className="truncate">Statutory GST &amp; HSN Validated</span>
+                    <CheckSquare
+                      size={12}
+                      className="text-emerald-600 dark:text-emerald-400 shrink-0"
+                    />
+                    <span className="truncate">
+                      Statutory GST &amp; HSN Validated
+                    </span>
                   </div>
                   <div className="flex items-center gap-1.5 bg-neutral-100/70 dark:bg-zinc-800/50 px-2 py-1 rounded">
-                    <CheckSquare size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span className="truncate">Release for Treasury Scheduling</span>
+                    <CheckSquare
+                      size={12}
+                      className="text-emerald-600 dark:text-emerald-400 shrink-0"
+                    />
+                    <span className="truncate">
+                      Release for Treasury Scheduling
+                    </span>
                   </div>
                 </div>
               </div>
@@ -515,7 +590,9 @@ export default function ApprovalsPage() {
               {/* Commercial Meta Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2.5 border-t border-neutral-200/60 dark:border-zinc-800 text-caption font-mono">
                 <div>
-                  <span className="text-neutral-400 dark:text-zinc-500 block text-micro">Payment Due Date</span>
+                  <span className="text-neutral-400 dark:text-zinc-500 block text-micro">
+                    Payment Due Date
+                  </span>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <Calendar size={13} className="text-neutral-400 shrink-0" />
                     <span className="font-semibold text-neutral-800 dark:text-zinc-200">
@@ -525,14 +602,18 @@ export default function ApprovalsPage() {
                 </div>
 
                 <div>
-                  <span className="text-neutral-400 dark:text-zinc-500 block text-micro">Linked PO Reference</span>
+                  <span className="text-neutral-400 dark:text-zinc-500 block text-micro">
+                    Linked PO Reference
+                  </span>
                   <span className="font-semibold text-neutral-800 dark:text-zinc-200 block mt-0.5">
                     {invoiceDetails?.purchaseOrderId || "Non-PO Invoice"}
                   </span>
                 </div>
 
                 <div>
-                  <span className="text-neutral-400 dark:text-zinc-500 block text-micro">Payment Terms</span>
+                  <span className="text-neutral-400 dark:text-zinc-500 block text-micro">
+                    Payment Terms
+                  </span>
                   <span className="font-semibold text-neutral-800 dark:text-zinc-200 block mt-0.5">
                     Net 30 Days
                   </span>
@@ -559,11 +640,15 @@ export default function ApprovalsPage() {
                   <TableBody>
                     {loadingDetails ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center text-caption text-neutral-400 py-4">
+                        <TableCell
+                          colSpan={4}
+                          className="text-center text-caption text-neutral-400 py-4"
+                        >
                           Loading line items...
                         </TableCell>
                       </TableRow>
-                    ) : invoiceDetails?.lines && invoiceDetails.lines.length > 0 ? (
+                    ) : invoiceDetails?.lines &&
+                      invoiceDetails.lines.length > 0 ? (
                       invoiceDetails.lines.map((l, i) => (
                         <TableRow key={i}>
                           <TableCell className="font-medium text-body-sm text-neutral-900 dark:text-zinc-100">
@@ -573,34 +658,28 @@ export default function ApprovalsPage() {
                             {l.quantity}
                           </TableCell>
                           <TableCell className="text-right font-mono text-body-sm">
-                            {formatCurrency(l.unitPrice, selectedApproval.currency ?? "INR")}
+                            {formatCurrency(
+                              l.unitPrice,
+                              selectedApproval.currency ?? "INR",
+                            )}
                           </TableCell>
                           <TableCell className="text-right font-mono font-semibold text-body-sm text-neutral-900 dark:text-zinc-100">
-                            {formatCurrency(l.lineAmount, selectedApproval.currency ?? "INR")}
+                            {formatCurrency(
+                              l.lineAmount,
+                              selectedApproval.currency ?? "INR",
+                            )}
                           </TableCell>
                         </TableRow>
                       ))
                     ) : (
-                      generateSupplierLineItems(
-                        selectedApproval.vendor,
-                        Number(selectedApproval.amount),
-                        selectedApproval.currency ?? "INR"
-                      ).map((l, i) => (
-                        <TableRow key={i}>
-                          <TableCell className="font-medium text-body-sm text-neutral-900 dark:text-zinc-100">
-                            {l.description}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-body-sm">
-                            {l.quantity}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-body-sm">
-                            {formatCurrency(l.unitPrice, selectedApproval.currency ?? "INR")}
-                          </TableCell>
-                          <TableCell className="text-right font-mono font-semibold text-body-sm text-neutral-900 dark:text-zinc-100">
-                            {formatCurrency(l.lineAmount, selectedApproval.currency ?? "INR")}
-                          </TableCell>
-                        </TableRow>
-                      ))
+                      <TableRow>
+                        <TableCell
+                          colSpan={4}
+                          className="py-6 text-center text-neutral-500 dark:text-zinc-400 font-sans"
+                        >
+                          No line items extracted for this invoice.
+                        </TableCell>
+                      </TableRow>
                     )}
                   </TableBody>
                 </Table>
@@ -616,7 +695,10 @@ export default function ApprovalsPage() {
               <div className="p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-950 bg-emerald-50/40 dark:bg-emerald-950/20 space-y-2.5">
                 <div className="flex items-center justify-between text-body-sm">
                   <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-medium">
-                    <PackageCheck size={16} className="text-emerald-600 shrink-0" />
+                    <PackageCheck
+                      size={16}
+                      className="text-emerald-600 shrink-0"
+                    />
                     <span>3-Way PO &amp; Goods Receipt Match Passed</span>
                   </div>
                   <span className="text-micro font-mono font-semibold text-emerald-700 dark:text-emerald-300">
@@ -639,7 +721,9 @@ export default function ApprovalsPage() {
                 Compliance & Vendor Properties
               </span>
               <PropertyInspector
-                vendorGstin={invoiceDetails?.supplier?.gstin || "27AABCT3518Q1ZV"}
+                vendorGstin={
+                  invoiceDetails?.supplier?.gstin || "27AABCT3518Q1ZV"
+                }
                 paymentTerms="Net 30 Days"
                 matchingStatus="MATCHED"
                 linkedPo={invoiceDetails?.purchaseOrderId || "PO-2026-0881"}
@@ -650,9 +734,19 @@ export default function ApprovalsPage() {
             {/* 4. GL Code & Cost Center Allocation */}
             <div className="p-3.5 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-neutral-50/70 dark:bg-zinc-900/60 flex items-center justify-between text-caption">
               <div className="flex items-center gap-2 text-neutral-700 dark:text-zinc-300">
-                <Layers size={15} className="text-indigo-600 dark:text-indigo-400" />
+                <Layers
+                  size={15}
+                  className="text-indigo-600 dark:text-indigo-400"
+                />
                 <span>
-                  <strong className="font-semibold text-neutral-900 dark:text-zinc-100">GL 5200</strong> (Direct Raw Materials) • Cost Center <strong className="font-semibold text-neutral-900 dark:text-zinc-100">CC-104</strong> (Plant Pune)
+                  <strong className="font-semibold text-neutral-900 dark:text-zinc-100">
+                    GL 5200
+                  </strong>{" "}
+                  (Direct Raw Materials) • Cost Center{" "}
+                  <strong className="font-semibold text-neutral-900 dark:text-zinc-100">
+                    CC-104
+                  </strong>{" "}
+                  (Plant Pune)
                 </span>
               </div>
             </div>
@@ -660,7 +754,10 @@ export default function ApprovalsPage() {
             {/* 5. Rejection Comment Form */}
             {showRejectForm ? (
               <div className="space-y-3 p-4 rounded-xl border border-rose-200 dark:border-rose-950 bg-rose-50/30 dark:bg-rose-950/20 animate-in fade-in-50 duration-150">
-                <label htmlFor="approval-rejection-reason" className="flex items-center gap-1.5 text-body-sm font-semibold text-rose-800 dark:text-rose-300">
+                <label
+                  htmlFor="approval-rejection-reason"
+                  className="flex items-center gap-1.5 text-body-sm font-semibold text-rose-800 dark:text-rose-300"
+                >
                   <AlertTriangle size={15} />
                   <span>Rejection Reason (Required for Audit Trail)</span>
                 </label>
@@ -700,7 +797,10 @@ export default function ApprovalsPage() {
               <div className="space-y-2 pt-2 border-t border-neutral-200 dark:border-zinc-800">
                 {!canApprove && (
                   <Alert type="warning" className="text-caption">
-                    Read-Only Mode: Your role ({user?.role?.replace("_", " ") || "Viewer"}) does not have approval authority. Approving or rejecting invoices requires Approver, Finance Manager, or Administrator privileges.
+                    Read-Only Mode: Your role (
+                    {user?.role?.replace("_", " ") || "Viewer"}) does not have
+                    approval authority. Approving or rejecting invoices requires
+                    Approver, Finance Manager, or Administrator privileges.
                   </Alert>
                 )}
 
@@ -710,7 +810,11 @@ export default function ApprovalsPage() {
                   disabled={actionPending || !canApprove}
                 >
                   <CheckSquare size={16} />
-                  <span>{actionPending ? "Approving..." : "Approve for Payment Scheduling"}</span>
+                  <span>
+                    {actionPending
+                      ? "Approving..."
+                      : "Approve for Payment Scheduling"}
+                  </span>
                 </Button>
 
                 <div className="flex items-center gap-2">

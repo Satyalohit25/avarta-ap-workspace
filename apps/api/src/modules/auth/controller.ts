@@ -1,14 +1,21 @@
 import { NextFunction, Request, Response } from "express";
-import { loginSchema, signupSchema } from "./validation";
+import { loginSchema, signupSchema, acceptInviteSchema } from "./validation";
 import * as authService from "./service";
 import { ApiError } from "../../lib/errors";
 import { prisma } from "../../config/database";
+import { getClientIp } from "../../lib/client-ip";
+import { clearRefreshCookie, readRefreshCookie, setRefreshCookie } from "../../lib/refresh-cookie";
 
 export async function isSignupAllowed(): Promise<{ allowed: boolean; reason?: string; currentCount: number; maxCount: number }> {
-  if (process.env.ALLOW_PUBLIC_SIGNUP === "false") {
+  // Gate 1 Fail-closed: Must be explicitly enabled via ENABLE_PUBLIC_SIGNUP === "true" (or legacy ALLOW_PUBLIC_SIGNUP === "true").
+  // Any legacy ALLOW_PUBLIC_SIGNUP="false" or absence of explicit true fails closed.
+  if (
+    process.env.ALLOW_PUBLIC_SIGNUP === "false" ||
+    (process.env.ENABLE_PUBLIC_SIGNUP !== "true" && process.env.ALLOW_PUBLIC_SIGNUP !== "true")
+  ) {
     return {
       allowed: false,
-      reason: "Public signup is disabled in this environment. Contact your administrator for access.",
+      reason: "Public registration is disabled. Please contact your organization administrator.",
       currentCount: 0,
       maxCount: 0,
     };
@@ -41,6 +48,7 @@ export async function signupHandler(req: Request, res: Response, next: NextFunct
     }
     const body = signupSchema.parse(req.body);
     const result = await authService.signup(body);
+    setRefreshCookie(res, result.refreshToken);
     res.status(201).json(result);
   } catch (err) {
     next(err);
@@ -50,12 +58,9 @@ export async function signupHandler(req: Request, res: Response, next: NextFunct
 export async function loginHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const body = loginSchema.parse(req.body);
-    const clientIp =
-      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
-      req.ip ||
-      req.socket.remoteAddress ||
-      "127.0.0.1";
+    const clientIp = getClientIp(req);
     const result = await authService.login(body.email, body.password, clientIp);
+    setRefreshCookie(res, result.refreshToken);
     res.json(result);
   } catch (err) {
     next(err);
@@ -64,10 +69,12 @@ export async function loginHandler(req: Request, res: Response, next: NextFuncti
 
 export async function refreshHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = readRefreshCookie(req) || req.body?.refreshToken;
     const result = await authService.rotateRefreshToken(refreshToken);
+    setRefreshCookie(res, result.refreshToken);
     res.json(result);
   } catch (err) {
+    clearRefreshCookie(res);
     next(err);
   }
 }
@@ -77,8 +84,9 @@ export async function logoutHandler(req: Request, res: Response, next: NextFunct
     if (!req.auth) throw ApiError.unauthorized();
     const authHeader = req.headers.authorization;
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
-    const refreshToken = req.body?.refreshToken;
+    const refreshToken = readRefreshCookie(req) || req.body?.refreshToken;
     const result = await authService.logout(token, req.auth.userId, refreshToken);
+    clearRefreshCookie(res);
     res.json(result);
   } catch (err) {
     next(err);
@@ -113,11 +121,15 @@ export async function inviteTeamHandler(req: Request, res: Response, next: NextF
     if (!email || !fullName || !role) {
       throw ApiError.badRequest("email, fullName, and role are required");
     }
-    const result = await authService.inviteTeamMember(req.auth.organizationId, {
-      email,
-      fullName,
-      role,
-    });
+    const result = await authService.inviteTeamMember(
+      req.auth.organizationId,
+      {
+        email,
+        fullName,
+        role,
+      },
+      req.auth.userId
+    );
     res.status(201).json({ data: result });
   } catch (err) {
     next(err);
@@ -130,6 +142,16 @@ export async function deactivateTeamHandler(req: Request, res: Response, next: N
     const { userId } = req.params;
     const result = await authService.deactivateTeamMember(req.auth.organizationId, userId, req.auth.userId);
     res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function acceptInviteHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const body = acceptInviteSchema.parse(req.body);
+    const result = await authService.acceptInvitation(body);
+    res.json(result);
   } catch (err) {
     next(err);
   }

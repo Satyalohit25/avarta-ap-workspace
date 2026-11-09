@@ -2,6 +2,7 @@ import { prisma } from "../../config/database";
 import { ApiError } from "../../lib/errors";
 import { parsePagination, paginationMeta } from "../../lib/pagination";
 import { applyTransition } from "../../workflow/engine";
+import type { PaymentGatewayProvider, PaymentGatewayConfig } from "./adapter";
 
 export async function listPayments(params: {
   organizationId: string;
@@ -53,25 +54,49 @@ export async function schedulePayment(organizationId: string, input: {
   scheduledDate: string;
   paymentMethod?: string;
 }) {
-  const invoice = await prisma.invoice.findFirst({ where: { id: input.invoiceId, organizationId } });
-  if (!invoice) throw ApiError.notFound("Invoice not found");
-  if (invoice.status !== "SCHEDULED" && invoice.workflowState !== "SCHEDULED") {
-    throw ApiError.conflict("Invoice must be approved before payment can be scheduled.");
-  }
+  // Serialize scheduling per invoice and return any existing active payment
+  // instead of creating a duplicate on double-submit / retry.
+  return prisma.$transaction(async (tx) => {
+    const lockedRows = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "Invoice"
+      WHERE "id" = ${input.invoiceId} AND "organizationId" = ${organizationId}
+      FOR UPDATE
+    `;
+    if (!lockedRows || lockedRows.length === 0) {
+      throw ApiError.notFound("Invoice not found");
+    }
 
-  const payment = await prisma.payment.create({
-    data: {
-      organizationId,
-      invoiceId: input.invoiceId,
-      amount: input.amount,
-      currency: invoice.currency,
-      paymentMethod: input.paymentMethod ?? "BANK_TRANSFER",
-      scheduledDate: new Date(input.scheduledDate),
-      status: "SCHEDULED",
-    },
+    const invoice = await tx.invoice.findFirst({
+      where: { id: input.invoiceId, organizationId },
+    });
+    if (!invoice) throw ApiError.notFound("Invoice not found");
+    if (invoice.status !== "SCHEDULED" && invoice.workflowState !== "SCHEDULED") {
+      throw ApiError.conflict("Invoice must be approved before payment can be scheduled.");
+    }
+
+    const existingPayment = await tx.payment.findFirst({
+      where: {
+        organizationId,
+        invoiceId: input.invoiceId,
+        status: { in: ["AWAITING_SCHEDULE", "SCHEDULED", "PROCESSING"] },
+      },
+    });
+    if (existingPayment) {
+      return existingPayment;
+    }
+
+    return tx.payment.create({
+      data: {
+        organizationId,
+        invoiceId: input.invoiceId,
+        amount: input.amount,
+        currency: invoice.currency,
+        paymentMethod: input.paymentMethod ?? "BANK_TRANSFER",
+        scheduledDate: new Date(input.scheduledDate),
+        status: "SCHEDULED",
+      },
+    });
   });
-
-  return payment;
 }
 
 // Doc 14 §14.18 execute — runs the SCHEDULED -> PROCESSING_PAYMENT ->
@@ -82,39 +107,67 @@ export async function executePayment(
   userId?: string,
   details?: { utrNumber?: string; clearingDocumentNumber?: string }
 ) {
-  const payment = await prisma.payment.findFirst({
-    where: { id: paymentId, organizationId },
-    include: { invoice: { include: { supplier: true } } },
-  });
-  if (!payment) throw ApiError.notFound("Payment not found");
-  if (payment.status === "PAID") {
-    throw ApiError.conflict("Payment has already been executed and is marked as PAID.");
-  }
-  if (payment.status !== "SCHEDULED" && payment.status !== "AWAITING_SCHEDULE") {
-    throw ApiError.conflict(`Payment cannot be executed from status "${payment.status}"`);
-  }
+  // Claim the payment under a row lock before touching the gateway. Without
+  // this, two concurrent requests can both read SCHEDULED and both pay out.
+  const payment = await prisma.$transaction(async (tx) => {
+    const lockedRows = await tx.$queryRaw<Array<{ id: string; status: string }>>`
+      SELECT "id", "status" FROM "Payment"
+      WHERE "id" = ${paymentId} AND "organizationId" = ${organizationId}
+      FOR UPDATE
+    `;
+    if (!lockedRows || lockedRows.length === 0) {
+      throw ApiError.notFound("Payment not found");
+    }
 
-  // Doc 24 C8-7 / Doc 06 §4.2: Segregation of Duties (SoD)
-  // The person who edited a supplier's bank details cannot release that supplier's payment.
-  if (userId && payment.invoice?.supplierId) {
-    const bankChangeAudit = await prisma.auditLog.findFirst({
-      where: {
-        organizationId,
-        userId,
-        entityType: { in: ["SUPPLIER", "BANK_ACCOUNT", "SUPPLIER_BANK_ACCOUNT"] },
-        action: { in: ["UPDATE_BANK_ACCOUNT", "CHANGE_BANK_DETAILS", "SUPPLIER_BANK_EDITED"] },
-        entityId: payment.invoice.supplierId,
-      },
+    const current = await tx.payment.findFirst({
+      where: { id: paymentId, organizationId },
+      include: { invoice: { include: { supplier: true } } },
+    });
+    if (!current) throw ApiError.notFound("Payment not found");
+
+    if (current.status === "PAID") {
+      throw ApiError.conflict("Payment has already been executed and is marked as PAID.");
+    }
+    if (current.status !== "SCHEDULED" && current.status !== "AWAITING_SCHEDULE") {
+      throw ApiError.conflict(`Payment cannot be executed from status "${current.status}"`);
+    }
+
+    // Doc 24 C8-7 / Doc 06 §4.2: Segregation of Duties (SoD)
+    // The person who edited a supplier's bank details cannot release that supplier's payment.
+    if (userId && current.invoice?.supplierId) {
+      const bankChangeAudit = await tx.auditLog.findFirst({
+        where: {
+          organizationId,
+          userId,
+          entityType: { in: ["SUPPLIER", "BANK_ACCOUNT", "SUPPLIER_BANK_ACCOUNT"] },
+          action: { in: ["UPDATE_BANK_ACCOUNT", "CHANGE_BANK_DETAILS", "SUPPLIER_BANK_EDITED"] },
+          entityId: current.invoice.supplierId,
+        },
+      });
+
+      if (bankChangeAudit) {
+        throw ApiError.forbidden(
+          "Segregation of Duties (SoD) violation: The user who edited this supplier's bank details cannot release payment to this supplier (Doc 24 C8-7)."
+        );
+      }
+    }
+
+    // Claim the row + advance the workflow in the same transaction. The
+    // engine rejects a second PAYMENT_RUN once the invoice is PROCESSING_PAYMENT.
+    await tx.payment.update({
+      where: { id_organizationId: { id: paymentId, organizationId } },
+      data: { status: "PROCESSING" },
+    });
+    await applyTransition({
+      invoiceId: current.invoiceId,
+      organizationId,
+      event: "PAYMENT_RUN",
+      triggeredBy: userId,
+      tx,
     });
 
-    if (bankChangeAudit) {
-      throw ApiError.forbidden(
-        "Segregation of Duties (SoD) violation: The user who edited this supplier's bank details cannot release payment to this supplier (Doc 24 C8-7)."
-      );
-    }
-  }
-
-  await applyTransition({ invoiceId: payment.invoiceId, organizationId, event: "PAYMENT_RUN", triggeredBy: userId });
+    return current;
+  });
 
   // Resolve tenant's configured Payment Gateway (BYOPG)
   const { IntegrationRepository } = await import("../integrations/repository");
@@ -124,7 +177,7 @@ export async function executePayment(
   const pgRecords = await IntegrationRepository.findByType(organizationId, "PAYMENT_GATEWAY");
   const activePg = pgRecords.find((r) => r.status === "CONNECTED") || pgRecords[0];
 
-  let config: any = {
+  let config: Record<string, unknown> = {
     provider: activePg?.provider || "MANUAL_BANK_TRANSFER",
   };
 
@@ -137,8 +190,8 @@ export async function executePayment(
     }
   }
 
-  const adapter = getPaymentGatewayAdapter(config.provider);
-  const payoutResult = await adapter.initiatePayout(config, {
+  const adapter = getPaymentGatewayAdapter(config.provider as PaymentGatewayProvider);
+  const payoutResult = await adapter.initiatePayout(config as unknown as PaymentGatewayConfig, {
     paymentId: payment.id,
     amount: Number(payment.amount),
     currency: payment.currency,
@@ -147,6 +200,15 @@ export async function executePayment(
 
   if (!payoutResult.success) {
     await applyTransition({ invoiceId: payment.invoiceId, organizationId, event: "PAYMENT_FAILURE", triggeredBy: userId });
+    // Return the row to SCHEDULED so it stays retry-eligible, matching the
+    // engine's PROCESSING_PAYMENT -> SCHEDULED failure transition.
+    await prisma.payment.update({
+      where: { id_organizationId: { id: paymentId, organizationId } },
+      data: {
+        status: "SCHEDULED",
+        failureReason: payoutResult.errorMessage || "Gateway rejected transaction",
+      },
+    });
     throw ApiError.badRequest(
       `Payment gateway payout initiation failed: ${payoutResult.errorMessage || "Gateway rejected transaction"}`
     );
@@ -159,35 +221,37 @@ export async function executePayment(
   const finalClearingDoc = details?.clearingDocumentNumber || payoutResult.clearingDocumentNumber || `CLR-${Date.now().toString(36).toUpperCase()}`;
   const clearingDate = payoutResult.executedAt || new Date();
 
-  // Stamp invoice with clearing document and buyer invoice id
-  await prisma.invoice.update({
-    where: {
-      id_organizationId: {
-        id: payment.invoiceId,
-        organizationId,
+  return prisma.$transaction(async (tx) => {
+    // Stamp invoice with clearing document and buyer invoice id
+    await tx.invoice.update({
+      where: {
+        id_organizationId: {
+          id: payment.invoiceId,
+          organizationId,
+        },
       },
-    },
-    data: {
-      erpClearingNumber: finalClearingDoc,
-      buyerInvoiceId: `2522${Date.now().toString().slice(-6)}`,
-      fiscalYear: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
-    },
-  });
+      data: {
+        erpClearingNumber: finalClearingDoc,
+        buyerInvoiceId: `2522${Date.now().toString().slice(-6)}`,
+        fiscalYear: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
+      },
+    });
 
-  return prisma.payment.update({
-    where: {
-      id_organizationId: {
-        id: paymentId,
-        organizationId,
+    return tx.payment.update({
+      where: {
+        id_organizationId: {
+          id: paymentId,
+          organizationId,
+        },
       },
-    },
-    data: {
-      status: "PAID",
-      processedAt: clearingDate,
-      utrNumber: finalUtr,
-      clearingDate,
-      clearingDocumentNumber: finalClearingDoc,
-    },
+      data: {
+        status: "PAID",
+        processedAt: clearingDate,
+        utrNumber: finalUtr,
+        clearingDate,
+        clearingDocumentNumber: finalClearingDoc,
+      },
+    });
   });
 }
 

@@ -59,6 +59,8 @@ function dispatch(app: express.Express, method: string, path: string, headers: R
 }
 
 describe("Public Invoice Tracking Hardening (ACT-P0-01)", () => {
+  const origin = "http://localhost:5173";
+  let prevWebOrigin: string | undefined;
   const app = createTestApp();
   const orgId = "org-track-test";
   let invoiceId: string;
@@ -67,6 +69,8 @@ describe("Public Invoice Tracking Hardening (ACT-P0-01)", () => {
   let expiredInvoiceId: string;
 
   beforeAll(async () => {
+    prevWebOrigin = process.env.WEB_ORIGIN;
+    process.env.WEB_ORIGIN = origin;
     await prisma.organization.upsert({
       where: { id: orgId },
       update: {},
@@ -120,6 +124,11 @@ describe("Public Invoice Tracking Hardening (ACT-P0-01)", () => {
   });
 
   afterAll(async () => {
+    if (prevWebOrigin !== undefined) {
+      process.env.WEB_ORIGIN = prevWebOrigin;
+    } else {
+      delete process.env.WEB_ORIGIN;
+    }
     await prisma.auditLog.deleteMany({ where: { organizationId: orgId } });
     await prisma.invoice.deleteMany({ where: { organizationId: orgId, id: { in: [invoiceId, expiredInvoiceId] } } });
     await prisma.organization.deleteMany({ where: { id: orgId } });
@@ -165,7 +174,7 @@ describe("Public Invoice Tracking Hardening (ACT-P0-01)", () => {
     expect(invoice?.id).toBe(invoiceId);
   });
 
-  it("returns web URL (<APP_BASE_URL>/track/<token>) for operator tracking endpoint", async () => {
+  it("returns web URL (<WEB_ORIGIN>/track/<token>) for operator tracking endpoint", async () => {
     const managerToken = signAccessToken({
       userId: "manager-user",
       organizationId: orgId,
@@ -180,7 +189,8 @@ describe("Public Invoice Tracking Hardening (ACT-P0-01)", () => {
     );
     expect(res.status).toBe(200);
     expect(res.body.data.trackingToken).toBeDefined();
-    expect(res.body.data.trackingUrl).toMatch(/^http:\/\/.*\/track\/[a-f0-9]{64}$/);
+    expect(res.body.data.trackingToken).toMatch(/^[a-f0-9]{64}$/);
+    expect(res.body.data.trackingUrl).toBe(`${origin}/track/${res.body.data.trackingToken}`);
     expect(res.body.data.trackingUrl).not.toContain("/public/invoices/track");
   });
 
@@ -212,7 +222,9 @@ describe("Public Invoice Tracking Hardening (ACT-P0-01)", () => {
       { Authorization: `Bearer ${fmToken}` }
     );
     expect(resFm.status).toBe(200);
-    expect(resFm.body.data.trackingUrl).toMatch(/^http:\/\/.*\/track\/[a-f0-9]{64}$/);
+    expect(resFm.body.data.trackingToken).toBeDefined();
+    expect(resFm.body.data.trackingToken).toMatch(/^[a-f0-9]{64}$/);
+    expect(resFm.body.data.trackingUrl).toBe(`${origin}/track/${resFm.body.data.trackingToken}`);
 
     // Verify audit log written
     const auditLog = await prisma.auditLog.findFirst({

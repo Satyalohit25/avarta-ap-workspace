@@ -2,13 +2,17 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, FileQuestion, Home, Layers } from "lucide-react";
 import { Button } from "../components/ui/Button";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
+import { AvartaCrest } from "../components/brand/AvartaCrest";
 
 export default function NotFoundPage() {
+  useDocumentTitle("404 - Page Not Found", "The requested workspace resource or page does not exist.");
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 text-center select-none">
-      <div className="w-12 h-12 rounded-md bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 flex items-center justify-center mb-6 text-neutral-500 dark:text-zinc-400">
+    <div className="relative min-h-[80vh] flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden">
+      <AvartaCrest variant="watermark" className="opacity-[0.03] dark:opacity-[0.05]" />
+      <div className="relative z-10 w-12 h-12 rounded-md bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 flex items-center justify-center mb-6 text-neutral-500 dark:text-zinc-400">
         <FileQuestion size={28} strokeWidth={1.5} />
       </div>
 
