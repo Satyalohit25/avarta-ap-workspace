@@ -22,7 +22,7 @@ export default function RefundPolicyPage() {
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Cancellation & Refund Policy</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">Cancellation & Refund Policy</h1>
           <p className="text-caption text-neutral-500 dark:text-zinc-400">
             Last Updated: October 13, 2026 | Enterprise SaaS Subscription Terms
           </p>
@@ -30,7 +30,7 @@ export default function RefundPolicyPage() {
 
         <div className="space-y-6 text-body-sm leading-relaxed text-neutral-700 dark:text-zinc-300">
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">1. Subscription Cancellation</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">1. Subscription Cancellation</h2>
             <p>
               You may cancel your monthly or annual subscription at any time directly through the <strong>Settings → Subscription & Usage Quotas</strong> tab or by contacting <a href="mailto:billing@avarta.dev" className="text-indigo-600 dark:text-indigo-400 underline">billing@avarta.dev</a>.
             </p>
@@ -40,7 +40,7 @@ export default function RefundPolicyPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">2. Refund Eligibility & 14-Day Guarantee</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">2. Refund Eligibility & 14-Day Guarantee</h2>
             <p>
               We stand behind the performance of Avarta AP Workspace:
             </p>
@@ -52,14 +52,14 @@ export default function RefundPolicyPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">3. Data Export Upon Cancellation</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">3. Data Export Upon Cancellation</h2>
             <p>
               In accordance with our core non-negotiable rule, <strong>nothing is abruptly deleted</strong>. You will have full access for 30 calendar days following cancellation to export all general ledger records, audit logs, and invoice attachments via the immutable Archive Vault.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">4. Processing Time & Support Contact</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">4. Processing Time & Support Contact</h2>
             <p>
               Approved refunds are returned to the original payment method (Credit Card, Net Banking, or UPI) within 5–7 business days via Stripe or Razorpay.
             </p>

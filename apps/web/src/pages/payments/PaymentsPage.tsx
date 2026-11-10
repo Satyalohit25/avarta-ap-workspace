@@ -51,6 +51,7 @@ export default function PaymentsPage() {
     isOpen: false,
     payments: [],
   });
+  const [exportingFormat, setExportingFormat] = useState<"CSV" | "NACHA" | null>(null);
 
   async function load() {
     setLoading(true);
@@ -182,6 +183,7 @@ export default function PaymentsPage() {
   }
 
   async function handleExportBankFile(format: "CSV" | "NACHA" = "CSV") {
+    if (exportingFormat !== null) return;
     const listToExport = selectedIds.length > 0
       ? rows.filter((r) => selectedIds.includes(r.id))
       : filteredRows;
@@ -191,6 +193,7 @@ export default function PaymentsPage() {
       return;
     }
 
+    setExportingFormat(format);
     const idsParam = listToExport.map((p) => p.id).join(",");
     const apiFormat = format === "NACHA" ? "nacha" : "csv";
     try {
@@ -225,6 +228,8 @@ export default function PaymentsPage() {
         "Export Failed",
         err instanceof Error ? err.message : "Failed to download bank file"
       );
+    } finally {
+      setExportingFormat(null);
     }
   }
 
@@ -299,15 +304,15 @@ export default function PaymentsPage() {
           <div className="flex items-center gap-2">
             <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-300 text-micro border border-neutral-200/80 dark:border-zinc-700/80 font-medium">
               <span>Navigate:</span>
-              <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
+              <kbd className="font-mono text-[10px] px-1.5 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
                 J
               </kbd>
               <span>/</span>
-              <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
+              <kbd className="font-mono text-[10px] px-1.5 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
                 K
               </kbd>
               <span>•</span>
-              <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
+              <kbd className="font-mono text-[10px] px-1.5 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
                 Space
               </kbd>
               <span>select</span>
@@ -315,22 +320,24 @@ export default function PaymentsPage() {
             <Button
               variant="outline"
               onClick={() => handleExportBankFile("CSV")}
-              disabled={filteredRows.length === 0}
+              disabled={filteredRows.length === 0 || exportingFormat !== null}
+              isLoading={exportingFormat === "CSV"}
               className="gap-1.5 text-caption font-medium"
               title="Download standard CSV bank file for corporate banking"
             >
-              <Download size={14} />
-              <span>Export CSV</span>
+              {exportingFormat !== "CSV" && <Download size={14} />}
+              <span>{exportingFormat === "CSV" ? "Exporting CSV..." : "Export CSV"}</span>
             </Button>
             <Button
               variant="outline"
               onClick={() => handleExportBankFile("NACHA")}
-              disabled={filteredRows.length === 0}
+              disabled={filteredRows.length === 0 || exportingFormat !== null}
+              isLoading={exportingFormat === "NACHA"}
               className="gap-1.5 text-caption font-medium"
               title="Download 94-character fixed-width NACHA ACH batch file (C8-4)"
             >
-              <Download size={14} />
-              <span>Export NACHA</span>
+              {exportingFormat !== "NACHA" && <Download size={14} />}
+              <span>{exportingFormat === "NACHA" ? "Exporting NACHA..." : "Export NACHA"}</span>
             </Button>
           </div>
         }
@@ -602,10 +609,12 @@ export default function PaymentsPage() {
               size="sm"
               variant="outline"
               onClick={() => handleExportBankFile("CSV")}
+              disabled={exportingFormat !== null}
+              isLoading={exportingFormat === "CSV"}
               className="border-neutral-600 bg-neutral-800 hover:bg-neutral-700 text-white gap-1.5"
             >
-              <Download size={13} />
-              <span>Export Batch</span>
+              {exportingFormat !== "CSV" && <Download size={13} />}
+              <span>{exportingFormat === "CSV" ? "Exporting..." : "Export Batch"}</span>
             </Button>
             <Button
               size="sm"

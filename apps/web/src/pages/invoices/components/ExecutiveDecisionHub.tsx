@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -7,7 +6,6 @@ import {
   History,
   ShieldCheck,
 } from "lucide-react";
-import { Button } from "../../../components/ui/Button";
 
 export type WorkspaceViewMode = "split" | "threeway" | "audit";
 
@@ -34,16 +32,16 @@ export interface ExecutiveDecisionHubProps {
 
 export function ExecutiveDecisionHub({
   invoiceNumber,
-  currency,
-  totalAmount,
-  supplierName,
+  currency: _currency,
+  totalAmount: _totalAmount,
+  supplierName: _supplierName,
   purchaseOrderId,
   status,
   openException,
-  onResolveException,
+  onResolveException: _onResolveException,
   viewMode,
   onChangeViewMode,
-  isActionPending = false,
+  isActionPending: _isActionPending = false,
 }: ExecutiveDecisionHubProps) {
   const hasException = Boolean(openException);
   const isPostCapture = status !== "RECEIVED";
@@ -63,7 +61,7 @@ export function ExecutiveDecisionHub({
                 </span>
               </div>
 
-              <h2 className="text-body font-bold text-neutral-900 dark:text-zinc-50 tracking-tight">
+              <h2 className="text-body font-bold text-neutral-900 dark:text-zinc-50 tracking-tight text-balance">
                 {openException?.title ?? "Exception requires resolution"}
               </h2>
 
@@ -122,7 +120,7 @@ export function ExecutiveDecisionHub({
           >
             <FileText size={14} className="text-indigo-600 dark:text-indigo-400" />
             <span>Essentials &amp; Scan</span>
-            <kbd className="hidden sm:inline-block font-mono text-[9px] px-1 py-0.2 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 text-neutral-400">1</kbd>
+            <kbd className="hidden sm:inline-block font-mono text-[9px] px-1 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 text-neutral-400">1</kbd>
           </button>
 
           <button
@@ -143,7 +141,7 @@ export function ExecutiveDecisionHub({
             {hasException && (
               <span className="w-2 h-2 rounded-full bg-amber-500" />
             )}
-            <kbd className="hidden sm:inline-block font-mono text-[9px] px-1 py-0.2 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 text-neutral-400">2</kbd>
+            <kbd className="hidden sm:inline-block font-mono text-[9px] px-1 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 text-neutral-400">2</kbd>
           </button>
 
           <button
@@ -161,7 +159,7 @@ export function ExecutiveDecisionHub({
           >
             <History size={14} className="text-purple-600 dark:text-purple-400" />
             <span>Audit Trail</span>
-            <kbd className="hidden sm:inline-block font-mono text-[9px] px-1 py-0.2 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 text-neutral-400">3</kbd>
+            <kbd className="hidden sm:inline-block font-mono text-[9px] px-1 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700 text-neutral-400">3</kbd>
           </button>
         </div>
 

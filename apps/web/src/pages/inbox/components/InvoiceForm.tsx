@@ -724,7 +724,7 @@ export function InvoiceForm({
             </div>
           </div>
           <div className="shrink-0 flex items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-800/60">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-mono font-semibold bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-800/60">
               <ShieldCheck size={12} />
               <span>96% AI Confidence</span>
             </span>
@@ -792,7 +792,7 @@ export function InvoiceForm({
 
           {/* Collapsible Source Voucher Preview */}
           {isPreviewOpen && (
-            <div className="rounded-lg border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 space-y-3 shadow-inner">
+            <div className="rounded-lg border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 space-y-3">
               {/* Document Image with Bounding Boxes (if attached file is image) */}
               {filePreviewUrl && attachedFile?.type.startsWith("image/") && (
                 <div className="rounded border border-neutral-200 dark:border-zinc-800 bg-neutral-900/90 flex justify-center items-center p-3 overflow-hidden">
@@ -800,7 +800,7 @@ export function InvoiceForm({
                     <img
                       src={filePreviewUrl}
                       alt="Uploaded scan preview"
-                      className="max-h-[380px] w-auto h-auto block rounded shadow select-none"
+                      className="max-h-[380px] w-auto h-auto block rounded select-none"
                     />
                     {previewBoxes.length > 0 && (
                       <svg
@@ -1012,7 +1012,7 @@ export function InvoiceForm({
                     <img
                       src={filePreviewUrl}
                       alt="Uploaded scan preview"
-                      className="max-h-[260px] w-auto h-auto block rounded shadow select-none"
+                      className="max-h-[260px] w-auto h-auto block rounded select-none"
                     />
                     {previewBoxes.length > 0 && (
                       <svg
@@ -1142,7 +1142,7 @@ export function InvoiceForm({
             options={poOptions}
             disabled={loadingPos}
           />
-          <span className="text-[11px] text-neutral-500 dark:text-zinc-400 block truncate">
+          <span className="text-micro font-normal text-neutral-500 dark:text-zinc-400 block truncate">
             {purchaseOrderId !== "none" && selectedPo
               ? `3-Way line matching against ${selectedPo.poNumber}`
               : "Direct GL routing (Non-PO 2-way approval)"}
@@ -1190,13 +1190,13 @@ export function InvoiceForm({
               <button
                 type="button"
                 onClick={handleResetDueDateToAuto}
-                className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-micro font-normal text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <RotateCcw size={10} />
                 <span>Reset to auto</span>
               </button>
             ) : (
-              <span className="text-[11px] font-mono text-neutral-500 dark:text-zinc-400">
+              <span className="text-micro font-normal font-mono text-neutral-500 dark:text-zinc-400">
                 Auto: +{paymentTerms} days
               </span>
             )}
@@ -1224,10 +1224,10 @@ export function InvoiceForm({
           </h4>
         </div>
 
-        <div className="rounded-lg border border-neutral-200 dark:border-zinc-800 overflow-hidden shadow-2xs">
+        <div className="rounded-lg border border-neutral-200 dark:border-zinc-800 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-body-sm">
-              <thead className="bg-neutral-50 dark:bg-zinc-900/90 border-b border-neutral-200 dark:border-zinc-800 text-caption font-semibold text-neutral-600 dark:text-zinc-400">
+              <thead className="bg-neutral-50 dark:bg-zinc-900 border-b border-neutral-200 dark:border-zinc-800 text-caption font-semibold text-neutral-600 dark:text-zinc-400">
                 <tr>
                   <th className="py-2.5 px-3 w-8 text-center font-mono">#</th>
                   <th className="py-2.5 px-3 min-w-[220px]">Description *</th>
@@ -1403,7 +1403,7 @@ export function InvoiceForm({
               </div>
             </div>
             {fieldErrors.totalAmount && (
-              <p className="text-[11px] text-rose-600 dark:text-rose-400 font-medium text-right">
+              <p className="text-micro text-rose-600 dark:text-rose-400 font-medium text-right">
                 {fieldErrors.totalAmount}
               </p>
             )}
@@ -1459,7 +1459,7 @@ export function InvoiceForm({
             type="submit"
             disabled={submitting || !isFormComplete}
             title={!isFormComplete ? `Please complete: ${missingRequiredFields.join(", ")}` : undefined}
-            className="h-10 px-6 font-semibold text-body-sm gap-2 shadow-sm"
+            className="h-10 px-6 font-semibold text-body-sm gap-2"
           >
             {mode === "create" ? (
               <>

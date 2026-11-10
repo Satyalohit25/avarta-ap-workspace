@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users, UserPlus, Shield, UserX, Copy, CheckCircle2 } from "lucide-react";
+import { Users, UserPlus, Shield, UserX, Copy, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { Badge } from "../../../components/ui/Badge";
 import { useToast } from "../../../components/ui/ToastContext";
@@ -34,6 +34,7 @@ export function TeamManagementCard() {
   const [inviting, setInviting] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [seats, setSeats] = useState<{ used: number; limit: number | null } | null>(null);
+  const [deactivatingUserId, setDeactivatingUserId] = useState<string | null>(null);
 
   const canInvite =
     user?.role?.toUpperCase() === "ADMINISTRATOR" ||
@@ -110,12 +111,13 @@ export function TeamManagementCard() {
   };
 
   const handleDeactivate = async (userId: string, name: string) => {
-    if (!canDeactivate) return;
+    if (!canDeactivate || deactivatingUserId !== null) return;
     const confirmed = window.confirm(
       `Deactivate ${name}? Their historical audit actions are preserved and the account is never deleted.`
     );
     if (!confirmed) return;
 
+    setDeactivatingUserId(userId);
     try {
       await deactivateTeamMember(userId);
       setTeam((prev) =>
@@ -131,6 +133,8 @@ export function TeamManagementCard() {
         title: "Deactivation Failed",
         description: err instanceof Error ? err.message : "Could not deactivate the member.",
       });
+    } finally {
+      setDeactivatingUserId(null);
     }
   };
 
@@ -143,7 +147,7 @@ export function TeamManagementCard() {
               <Users size={22} />
             </div>
             <div>
-              <h3 className="text-body font-semibold text-neutral-900 dark:text-zinc-100">
+              <h3 className="text-body font-semibold text-neutral-900 dark:text-zinc-100 text-balance">
                 Team Members & Role Access Control
               </h3>
               <p className="text-caption text-neutral-500 dark:text-zinc-400">
@@ -340,11 +344,16 @@ export function TeamManagementCard() {
                       canDeactivate ? (
                         <button
                           type="button"
+                          disabled={deactivatingUserId !== null}
                           onClick={() => handleDeactivate(member.id, member.fullName)}
-                          className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 hover:underline font-medium text-micro"
+                          className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 hover:underline font-medium text-micro disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <UserX size={12} />
-                          <span>Deactivate</span>
+                          {deactivatingUserId === member.id ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <UserX size={12} />
+                          )}
+                          <span>{deactivatingUserId === member.id ? "Deactivating..." : "Deactivate"}</span>
                         </button>
                       ) : (
                         <span className="font-mono text-micro text-neutral-400 dark:text-zinc-500">N/A</span>

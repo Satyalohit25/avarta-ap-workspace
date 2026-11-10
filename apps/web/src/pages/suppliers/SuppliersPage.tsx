@@ -543,7 +543,7 @@ export default function SuppliersPage() {
                               />
                             </>
                           ) : (
-                            <span className="text-caption text-neutral-400 dark:text-zinc-500 italic">
+                            <span className="text-caption text-neutral-400 dark:text-zinc-500">
                               Unregistered / Not Provided
                             </span>
                           )}

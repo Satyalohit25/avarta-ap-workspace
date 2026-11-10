@@ -115,7 +115,7 @@ export function InvoiceActionBar({
           >
             <ChevronLeft size={16} />
           </button>
-          <span className="text-[11px] font-mono font-medium text-neutral-500 dark:text-zinc-400 px-1">
+          <span className="text-micro font-mono font-medium text-neutral-500 dark:text-zinc-400 px-1">
             1 of 25
           </span>
           <button
@@ -131,16 +131,16 @@ export function InvoiceActionBar({
         {/* State Summary Chip */}
         <div className="hidden lg:flex items-center gap-2 pl-3 border-l border-neutral-200 dark:border-zinc-800">
           {isCleanForApproval ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+            <span className="inline-flex items-center gap-1 text-micro font-normal font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
               <Check size={11} strokeWidth={2.5} />
               <span>Ready for Approval • {formatCurrency(Number(totalAmount) || 0, currency)}</span>
             </span>
           ) : status === "EXCEPTION" ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-mono text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
+            <span className="inline-flex items-center gap-1 text-micro font-normal font-mono text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
               <span>Exception Requires Resolution</span>
             </span>
           ) : (
-            <span className="text-[11px] font-mono text-neutral-500 dark:text-zinc-400">
+            <span className="text-micro font-normal font-mono text-neutral-500 dark:text-zinc-400">
               Workflow active
             </span>
           )}
@@ -183,7 +183,7 @@ export function InvoiceActionBar({
           </Button>
 
           {showMoreMenu && (
-            <div className="absolute right-0 bottom-full mb-2 w-52 py-1 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-neutral-200 dark:border-zinc-700 z-50 text-caption animate-in fade-in zoom-in-95 duration-100">
+            <div className="absolute right-0 bottom-full mb-2 w-52 py-1 bg-white dark:bg-zinc-800 rounded-lg shadow-overlay border border-neutral-200 dark:border-zinc-700 z-50 text-caption animate-in fade-in zoom-in-95 duration-100">
               <button
                 type="button"
                 disabled={!trackingUrl}
@@ -245,11 +245,11 @@ export function InvoiceActionBar({
             size="md"
             onClick={() => onAction(primaryAction.actionKey)}
             disabled={isActionPending}
-            className="h-9 px-5 text-body-sm font-bold gap-2 shadow-sm hover:shadow-md rounded-lg transition-colors duration-100"
+            className="h-9 px-5 text-body-sm font-bold gap-2 rounded-lg transition-colors duration-100"
           >
             {renderActionIcon(primaryAction.actionKey)}
             <span>{isActionPending ? "Executing..." : primaryAction.label}</span>
-            <kbd className="hidden sm:inline-block font-mono text-[10px] px-1 py-0.2 rounded bg-indigo-700/60 text-white/90">
+            <kbd className="hidden sm:inline-block font-mono text-[10px] px-1 rounded bg-indigo-700/60 text-white/90">
               ↵
             </kbd>
           </Button>

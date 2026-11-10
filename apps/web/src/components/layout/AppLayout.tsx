@@ -52,7 +52,7 @@ export function AppLayout() {
         onClose={() => setIsMobileOpen(false)}
         side="left"
         hideHeader
-        width="w-64 max-w-[85vw]"
+        width="w-sidebar max-w-[85vw]"
       >
         <Sidebar
           isCollapsed={false}

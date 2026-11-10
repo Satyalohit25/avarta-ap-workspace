@@ -103,7 +103,7 @@ export function ProcessingOverlay({
                   {/* Connector Line + Icon */}
                   <div className="flex flex-col items-center">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors duration-100 duration-500 ${
+                      className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors duration-300 ${
                         isCompleted
                           ? "bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800"
                           : isActive

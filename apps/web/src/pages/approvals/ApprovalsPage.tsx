@@ -305,15 +305,15 @@ export default function ApprovalsPage() {
           <div className="flex items-center gap-2">
             <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-300 text-micro border border-neutral-200/80 dark:border-zinc-700/80 font-medium">
               <span>Navigate:</span>
-              <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
+              <kbd className="font-mono text-[10px] px-1.5 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
                 J
               </kbd>
               <span>/</span>
-              <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
+              <kbd className="font-mono text-[10px] px-1.5 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
                 K
               </kbd>
               <span>•</span>
-              <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
+              <kbd className="font-mono text-[10px] px-1.5 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">
                 Enter
               </kbd>
               <span>to review</span>
@@ -504,7 +504,7 @@ export default function ApprovalsPage() {
         {selectedApproval && (
           <div className="space-y-5 pt-1">
             {/* Highlighted Approval Scope: WHAT IS TO BE APPROVED */}
-            <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50/80 via-white to-neutral-50 dark:from-indigo-950/40 dark:via-zinc-900 dark:to-zinc-900 border-2 border-indigo-500/30 dark:border-indigo-500/40 shadow-xs space-y-3.5">
+            <div className="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-indigo-500/30 dark:border-indigo-500/40 space-y-3.5">
               <div className="flex items-center justify-between">
                 <span className="text-micro font-mono font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
                   <PackageCheck

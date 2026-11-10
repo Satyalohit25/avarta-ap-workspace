@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "../../../lib/formatters";
 import { DashboardOverview } from "../../../api/dashboard";
-import { ArrowUpRight, TrendingDown, TrendingUp, Minus, AlertCircle } from "lucide-react";
+import { ArrowUpRight, TrendingDown, TrendingUp, Minus } from "lucide-react";
 import { tokens } from "../../../design-system/tokens";
 
 interface APFinancialHorizonStripProps {
@@ -38,9 +38,16 @@ function Sparkline({ points, color }: { points: number[]; color: string }) {
   const step = w / (points.length - 1);
   const toY = (v: number) => h - ((v - min) / range) * (h - 4) - 2;
   return (
-    <svg width={w} height={h} className="shrink-0 opacity-60" aria-hidden="true">
+    <svg
+      width={w}
+      height={h}
+      className="shrink-0 opacity-60"
+      aria-hidden="true"
+    >
       <polyline
-        points={points.map((p, i) => `${(i * step).toFixed(1)},${toY(p).toFixed(1)}`).join(" ")}
+        points={points
+          .map((p, i) => `${(i * step).toFixed(1)},${toY(p).toFixed(1)}`)
+          .join(" ")}
         fill="none"
         stroke={color}
         strokeWidth="1.5"
@@ -58,8 +65,8 @@ function TrendPill({ trend }: { trend: TrendConfig }) {
   const colorClasses = isPositive
     ? "text-emerald-700 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/50 border-emerald-200/70 dark:border-emerald-800/60"
     : isNegative
-    ? "text-rose-700 dark:text-rose-300 bg-rose-50/80 dark:bg-rose-950/50 border-rose-200/70 dark:border-rose-800/60"
-    : "text-indigo-700 dark:text-indigo-300 bg-indigo-50/80 dark:bg-indigo-950/50 border-indigo-200/70 dark:border-indigo-800/60";
+      ? "text-rose-700 dark:text-rose-300 bg-rose-50/80 dark:bg-rose-950/50 border-rose-200/70 dark:border-rose-800/60"
+      : "text-indigo-700 dark:text-indigo-300 bg-indigo-50/80 dark:bg-indigo-950/50 border-indigo-200/70 dark:border-indigo-800/60";
   return (
     <span
       className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded border shrink-0 ${colorClasses}`}
@@ -82,13 +89,19 @@ export function APFinancialHorizonStrip({
   const totalOutstanding = Number(data?.totalOutstanding) || 0;
   const rawBlocked = data?.totalBlockedAmount || 0;
   const currentBlocked = Math.max(0, rawBlocked - releasedAmount);
-  const totalBlockedCount = Math.max(0, (data?.totalBlockedCount || 0) - releasedCount);
+  const totalBlockedCount = Math.max(
+    0,
+    (data?.totalBlockedCount || 0) - releasedCount,
+  );
 
   const due7DaysAmount = data?.dueIn7Days?.totalAmount || 0;
   const due7DaysCount = data?.dueIn7Days?.count || 0;
 
   const rawAwaitingAmount = data?.pendingApprovalAmount || 0;
-  const awaitingCount = Math.max(0, (data?.pendingApproval || 0) - releasedCount);
+  const awaitingCount = Math.max(
+    0,
+    (data?.pendingApproval || 0) - releasedCount,
+  );
   const awaitingAmount = Math.max(0, rawAwaitingAmount - releasedAmount);
 
   const rawScheduledAmount = data?.scheduledAmount || 0;
@@ -113,11 +126,14 @@ export function APFinancialHorizonStrip({
         : {
             direction: "positive",
             label: "↓ 12.5% vs last wk",
-            tooltip: "Fewer invoices blocked than last week — exception resolution rate improving",
+            tooltip:
+              "Fewer invoices blocked than last week — exception resolution rate improving",
           },
       path: "/exceptions",
       isHero: true,
-      sparkPoints: hasZeroData ? [0, 0, 0, 0, 0, 0, 0] : [68, 74, 71, 79, 62, 55, 44],
+      sparkPoints: hasZeroData
+        ? [0, 0, 0, 0, 0, 0, 0]
+        : [68, 74, 71, 79, 62, 55, 44],
     },
     {
       id: "total-outstanding",
@@ -133,10 +149,13 @@ export function APFinancialHorizonStrip({
         : {
             direction: "positive",
             label: "↓ 4.2% vs last mo",
-            tooltip: "Outstanding balance is decreasing — working capital position improving",
+            tooltip:
+              "Outstanding balance is decreasing — working capital position improving",
           },
       path: "/invoices",
-      sparkPoints: hasZeroData ? [0, 0, 0, 0, 0, 0, 0] : [82, 79, 75, 78, 71, 68, 65],
+      sparkPoints: hasZeroData
+        ? [0, 0, 0, 0, 0, 0, 0]
+        : [82, 79, 75, 78, 71, 68, 65],
     },
     {
       id: "due-this-week",
@@ -152,10 +171,13 @@ export function APFinancialHorizonStrip({
         : {
             direction: "neutral",
             label: "Save ₹17,750 discount",
-            tooltip: "Early payment discount available if settled before due date (2% on qualifying invoices)",
+            tooltip:
+              "Early payment discount available if settled before due date (2% on qualifying invoices)",
           },
       path: "/payments",
-      sparkPoints: hasZeroData ? [0, 0, 0, 0, 0, 0, 0] : [30, 40, 55, 45, 60, 70, 75],
+      sparkPoints: hasZeroData
+        ? [0, 0, 0, 0, 0, 0, 0]
+        : [30, 40, 55, 45, 60, 70, 75],
     },
     {
       id: "scheduled",
@@ -174,7 +196,9 @@ export function APFinancialHorizonStrip({
             tooltip: "All scheduled payment runs are progressing on time",
           },
       path: "/payments",
-      sparkPoints: hasZeroData ? [0, 0, 0, 0, 0, 0, 0] : [20, 25, 30, 28, 35, 40, 38],
+      sparkPoints: hasZeroData
+        ? [0, 0, 0, 0, 0, 0, 0]
+        : [20, 25, 30, 28, 35, 40, 38],
     },
     {
       id: "pending-approval",
@@ -190,10 +214,13 @@ export function APFinancialHorizonStrip({
         : {
             direction: "positive",
             label: "↓ 1.8d avg wait",
-            tooltip: "Average approval turnaround is decreasing — Approval SLA met",
+            tooltip:
+              "Average approval turnaround is decreasing — Approval SLA met",
           },
       path: "/approvals",
-      sparkPoints: hasZeroData ? [0, 0, 0, 0, 0, 0, 0] : [60, 55, 50, 48, 42, 38, 35],
+      sparkPoints: hasZeroData
+        ? [0, 0, 0, 0, 0, 0, 0]
+        : [60, 55, 50, 48, 42, 38, 35],
     },
   ];
 
@@ -229,7 +256,7 @@ export function APFinancialHorizonStrip({
           </div>
 
           <div className="mt-1.5 pt-1.5 border-t border-neutral-100 dark:border-zinc-800/80 flex items-center justify-between gap-1.5">
-            <span className="text-[11px] text-neutral-500 dark:text-zinc-400 truncate font-mono">
+            <span className="text-micro font-normal text-neutral-500 dark:text-zinc-400 truncate font-mono">
               {item.subtitle}
             </span>
             <Sparkline
@@ -238,8 +265,8 @@ export function APFinancialHorizonStrip({
                 item.trend.direction === "positive"
                   ? tokens.color.success
                   : item.trend.direction === "negative"
-                  ? tokens.color.error
-                  : tokens.color.neutral
+                    ? tokens.color.error
+                    : tokens.color.neutral
               }
             />
           </div>

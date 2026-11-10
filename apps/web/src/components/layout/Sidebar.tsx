@@ -137,9 +137,9 @@ export function Sidebar({
   return (
     <aside
       className={`
-        shrink-0 border-r border-neutral-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 flex flex-col transition-colors duration-100 duration-200 select-none
-        ${isMobileOpen ? "flex w-64 h-full" : "hidden lg:flex"}
-        ${isRail && !isMobileOpen ? "w-16" : "w-64"}
+        shrink-0 border-r border-neutral-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 flex flex-col transition-colors duration-100 select-none
+        ${isMobileOpen ? "flex w-sidebar h-full" : "hidden lg:flex"}
+        ${isRail && !isMobileOpen ? "w-sidebar-collapsed" : "w-sidebar"}
       `}
     >
       {/* Brand Header */}
@@ -242,13 +242,13 @@ export function Sidebar({
                     aria-label={badgeTitle}
                     className={() => {
                       if (isRail) {
-                        return `group relative flex items-center justify-center w-10 h-10 mx-auto rounded-lg transition-colors duration-100 duration-150 ${
+                        return `group relative flex items-center justify-center w-10 h-10 mx-auto rounded-lg transition-colors duration-100 ${
                           isItemActive
                             ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold ring-1 ring-indigo-500/30 dark:ring-indigo-400/30 shadow-2xs"
                             : "text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100/80 dark:hover:bg-zinc-800/60 hover:text-neutral-900 dark:hover:text-zinc-100"
                         }`;
                       }
-                      return `group relative flex items-center justify-between h-10 px-3 rounded-lg text-body-sm font-medium transition-colors duration-100 duration-150 ${
+                      return `group relative flex items-center justify-between h-10 px-3 rounded-lg text-body-sm font-medium transition-colors duration-100 ${
                         isItemActive
                           ? "bg-indigo-50/80 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-semibold ring-1 ring-indigo-500/20 dark:ring-indigo-400/25 shadow-2xs"
                           : "text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100/80 dark:hover:bg-zinc-800/60 hover:text-neutral-900 dark:hover:text-zinc-100"
@@ -287,7 +287,7 @@ export function Sidebar({
                           badgeCount !== undefined &&
                           badgeCount > 0 && (
                             <span
-                              className={`text-[11px] font-mono min-w-[20px] text-center px-1.5 py-0.5 rounded-full font-semibold ${
+                              className={`text-micro font-mono min-w-[20px] text-center px-1.5 py-0.5 rounded-full font-semibold ${
                                 badgeKey === "exceptions"
                                   ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25"
                                   : badgeKey === "approvals"

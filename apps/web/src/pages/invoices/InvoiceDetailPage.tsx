@@ -1234,7 +1234,7 @@ export default function InvoiceDetailPage() {
 
           {/* Quick Review Pager & J/K Keyboard Navigation */}
           {siblingInvoices.length > 0 && (
-            <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 dark:text-zinc-400">
+            <div className="flex items-center gap-1.5 text-micro font-normal text-neutral-500 dark:text-zinc-400">
               <button
                 type="button"
                 disabled={!prevInvoice}
@@ -1242,11 +1242,11 @@ export default function InvoiceDetailPage() {
                   prevInvoice && navigate(`/invoices/${prevInvoice.id}`)
                 }
                 title="Previous invoice (Shortcut: K)"
-                className="px-2 py-1 rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 disabled:opacity-40 hover:bg-neutral-50 dark:hover:bg-zinc-800 flex items-center gap-1 transition-colors cursor-pointer disabled:cursor-not-allowed shadow-2xs text-[11px] font-medium"
+                className="px-2 py-1 rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 disabled:opacity-40 hover:bg-neutral-50 dark:hover:bg-zinc-800 flex items-center gap-1 transition-colors cursor-pointer disabled:cursor-not-allowed shadow-2xs text-micro font-medium"
               >
                 <ChevronLeft size={13} />
                 <span>Prev</span>
-                <kbd className="font-mono text-[9px] px-1 py-0.2 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700">
+                <kbd className="font-mono text-[9px] px-1 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700">
                   K
                 </kbd>
               </button>
@@ -1262,10 +1262,10 @@ export default function InvoiceDetailPage() {
                   nextInvoice && navigate(`/invoices/${nextInvoice.id}`)
                 }
                 title="Next invoice (Shortcut: J)"
-                className="px-2 py-1 rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 disabled:opacity-40 hover:bg-neutral-50 dark:hover:bg-zinc-800 flex items-center gap-1 transition-colors cursor-pointer disabled:cursor-not-allowed shadow-2xs text-[11px] font-medium"
+                className="px-2 py-1 rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 disabled:opacity-40 hover:bg-neutral-50 dark:hover:bg-zinc-800 flex items-center gap-1 transition-colors cursor-pointer disabled:cursor-not-allowed shadow-2xs text-micro font-medium"
               >
                 <span>Next</span>
-                <kbd className="font-mono text-[9px] px-1 py-0.2 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700">
+                <kbd className="font-mono text-[9px] px-1 rounded bg-neutral-100 dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-700">
                   J
                 </kbd>
                 <ChevronRight size={13} />
@@ -1285,7 +1285,7 @@ export default function InvoiceDetailPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="space-y-1.5">
             <div className="flex items-center gap-3">
-              <h1 className="text-h1 text-neutral-900 dark:text-zinc-50 font-bold font-mono tracking-tight">
+              <h1 className="text-h1 text-neutral-900 dark:text-zinc-50 font-bold font-mono tracking-tight text-balance">
                 {invoice.invoiceNumber}
               </h1>
               <StatusBadge status={context.status} />
@@ -1407,7 +1407,7 @@ export default function InvoiceDetailPage() {
                     className="fixed inset-0 z-30"
                     onClick={() => setShowExportMenu(false)}
                   />
-                  <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg shadow-xl z-40 py-1 font-mono text-caption animate-in fade-in zoom-in-95 duration-100">
+                  <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg shadow-overlay z-40 py-1 font-mono text-caption animate-in fade-in zoom-in-95 duration-100">
                     <button
                       type="button"
                       onClick={() => {
@@ -1714,7 +1714,7 @@ export default function InvoiceDetailPage() {
           >
             <div className="flex items-center justify-between pb-3 border-b border-neutral-100 dark:border-zinc-800">
               <div>
-                <h3 className="text-body font-bold text-neutral-900 dark:text-zinc-100">
+                <h3 className="text-body font-bold text-neutral-900 dark:text-zinc-100 text-balance">
                   Complete Audit Trail &amp; Workflow Transition Logs
                 </h3>
                 <p className="text-caption text-neutral-500 dark:text-zinc-400">
@@ -1764,7 +1764,7 @@ export default function InvoiceDetailPage() {
         onClose={() => setShowErpModal(false)}
         invoiceId={invoice.id}
         invoiceNumber={invoice.invoiceNumber}
-        vendorName={invoice.supplier?.name ?? "Acme Industrial Supplies"}
+        vendorName={invoice.supplier?.name || "N/A"}
         totalAmount={invoice.totalAmount}
         currency={invoice.currency}
         onConfirmSync={handleErpSync}

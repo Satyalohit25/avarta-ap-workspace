@@ -68,7 +68,7 @@ export default function SubprocessorsPage() {
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Third-Party Subprocessor Registry</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">Third-Party Subprocessor Registry</h1>
           <p className="text-caption text-neutral-500 dark:text-zinc-400">
             Last Updated: October 13, 2026 | Compliant with Article 28 GDPR & DPDP Act 2023
           </p>
@@ -113,7 +113,7 @@ export default function SubprocessorsPage() {
           </div>
 
           <section className="space-y-2 pt-4">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">Subprocessor Update Notifications</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">Subprocessor Update Notifications</h2>
             <p>
               Subscribers may subscribe to subprocessor notifications by emailing <a href="mailto:subprocessors@avarta.dev" className="text-indigo-600 dark:text-indigo-400 underline">subprocessors@avarta.dev</a>. Any material changes will be announced minimum 30 days in advance.
             </p>

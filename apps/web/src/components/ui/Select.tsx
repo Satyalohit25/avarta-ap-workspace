@@ -101,7 +101,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             <SelectPrimitive.Content
               position="popper"
               sideOffset={4}
-              className="z-50 min-w-[var(--radix-select-trigger-width)] max-h-60 overflow-y-auto rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-xl animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1"
+              className="z-50 min-w-[var(--radix-select-trigger-width)] max-h-60 overflow-y-auto rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-overlay animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1"
             >
               <SelectPrimitive.Viewport className="p-1">
                 {options.map((opt) => (

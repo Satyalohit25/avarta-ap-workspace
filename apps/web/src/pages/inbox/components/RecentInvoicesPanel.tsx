@@ -79,7 +79,7 @@ export function RecentInvoicesPanel({ invoices, loading, onInspect }: RecentInvo
                     type="button"
                     onClick={() => onInspect(inv)}
                     aria-label={`Inspect and process invoice ${inv.invoiceNumber}`}
-                    className="inline-flex items-center gap-1 text-[12px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 text-caption font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors cursor-pointer"
                   >
                     <span>Inspect &amp; Process</span>
                     <ArrowRight size={13} />

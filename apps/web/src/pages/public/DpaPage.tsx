@@ -22,7 +22,7 @@ export default function DpaPage() {
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Data Processing Agreement (DPA)</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">Data Processing Agreement (DPA)</h1>
           <p className="text-caption text-neutral-500 dark:text-zinc-400">
             Last Updated: October 13, 2026 | Standard Contractual Terms for Enterprise Customers
           </p>
@@ -30,14 +30,14 @@ export default function DpaPage() {
 
         <div className="space-y-6 text-body-sm leading-relaxed text-neutral-700 dark:text-zinc-300">
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">1. Scope and Relationship</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">1. Scope and Relationship</h2>
             <p>
               This Data Processing Agreement ("DPA") governs the processing of customer personal and financial data by Avarta AP Workspace in providing accounts payable workflow services. Customer is the Data Controller, and Avarta AP Workspace acts solely as the Data Processor under GDPR Article 28, the Indian DPDP Act 2023, and applicable data protection legislation.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">2. Technical & Organizational Security Measures (TOMs)</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">2. Technical & Organizational Security Measures (TOMs)</h2>
             <p>Processor implements robust enterprise safeguards including:</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
               <div className="flex items-start gap-2.5 p-3 rounded-md bg-neutral-50 dark:bg-zinc-800/50 border border-neutral-200/60 dark:border-zinc-700/60">
@@ -60,28 +60,28 @@ export default function DpaPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">3. Subprocessors</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">3. Subprocessors</h2>
             <p>
               Customer grants general written authorization to Processor to engage subprocessors for hosting, caching, and infrastructure. Processor maintains an up-to-date <Link to="/subprocessors" className="text-indigo-600 dark:text-indigo-400 underline font-medium">Subprocessor Registry</Link> and provides minimum 30 days prior notice before onboarding new infrastructure subprocessors.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">4. Incident Notification & Breach Response</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">4. Incident Notification & Breach Response</h2>
             <p>
               In the event of a confirmed Personal Data Breach impacting Customer data, Processor shall notify Customer without undue delay and in any event within <strong>72 hours</strong> of becoming aware of the incident, providing details of the breach, affected records, and remediation measures taken.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">5. Data Subject Rights & Deletion</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">5. Data Subject Rights & Deletion</h2>
             <p>
               Processor provides self-serve capabilities for export and archiving. Upon contract termination or formal deletion request, Processor will securely deprovision tenant records within 30 days, retaining only statutory accounting logs required by applicable tax authorities.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">6. Contact Data Protection Officer</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">6. Contact Data Protection Officer</h2>
             <p>
               For DPA counter-signing, standard contractual clauses (SCCs), or compliance inquiries:
               <br />

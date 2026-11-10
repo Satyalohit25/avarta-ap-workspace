@@ -70,7 +70,7 @@ export function GroundTruthToolbar({
                 key={band}
                 type="button"
                 onClick={() => onFilterBandChange(band)}
-                className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors ${
+                className={`px-2 py-0.5 rounded text-micro font-normal font-mono transition-colors ${
                   filterBand === band
                     ? "bg-neutral-800 dark:bg-zinc-200 text-white dark:text-zinc-900 font-semibold"
                     : "text-neutral-500 dark:text-zinc-400 hover:text-neutral-800 dark:hover:text-zinc-200"
@@ -185,14 +185,14 @@ export function VoucherAnchor({
       }}
       onMouseEnter={() => onHoverField(fieldKey)}
       onMouseLeave={() => onHoverField(null)}
-      className={`relative rounded transition-colors duration-100 duration-150 cursor-pointer ${ringClasses} ${className}`}
+      className={`relative rounded transition-colors duration-100 cursor-pointer ${ringClasses} ${className}`}
       title={`${label}: ${score}% Confidence (Click to inspect and edit)`}
       aria-label={`${label} field marker, ${score}% confidence`}
     >
       {/* Floating indicator: Rendered ONLY on hover or active, positioned clear of the text */}
       {isHighlighted && (
         <span
-          className="absolute -top-3 right-0 z-20 bg-indigo-700 text-white text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded shadow-sm pointer-events-none whitespace-nowrap animate-in fade-in zoom-in-95 duration-100"
+          className="absolute -top-3 right-0 z-20 bg-indigo-700 text-white text-[10px] font-mono font-semibold px-1.5 rounded shadow-sm pointer-events-none whitespace-nowrap animate-in fade-in zoom-in-95 duration-100"
         >
           {displayTag || `${label}: ${score}%`}
         </span>
@@ -269,7 +269,7 @@ export function GroundTruthSvgOverlay({
           return (
             <g
               key={box.id}
-              className="pointer-events-auto cursor-pointer transition-colors duration-100 duration-150"
+              className="pointer-events-auto cursor-pointer transition-colors duration-100"
               onMouseEnter={() => {
                 setLocalHoveredBoxId(box.fieldKey);
                 onHoverField(box.fieldKey);
@@ -329,7 +329,7 @@ export function GroundTruthSvgOverlay({
 
           return (
             <div
-              className="absolute pointer-events-auto transition-colors duration-100 duration-200 z-30"
+              className="absolute pointer-events-auto transition-colors duration-100 z-30"
               style={{
                 left: `${Math.min(75, Math.max(5, activeBox.x * 100))}%`,
                 top: `${Math.min(85, (activeBox.y + activeBox.height) * 100 + 1)}%`,
@@ -344,7 +344,7 @@ export function GroundTruthSvgOverlay({
                     <Crosshair size={11} className="text-indigo-400" />
                     {activeBox.label}
                   </span>
-                  <span className={`px-1.5 py-0.2 rounded font-mono font-bold text-[10px] ${colors.badgeBg}`}>
+                  <span className={`px-1.5 rounded font-mono font-bold text-[10px] ${colors.badgeBg}`}>
                     {activeBox.confidence}% Confidence
                   </span>
                 </div>

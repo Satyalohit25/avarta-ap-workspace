@@ -95,11 +95,11 @@ export function EmptyDashboardChecklist({ onOpenTour }: EmptyDashboardChecklistP
               <span className="px-2 py-0.5 rounded-sm text-micro font-semibold uppercase tracking-wider bg-neutral-100 dark:bg-zinc-800 text-neutral-800 dark:text-zinc-200 border border-neutral-200 dark:border-zinc-700">
                 Workspace Initialized
               </span>
-              <span className="text-[11px] text-neutral-500 dark:text-zinc-400">
+              <span className="text-micro font-normal text-neutral-500 dark:text-zinc-400">
                 Honest start • Production workspace
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-zinc-50">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-zinc-50 text-balance">
               Welcome to your Accounts Payable Workspace
             </h2>
             <p className="text-body-sm text-neutral-600 dark:text-zinc-400 max-w-2xl leading-relaxed">
@@ -121,7 +121,7 @@ export function EmptyDashboardChecklist({ onOpenTour }: EmptyDashboardChecklistP
               <button
                 type="button"
                 onClick={onOpenTour}
-                className="w-full sm:w-auto text-[11px] font-medium text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200 hover:underline flex items-center justify-center gap-1.5 py-1"
+                className="w-full sm:w-auto text-micro font-medium text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200 hover:underline flex items-center justify-center gap-1.5 py-1"
               >
                 <Cpu size={13} />
                 <span>Take a 2-minute tour</span>
@@ -188,7 +188,7 @@ export function EmptyDashboardChecklist({ onOpenTour }: EmptyDashboardChecklistP
                       STEP 0{idx + 1}
                     </span>
                     <h3
-                      className={`text-body font-semibold truncate ${
+                      className={`text-body font-semibold truncate text-balance ${
                         isDone
                           ? "line-through text-neutral-500 dark:text-zinc-500"
                           : "text-neutral-900 dark:text-zinc-100"
@@ -203,7 +203,7 @@ export function EmptyDashboardChecklist({ onOpenTour }: EmptyDashboardChecklistP
                   </p>
 
                   <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] font-semibold text-neutral-700 dark:text-zinc-300 flex items-center gap-1 transition-colors">
+                    <span className="text-micro font-semibold text-neutral-700 dark:text-zinc-300 flex items-center gap-1 transition-colors">
                       {item.actionText} <ChevronRight size={13} />
                     </span>
                     <span

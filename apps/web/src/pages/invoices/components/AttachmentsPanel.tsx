@@ -8,9 +8,6 @@ import {
   Eye,
   Trash2,
   Tag,
-  Check,
-  AlertCircle,
-  Plus,
 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
@@ -56,7 +53,7 @@ interface AttachmentsPanelProps {
 }
 
 export function AttachmentsPanel({
-  invoiceId,
+  invoiceId: _invoiceId,
   canUpload = true,
 }: AttachmentsPanelProps) {
   const { toast } = useToast();
@@ -235,7 +232,7 @@ export function AttachmentsPanel({
                         {att.name}
                       </span>
                       <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-micro font-semibold border ${
+                        className={`inline-flex items-center gap-1 px-2 rounded-full text-micro font-semibold border ${
                           TAG_CONFIG[att.typeTag].color
                         }`}
                       >

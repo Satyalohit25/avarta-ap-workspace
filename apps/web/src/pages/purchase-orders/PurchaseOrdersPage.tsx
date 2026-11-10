@@ -113,9 +113,11 @@ export default function PurchaseOrdersPage() {
 
   // PO Line Items state
   const [lineItems, setLineItems] = useState<PoLineItem[]>(INITIAL_LINE_ITEMS);
+  const [isTogglingReceiving, setIsTogglingReceiving] = useState(false);
 
   async function handleToggleReceiving() {
-    if (!selectedPoDetail) return;
+    if (!selectedPoDetail || isTogglingReceiving) return;
+    setIsTogglingReceiving(true);
     try {
       const nextStatus = !selectedPoDetail.closedForReceiving;
       await togglePoReceiving(selectedPoDetail.id, nextStatus);
@@ -150,6 +152,8 @@ export default function PurchaseOrdersPage() {
         "Status update failed",
         err instanceof Error ? err.message : "Could not toggle receiving status."
       );
+    } finally {
+      setIsTogglingReceiving(false);
     }
   }
 
@@ -719,10 +723,18 @@ export default function PurchaseOrdersPage() {
                 size="sm"
                 variant={selectedPoDetail.closedForReceiving ? "outline" : "secondary"}
                 onClick={handleToggleReceiving}
+                disabled={isTogglingReceiving}
+                isLoading={isTogglingReceiving}
                 className="gap-1.5 shrink-0 text-micro font-medium"
               >
-                <ShieldAlert size={13} />
-                <span>{selectedPoDetail.closedForReceiving ? "Reopen Receiving" : "Close Receiving"}</span>
+                {!isTogglingReceiving && <ShieldAlert size={13} />}
+                <span>
+                  {isTogglingReceiving
+                    ? "Updating..."
+                    : selectedPoDetail.closedForReceiving
+                    ? "Reopen Receiving"
+                    : "Close Receiving"}
+                </span>
               </Button>
             </div>
 
@@ -788,7 +800,7 @@ export default function PurchaseOrdersPage() {
                       </div>
                       <div className="w-full bg-neutral-100 dark:bg-zinc-800 h-2 rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-colors duration-100 duration-300 ${
+                          className={`h-full rounded-full transition-colors duration-100 ${
                             pct >= 100
                               ? "bg-rose-500"
                               : pct > 80
@@ -901,7 +913,7 @@ export default function PurchaseOrdersPage() {
                     <div className="rounded-md border border-neutral-200 dark:border-zinc-800 overflow-x-auto min-w-0">
                       <table className="w-full min-w-[500px] text-micro">
                         <thead>
-                          <tr className="bg-neutral-50 dark:bg-zinc-800/60">
+                          <tr className="bg-neutral-50 dark:bg-zinc-800">
                             <th className="text-left px-3 py-2 text-neutral-500 dark:text-zinc-400 font-semibold">#</th>
                             <th className="text-left px-3 py-2 text-neutral-500 dark:text-zinc-400 font-semibold">Description</th>
                             <th className="text-right px-3 py-2 text-neutral-500 dark:text-zinc-400 font-semibold">HSN</th>
@@ -922,7 +934,7 @@ export default function PurchaseOrdersPage() {
                             </tr>
                           ))}
                         </tbody>
-                        <tfoot className="bg-neutral-50 dark:bg-zinc-800/60 border-t border-neutral-200 dark:border-zinc-700">
+                        <tfoot className="bg-neutral-50 dark:bg-zinc-800 border-t border-neutral-200 dark:border-zinc-700">
                           <tr>
                             <td colSpan={5} className="px-3 py-2 text-right text-micro text-neutral-500 dark:text-zinc-400 font-semibold">Subtotal (excl. tax)</td>
                             <td className="px-3 py-2 text-right font-mono font-semibold text-neutral-900 dark:text-zinc-100">{formatCurrency(enrich.subtotal, selectedPoDetail.currency)}</td>
@@ -1023,7 +1035,7 @@ export default function PurchaseOrdersPage() {
                         </div>
 
                         {grn.comments && (
-                          <p className="text-micro text-neutral-600 dark:text-zinc-400 italic">
+                          <p className="text-micro text-neutral-600 dark:text-zinc-400">
                             Inspection Note: {grn.comments}
                           </p>
                         )}

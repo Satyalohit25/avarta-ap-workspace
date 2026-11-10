@@ -12,6 +12,7 @@ import {
   Settings,
   Layers,
   FileDown,
+  ArrowRight,
 } from "lucide-react";
 import {
   testErpConnection,
@@ -266,7 +267,7 @@ export function ErpConnectorsCard() {
           <div className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/80 flex items-center justify-center p-4">
             <div className="bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg p-6 max-w-md w-full shadow-lg space-y-4">
               <div className="border-b border-neutral-100 dark:border-zinc-800 pb-3">
-                <h3 className="text-h3 text-neutral-900 dark:text-zinc-100 font-semibold flex items-center gap-2">
+                <h3 className="text-h3 text-neutral-900 dark:text-zinc-100 font-semibold flex items-center gap-2 text-balance">
                   <Layers size={18} className="text-indigo-600" />
                   <span>Configure {connectors.find((c) => c.id === configModalId)?.name}</span>
                 </h3>
@@ -306,7 +307,7 @@ export function ErpConnectorsCard() {
                     <ol className="list-decimal list-inside space-y-0.5 text-micro text-neutral-500 dark:text-zinc-400">
                       <li>Export vouchers as {tallyExportFormat === "XML" ? "Tally XML" : "Excel Sheet"}.</li>
                       <li>Open Tally Prime and select your Company.</li>
-                      <li>Press <kbd className="px-1 py-0.5 bg-neutral-200 dark:bg-zinc-700 rounded font-mono text-[10px]">Alt + O</kbd> (Import) ➔ <strong>Transactions (Vouchers)</strong>.</li>
+                      <li>Press <kbd className="px-1 py-0.5 bg-neutral-200 dark:bg-zinc-700 rounded font-mono text-[10px]">Alt + O</kbd> (Import) <ArrowRight size={16} className="inline-block mx-0.5 text-neutral-400 align-middle" aria-hidden="true" /> <strong>Transactions (Vouchers)</strong>.</li>
                       <li>Select the downloaded voucher file to post directly into your General Ledger.</li>
                     </ol>
                   </div>

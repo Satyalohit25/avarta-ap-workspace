@@ -239,7 +239,7 @@ export default function InvoicesPage() {
       if (valA > valB) return sortOrder === "asc" ? 1 : -1;
       return 0;
     });
-  }, [invoices, searchQuery, sortField, sortOrder]);
+  }, [invoices, searchQuery, sortField, sortOrder, quickFilter]);
 
   // Pagination slicing
   const totalItems = filteredAndSortedInvoices.length;
@@ -496,11 +496,11 @@ export default function InvoicesPage() {
           <div className="flex items-center gap-2">
             <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-300 text-micro border border-neutral-200/80 dark:border-zinc-700/80 font-medium">
               <span>Navigate:</span>
-              <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">J</kbd>
+              <kbd className="font-mono text-[10px] px-1.5 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold">J</kbd>
               <span>/</span>
-              <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">K</kbd>
+              <kbd className="font-mono text-[10px] px-1.5 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold">K</kbd>
               <span>•</span>
-              <kbd className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold shadow-2xs">Enter</kbd>
+              <kbd className="font-mono text-[10px] px-1.5 rounded bg-white dark:bg-zinc-700 border border-neutral-200 dark:border-zinc-600 font-semibold">Enter</kbd>
               <span>to open</span>
             </span>
             <Button
@@ -564,7 +564,7 @@ export default function InvoicesPage() {
           onClick={() => setQuickFilter("ALL")}
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-colors duration-100 ${
             quickFilter === "ALL"
-              ? "bg-neutral-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs"
+              ? "bg-neutral-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
               : "bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-300 hover:bg-neutral-200 dark:hover:bg-zinc-700"
           }`}
         >
@@ -575,14 +575,14 @@ export default function InvoicesPage() {
           onClick={() => setQuickFilter(quickFilter === "DUE_SOON" ? "ALL" : "DUE_SOON")}
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-colors duration-100 ${
             quickFilter === "DUE_SOON"
-              ? "bg-amber-600 text-white shadow-2xs"
+              ? "bg-amber-600 text-white"
               : "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60 hover:bg-amber-100 dark:hover:bg-amber-900/50"
           }`}
         >
           <Clock size={11} />
           <span>Due &lt; 48 Hours</span>
           <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-semibold ${
+            className={`px-1.5 rounded-full text-[10px] font-mono font-semibold ${
               quickFilter === "DUE_SOON"
                 ? "bg-amber-700 text-white"
                 : "bg-amber-200/60 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200"
@@ -596,14 +596,14 @@ export default function InvoicesPage() {
           onClick={() => setQuickFilter(quickFilter === "MISSING_PO" ? "ALL" : "MISSING_PO")}
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-colors duration-100 ${
             quickFilter === "MISSING_PO"
-              ? "bg-rose-600 text-white shadow-2xs"
+              ? "bg-rose-600 text-white"
               : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/60 hover:bg-rose-100 dark:hover:bg-rose-900/50"
           }`}
         >
           <AlertCircle size={11} />
           <span>Missing PO</span>
           <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-semibold ${
+            className={`px-1.5 rounded-full text-[10px] font-mono font-semibold ${
               quickFilter === "MISSING_PO"
                 ? "bg-rose-700 text-white"
                 : "bg-rose-200/60 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200"
@@ -617,14 +617,14 @@ export default function InvoicesPage() {
           onClick={() => setQuickFilter(quickFilter === "HIGH_VALUE" ? "ALL" : "HIGH_VALUE")}
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-colors duration-100 ${
             quickFilter === "HIGH_VALUE"
-              ? "bg-indigo-600 text-white shadow-2xs"
+              ? "bg-indigo-600 text-white"
               : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
           }`}
         >
           <TrendingUp size={11} />
           <span>High Value (&gt; ₹5L)</span>
           <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-semibold ${
+            className={`px-1.5 rounded-full text-[10px] font-mono font-semibold ${
               quickFilter === "HIGH_VALUE"
                 ? "bg-indigo-700 text-white"
                 : "bg-indigo-200/60 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200"
@@ -640,14 +640,14 @@ export default function InvoicesPage() {
           }
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-colors duration-100 ${
             quickFilter === "HIGH_CONFIDENCE"
-              ? "bg-emerald-600 text-white shadow-2xs"
+              ? "bg-emerald-600 text-white"
               : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
           }`}
         >
           <ShieldCheck size={11} />
           <span>High Confidence (≥ 95%)</span>
           <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-semibold ${
+            className={`px-1.5 rounded-full text-[10px] font-mono font-semibold ${
               quickFilter === "HIGH_CONFIDENCE"
                 ? "bg-emerald-700 text-white"
                 : "bg-emerald-200/60 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200"
@@ -670,7 +670,7 @@ export default function InvoicesPage() {
         <div
           role="region"
           aria-label="Bulk actions toolbar"
-          className="sticky top-4 z-30 flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-neutral-900 dark:bg-zinc-800 text-white shadow-xl border border-neutral-800 dark:border-zinc-700 animate-in fade-in slide-in-from-top-2 duration-150"
+          className="sticky top-4 z-30 flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-neutral-900 dark:bg-zinc-800 text-white shadow-overlay border border-neutral-800 dark:border-zinc-700 animate-in fade-in slide-in-from-top-2 duration-150"
         >
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-indigo-600 text-white font-mono text-caption font-semibold">

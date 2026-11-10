@@ -188,7 +188,7 @@ export default function SignUpPage() {
       <div className="relative z-10 w-full max-w-md">
         <div className="text-center mb-6">
           <h1
-            className="font-old-english text-5xl sm:text-6xl text-neutral-900 dark:text-zinc-50 font-normal leading-none mb-1 tracking-wide"
+            className="font-old-english text-5xl sm:text-6xl text-neutral-900 dark:text-zinc-50 font-normal leading-none mb-1 tracking-wide text-balance"
             style={{ letterSpacing: "0.06em" }}
           >
             Avarta
@@ -196,7 +196,7 @@ export default function SignUpPage() {
           <p className="text-micro font-semibold uppercase tracking-[0.24em] font-mono text-neutral-500 dark:text-zinc-400 mt-1.5">
             Create Your Workspace
           </p>
-          <p className="text-[11px] font-serif italic text-neutral-400 dark:text-zinc-500 mt-1">
+          <p className="text-micro font-normal font-serif text-neutral-400 dark:text-zinc-500 mt-1">
             Accounts Payable Workspace for Growing Enterprises
           </p>
         </div>
@@ -377,7 +377,7 @@ export default function SignUpPage() {
                         {[1, 2, 3, 4].map((step) => (
                           <div
                             key={step}
-                            className={`flex-1 transition-colors duration-100 duration-300 ${
+                            className={`flex-1 transition-colors duration-100 ${
                               strength.score >= step
                                 ? strength.colorCls
                                 : "bg-transparent"
@@ -391,7 +391,7 @@ export default function SignUpPage() {
 
                 {/* Consent checkbox */}
                 <div className="pt-1">
-                  <label className="flex items-start gap-2.5 cursor-pointer text-[12px] text-neutral-600 dark:text-zinc-400">
+                  <label className="flex items-start gap-2.5 cursor-pointer text-caption text-neutral-600 dark:text-zinc-400">
                     <input
                       type="checkbox"
                       checked={termsAccepted}

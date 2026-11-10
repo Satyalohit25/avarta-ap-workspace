@@ -116,7 +116,7 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
             }
           }}
           onClick={() => batchFileInputRef.current?.click()}
-          className={`flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors duration-100 duration-200 min-h-[240px] ${
+          className={`flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors duration-100 min-h-[240px] ${
             isBatchDragging
               ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/30 scale-[1.01]"
               : "border-neutral-200 dark:border-zinc-800 hover:border-indigo-300 dark:hover:border-indigo-700 bg-neutral-50/40 dark:bg-zinc-900/40"
@@ -182,10 +182,10 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
                       <FileText size={14} />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-medium text-neutral-900 dark:text-zinc-100 truncate text-[13px]">
+                      <p className="font-medium text-neutral-900 dark:text-zinc-100 truncate text-body-sm">
                         {item.name}
                       </p>
-                      <p className="text-[11px] font-mono text-neutral-500 dark:text-zinc-400">
+                      <p className="text-micro font-normal font-mono text-neutral-500 dark:text-zinc-400">
                         {formatFileSize(item.size)} • #{item.invoiceNumber}
                       </p>
                     </div>
@@ -217,7 +217,7 @@ export function BatchIngestPanel({ onBatchComplete }: BatchIngestPanelProps) {
                     : `Ingest & Queue ${queuedFiles.length} Invoices`}
                 </span>
               </Button>
-              <p className="text-[11px] text-neutral-500 dark:text-zinc-400 text-center">
+              <p className="text-micro font-normal text-neutral-500 dark:text-zinc-400 text-center">
                 Invoices remain in Received state until verified.
               </p>
             </div>

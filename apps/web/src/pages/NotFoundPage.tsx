@@ -20,7 +20,7 @@ export default function NotFoundPage() {
         <span>ERROR 404</span>
       </div>
 
-      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-zinc-50 mb-2">
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-zinc-50 mb-2 text-balance">
         Page not found
       </h1>
 

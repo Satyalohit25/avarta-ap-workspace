@@ -107,7 +107,7 @@ export default function VendorInvoiceTrackPage() {
         ) : !data ? (
           <div className="p-8 rounded-md border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-center space-y-2">
             <HelpCircle size={32} className="mx-auto text-neutral-400" />
-            <h2 className="text-h3 font-semibold">
+            <h2 className="text-h3 font-semibold text-balance">
               {errorMessage?.includes("expired") ? "Tracking Link Expired" : "Tracking Record Not Found"}
             </h2>
             <p className="text-caption text-neutral-500">
@@ -123,7 +123,7 @@ export default function VendorInvoiceTrackPage() {
                 <span className="text-micro font-mono text-neutral-400 uppercase tracking-wider block">
                   Invoice Number
                 </span>
-                <h1 className="text-h1 font-bold font-mono text-neutral-900 dark:text-zinc-100 mt-0.5">
+                <h1 className="text-h1 font-bold font-mono text-neutral-900 dark:text-zinc-100 mt-0.5 text-balance">
                   {data.invoiceNumber}
                 </h1>
                 {data.buyerInvoiceId && (
@@ -221,7 +221,7 @@ export default function VendorInvoiceTrackPage() {
                           setCopiedUtr(true);
                           setTimeout(() => setCopiedUtr(false), 2000);
                         }}
-                        className="text-[11px] text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 cursor-pointer font-sans font-medium underline shrink-0 ml-1.5"
+                        className="text-micro text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 cursor-pointer font-sans font-medium underline shrink-0 ml-1.5"
                       >
                         {copiedUtr ? "Copied!" : "Copy UTR"}
                       </button>
@@ -287,7 +287,7 @@ export default function VendorInvoiceTrackPage() {
           <AvartaCrest variant="shield" className="w-4 h-4 opacity-75" />
           <span className="font-semibold text-neutral-700 dark:text-zinc-300">Avarta Accounts Payable Workspace</span>
           <span>•</span>
-          <span className="font-serif italic text-neutral-500 dark:text-zinc-400">आत्मानं विद्धि</span>
+          <span className="font-serif text-neutral-500 dark:text-zinc-400">आत्मानं विद्धि</span>
         </div>
         <p className="text-[10px] text-neutral-400 dark:text-zinc-500">
           Automated Banking-Grade Remittance &amp; 3-Way Reconciliation Service

@@ -17,7 +17,7 @@ export default function ForbiddenPage() {
         <span>ERROR 403 • ACCESS RESTRICTED</span>
       </div>
 
-      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-zinc-50 mb-2">
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-zinc-50 mb-2 text-balance">
         Permission Required
       </h1>
 

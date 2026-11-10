@@ -4,7 +4,7 @@ import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { Alert } from "../../../components/ui/Alert";
 import { recordGoodsReceipt, PurchaseOrderDetail } from "../../../api/purchaseOrders";
-import { PackageCheck, AlertTriangle, Plus, Trash2, ShieldCheck, CornerDownRight } from "lucide-react";
+import { PackageCheck, Plus, Trash2, ShieldCheck } from "lucide-react";
 
 export interface GrnIntakeModalProps {
   isOpen: boolean;
@@ -257,7 +257,7 @@ export function GrnIntakeModal({ isOpen, onClose, po, onSuccess }: GrnIntakeModa
 
           <div className="rounded-xl border border-neutral-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-900">
             <table className="w-full text-micro font-mono">
-              <thead className="bg-neutral-50 dark:bg-zinc-800/60 border-b border-neutral-200 dark:border-zinc-800">
+              <thead className="bg-neutral-50 dark:bg-zinc-800 border-b border-neutral-200 dark:border-zinc-800">
                 <tr>
                   <th className="text-left px-3 py-2 text-neutral-500 dark:text-zinc-400">#</th>
                   <th className="text-left px-3 py-2 text-neutral-500 dark:text-zinc-400">Description</th>

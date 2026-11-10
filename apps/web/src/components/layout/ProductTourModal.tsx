@@ -125,7 +125,7 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
                 Interactive Product Tour
               </span>
             </div>
-            <h2 className="text-body-lg font-semibold text-neutral-900 dark:text-zinc-100">
+            <h2 className="text-body-lg font-semibold text-neutral-900 dark:text-zinc-100 text-balance">
               Welcome to the Accounts Payable Workspace
             </h2>
             <p className="text-body-sm text-neutral-500 dark:text-zinc-400 mt-0.5">
@@ -243,7 +243,7 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
                           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                             {cur.tag}
                           </span>
-                          <h3 className="text-body-lg font-bold text-neutral-900 dark:text-zinc-100">
+                          <h3 className="text-body-lg font-bold text-neutral-900 dark:text-zinc-100 text-balance">
                             {cur.title}
                           </h3>
                         </div>
@@ -316,7 +316,7 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
                 <p className="text-body-sm text-neutral-600 dark:text-zinc-400 leading-relaxed mb-3">
                   Oversees the entire AP workspace, monitors processing velocity, executes treasury disbursements, and signs off on escalated exceptions.
                 </p>
-                <div className="text-[11px] font-mono text-neutral-500 dark:text-zinc-400">
+                <div className="text-micro font-mono text-neutral-500 dark:text-zinc-400">
                   Account: <span className="font-semibold text-neutral-800 dark:text-zinc-200">manager@avarta.dev</span>
                 </div>
               </div>
@@ -333,7 +333,7 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
                 <p className="text-body-sm text-neutral-600 dark:text-zinc-400 leading-relaxed mb-3">
                   Reviews matched invoice line items against budgets, verifies supplier delivery, and approves or rejects payables with mandatory audit reasons.
                 </p>
-                <div className="text-[11px] font-mono text-neutral-500 dark:text-zinc-400">
+                <div className="text-micro font-mono text-neutral-500 dark:text-zinc-400">
                   Account: <span className="font-semibold text-neutral-800 dark:text-zinc-200">approver@avarta.dev</span>
                 </div>
               </div>
@@ -350,7 +350,7 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
                 <p className="text-body-sm text-neutral-600 dark:text-zinc-400 leading-relaxed mb-3">
                   Handles daily invoice intake in `/inbox`, runs OCR extraction verification, executes 3-way line item matching, and resolves price/quantity exceptions.
                 </p>
-                <div className="text-[11px] font-mono text-neutral-500 dark:text-zinc-400">
+                <div className="text-micro font-mono text-neutral-500 dark:text-zinc-400">
                   Account: <span className="font-semibold text-neutral-800 dark:text-zinc-200">executive@avarta.dev</span>
                 </div>
               </div>
@@ -367,7 +367,7 @@ export function ProductTourModal({ isOpen, onClose }: ProductTourModalProps) {
                 <p className="text-body-sm text-neutral-600 dark:text-zinc-400 leading-relaxed mb-3">
                   Governs system approval threshold rules, manages user permissions, monitors immutable audit logs, and registers verified vendors.
                 </p>
-                <div className="text-[11px] font-mono text-neutral-500 dark:text-zinc-400">
+                <div className="text-micro font-mono text-neutral-500 dark:text-zinc-400">
                   Account: <span className="font-semibold text-neutral-800 dark:text-zinc-200">admin@company.com</span>
                 </div>
               </div>

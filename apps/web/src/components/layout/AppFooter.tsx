@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ShieldCheck, Mail, Phone } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
 import { AvartaCrest } from "../brand/AvartaCrest";
 
 export function AppFooter() {
@@ -32,7 +32,7 @@ export function AppFooter() {
 
         {/* Center: Configured Support Email & Phone (Hidden if unconfigured) */}
         {hasSupportContact && (
-          <div className="flex items-center gap-3 font-mono text-[11px] flex-wrap justify-center">
+          <div className="flex items-center gap-3 font-mono text-micro font-normal flex-wrap justify-center">
             {supportEmail && (
               <a
                 href={`mailto:${supportEmail}`}
@@ -60,7 +60,7 @@ export function AppFooter() {
         )}
 
         {/* Right: Workspace Compliance & Legal Notice */}
-        <div className="flex items-center gap-2.5 flex-wrap justify-center sm:justify-end text-[11px]">
+        <div className="flex items-center gap-2.5 flex-wrap justify-center sm:justify-end text-micro font-normal">
           <Link to="/terms" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline transition-colors">
             Terms
           </Link>

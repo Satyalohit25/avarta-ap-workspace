@@ -168,7 +168,7 @@ export function MfaEnrollmentModal({
                           <path d="M10 10h30v30h-30z M20 20h10v10h-10z M60 10h30v30h-30z M70 20h10v10h-10z M10 60h30v30h-30z M20 70h10v10h-10z M60 60h10v10h-10z M80 60h10v10h-10z M70 70h10v10h-10z M60 80h10v10h-10z M80 80h10v10h-10z" />
                         </svg>
                       </div>
-                      <span className="text-[11px] font-mono text-neutral-500 dark:text-zinc-400 mt-2">
+                      <span className="text-micro font-normal font-mono text-neutral-500 dark:text-zinc-400 mt-2">
                         Scan with your mobile authenticator app
                       </span>
                     </div>

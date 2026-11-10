@@ -218,7 +218,7 @@ export function PaymentGatewayConfigCard() {
                   <p className="text-micro text-neutral-500 dark:text-zinc-400 line-clamp-2 leading-relaxed">
                     {option.tagline}
                   </p>
-                  <div className="mt-2.5 flex items-center gap-1 text-[11px] font-mono text-neutral-400 dark:text-zinc-500">
+                  <div className="mt-2.5 flex items-center gap-1 text-micro font-normal font-mono text-neutral-400 dark:text-zinc-500">
                     <CreditCard size={11} />
                     <span>{option.supportedCurrencies.join(", ")}</span>
                   </div>

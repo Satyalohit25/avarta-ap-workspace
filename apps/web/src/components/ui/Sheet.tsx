@@ -30,7 +30,7 @@ export function Sheet({
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/75 transition-opacity duration-200" />
         <DialogPrimitive.Content
           className={cn(
-            "fixed inset-y-0 z-50 w-full sm:w-auto bg-white dark:bg-zinc-900 shadow-xl flex flex-col focus:outline-none transition-transform duration-300 ease-in-out",
+            "fixed inset-y-0 z-50 w-full sm:w-auto bg-white dark:bg-zinc-900 shadow-overlay flex flex-col focus:outline-none transition-transform duration-300 ease-in-out",
             side === "left"
               ? "left-0 border-r border-neutral-200 dark:border-zinc-800 animate-in slide-in-from-left duration-200"
               : "right-0 border-l border-neutral-200 dark:border-zinc-800 animate-in slide-in-from-right duration-200",

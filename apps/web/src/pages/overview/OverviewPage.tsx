@@ -4,7 +4,6 @@ import { Inbox, RefreshCw } from "lucide-react";
 import { DashboardOverview, getDashboardOverview } from "../../api/dashboard";
 import { SkeletonRows } from "../../components/Skeleton";
 import { Button } from "../../components/ui/Button";
-import { useToast } from "../../components/ui/ToastContext";
 import { APFinancialHorizonStrip } from "./components/APFinancialHorizonStrip";
 import { APWorkstationGrid } from "./components/APWorkstationGrid";
 import { APRecentStreamCard } from "./components/APRecentStreamCard";
@@ -17,7 +16,6 @@ import { useDocumentTitle } from "../../lib/useDocumentTitle";
 export default function OverviewPage() {
   useDocumentTitle("Overview", "Operational cash horizon, actionable work queue, and straight-through invoice velocity.");
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [data, setData] = useState<DashboardOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,14 +58,14 @@ export default function OverviewPage() {
       <div className="flex items-center justify-between pb-0.5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-zinc-100">
+            <h1 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-zinc-100 text-balance">
               Overview
             </h1>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold border border-indigo-200/60 dark:border-indigo-900/60">
               Mission Control
             </span>
           </div>
-          <p className="text-[11px] text-neutral-500 dark:text-zinc-400 mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+          <p className="text-micro font-normal text-neutral-500 dark:text-zinc-400 mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
             <span>Operational cash horizon, actionable work queue, and pipeline velocity</span>
             <span className="text-neutral-400 dark:text-zinc-500">·</span>
             <span className="whitespace-nowrap">Updated {timeFormatted}</span>
@@ -79,7 +77,7 @@ export default function OverviewPage() {
             type="button"
             onClick={() => fetchDashboard(true)}
             disabled={refreshing || loading}
-            className="h-8 px-2.5 rounded-lg border border-neutral-200 dark:border-zinc-700 text-[11px] font-medium text-neutral-600 dark:text-zinc-400 hover:bg-neutral-50 dark:hover:bg-zinc-800 transition-colors duration-100 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-8 px-2.5 rounded-lg border border-neutral-200 dark:border-zinc-700 text-micro font-medium text-neutral-600 dark:text-zinc-400 hover:bg-neutral-50 dark:hover:bg-zinc-800 transition-colors duration-100 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Refresh dashboard data"
             aria-label="Refresh dashboard"
           >
@@ -94,7 +92,7 @@ export default function OverviewPage() {
             size="sm"
             variant="outline"
             onClick={() => navigate("/invoices")}
-            className="h-8 text-[11px] font-medium"
+            className="h-8 text-micro font-medium"
           >
             Review Invoices
           </Button>
@@ -102,7 +100,7 @@ export default function OverviewPage() {
             size="sm"
             variant="primary"
             onClick={() => navigate("/inbox")}
-            className="h-8 text-[11px] font-semibold gap-1.5 shadow-2xs"
+            className="h-8 text-micro font-semibold gap-1.5 shadow-2xs"
           >
             <Inbox size={14} />
             <span>Receive Invoice</span>

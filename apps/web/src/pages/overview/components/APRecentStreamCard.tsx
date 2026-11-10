@@ -37,13 +37,13 @@ export function APRecentStreamCard({ items }: APRecentStreamCardProps) {
     <div className="rounded-xl border border-neutral-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 p-3 shadow-2xs">
       {/* Header */}
       <div className="flex items-center justify-between pb-2 mb-2 border-b border-neutral-100 dark:border-zinc-800/80">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-900 dark:text-zinc-100">
+        <span className="text-micro font-bold uppercase tracking-wider text-neutral-900 dark:text-zinc-100">
           Recent Ingestion &amp; Activity Stream
         </span>
 
         <Link
           to="/invoices"
-          className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1"
+          className="text-micro text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1"
         >
           <span>View All Invoices</span>
           <ArrowRight size={12} />
@@ -97,7 +97,7 @@ export function APRecentStreamCard({ items }: APRecentStreamCardProps) {
                 </span>
                 <div className="flex items-center justify-between gap-1">
                   <span
-                    className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-semibold border ${
+                    className={`inline-flex items-center px-1.5 rounded-full text-[9px] font-semibold border ${
                       item.statusVariant === "warning"
                         ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/60"
                         : item.statusVariant === "error"

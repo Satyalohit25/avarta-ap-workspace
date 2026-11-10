@@ -4,7 +4,6 @@ import {
   ArrowRight,
   Building2,
   Check,
-  Zap,
   Bell,
   AlertTriangle,
   Clock,
@@ -93,9 +92,9 @@ function AgeBadge({ days, urgency }: { days: number; urgency: "urgent" | "routin
 export function APWorkstationGrid({
   data,
   onInspectInvoice,
-  releasedInvoices,
-  releasedCount = 0,
-  releasedAmount = 0,
+  releasedInvoices: _releasedInvoices,
+  releasedCount: _releasedCount = 0,
+  releasedAmount: _releasedAmount = 0,
   onAuthorizeRelease,
 }: APWorkstationGridProps) {
   const navigate = useNavigate();
@@ -140,7 +139,7 @@ export function APWorkstationGrid({
     }, 2800);
   }
 
-  function handleAuthorize(inv: BlockerInvoiceItem, e: React.MouseEvent) {
+  function _handleAuthorize(inv: BlockerInvoiceItem, e: React.MouseEvent) {
     e.stopPropagation();
     onAuthorizeRelease?.(inv.id, inv.amount);
     setReleaseFeedback(`Released ${formatCurrency(inv.amount, inv.currency)} → Ready to Pay`);
@@ -170,7 +169,7 @@ export function APWorkstationGrid({
    * Blocked = exceptions in queue + approvals awaiting sign-off.
    * The funnel shows exception STAGE count (may include items not yet in the queue).
    */
-  const currentBlockedAmount = Math.max(0, data?.totalBlockedAmount ?? 0);
+  const _currentBlockedAmount = Math.max(0, data?.totalBlockedAmount ?? 0);
 
   const linearPipeline = [
     {
@@ -294,7 +293,7 @@ export function APWorkstationGrid({
           {/* Header */}
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 pb-2 border-b border-neutral-100 dark:border-zinc-800/80">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-900 dark:text-zinc-100 shrink-0">
+              <span className="text-micro font-bold uppercase tracking-wider text-neutral-900 dark:text-zinc-100 shrink-0">
                 Actionable Work Queue
               </span>
               {releaseFeedback ? (
@@ -368,7 +367,7 @@ export function APWorkstationGrid({
             {displayedInvoices.length === 0 ? (
               <div className="py-14 text-center">
                 <Check size={22} className="text-emerald-500 mx-auto mb-1.5" />
-                <p className="text-[12px] font-semibold text-neutral-600 dark:text-zinc-400">All caught up!</p>
+                <p className="text-caption font-semibold text-neutral-600 dark:text-zinc-400">All caught up!</p>
                 <p className="text-[10px] text-neutral-400 dark:text-zinc-500 mt-0.5">
                   No items matching this filter.
                 </p>
@@ -391,7 +390,7 @@ export function APWorkstationGrid({
                       <span className="font-mono text-[10.5px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
                         {inv.invoiceNumber}
                       </span>
-                      <span className="text-[12px] font-semibold text-neutral-900 dark:text-zinc-100 truncate max-w-[180px] sm:max-w-[240px]">
+                      <span className="text-caption font-semibold text-neutral-900 dark:text-zinc-100 truncate max-w-[180px] sm:max-w-[240px]">
                         {inv.vendor}
                       </span>
                       <ExceptionTag reason={inv.detailReason} />
@@ -401,7 +400,7 @@ export function APWorkstationGrid({
                     {/* Right: amount + owner + contextual action */}
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="text-right">
-                        <span className="font-mono text-[12px] font-bold text-neutral-900 dark:text-zinc-100 tabular-nums block">
+                        <span className="font-mono text-caption font-bold text-neutral-900 dark:text-zinc-100 tabular-nums block">
                           {formatCurrency(inv.amount, inv.currency)}
                         </span>
                         <span className="text-[9.5px] text-neutral-400 dark:text-zinc-500 font-mono">
@@ -468,7 +467,7 @@ export function APWorkstationGrid({
         </div>
 
         {/* Queue footer */}
-        <div className="pt-2 border-t border-neutral-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] text-neutral-500">
+        <div className="pt-2 border-t border-neutral-100 dark:border-zinc-800/80 flex items-center justify-between text-micro font-normal text-neutral-500">
           <span className="hidden sm:inline">Click any row to inspect 3-way match &amp; document preview</span>
           <button
             type="button"
@@ -546,7 +545,7 @@ export function APWorkstationGrid({
                           </span>
                           <div className="flex items-center gap-2 shrink-0">
                             <span
-                              className={`font-mono text-[13px] font-bold ${
+                              className={`font-mono text-body-sm font-bold ${
                                 stg.isAlert && stg.count > 0
                                   ? "text-amber-600 dark:text-amber-400"
                                   : "text-neutral-900 dark:text-zinc-100"
@@ -581,7 +580,7 @@ export function APWorkstationGrid({
                                 </span>
                               </div>
                               <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="font-mono text-[13px] font-bold text-amber-700 dark:text-amber-300">
+                                <span className="font-mono text-body-sm font-bold text-amber-700 dark:text-amber-300">
                                   {exBranch.count}
                                 </span>
                                 <span className="text-[10px] font-mono text-amber-500 dark:text-amber-500">
@@ -603,7 +602,7 @@ export function APWorkstationGrid({
                     Cycle Time
                   </span>
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="font-mono text-[13px] font-bold text-neutral-900 dark:text-zinc-100">
+                    <span className="font-mono text-body-sm font-bold text-neutral-900 dark:text-zinc-100">
                       2.4d
                     </span>
                     <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold" title="Improved by 0.6 days vs last period">
@@ -616,7 +615,7 @@ export function APWorkstationGrid({
                     Approval Speed
                   </span>
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="font-mono text-[13px] font-bold text-neutral-900 dark:text-zinc-100">
+                    <span className="font-mono text-body-sm font-bold text-neutral-900 dark:text-zinc-100">
                       14.2h
                     </span>
                     <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold" title="Within SLA target of 24h">
@@ -632,7 +631,7 @@ export function APWorkstationGrid({
                     STP Rate
                   </span>
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="font-mono text-[13px] font-bold text-emerald-600 dark:text-emerald-400">
+                    <span className="font-mono text-body-sm font-bold text-emerald-600 dark:text-emerald-400">
                       {data?.touchlessStpRate ?? 79}%
                     </span>
                     <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold" title="Improved by 4.1% vs last period">
@@ -785,7 +784,7 @@ export function APWorkstationGrid({
                 <div
                   key={sup.id}
                   onClick={() => navigate("/suppliers")}
-                  className="p-2 rounded-lg border border-neutral-100 dark:border-zinc-800 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-zinc-800/50 cursor-pointer text-[11px]"
+                  className="p-2 rounded-lg border border-neutral-100 dark:border-zinc-800 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-zinc-800/50 cursor-pointer text-micro font-normal"
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => e.key === "Enter" && navigate("/suppliers")}
@@ -810,7 +809,7 @@ export function APWorkstationGrid({
         </div>
 
         {/* Right panel footer */}
-        <div className="pt-2 border-t border-neutral-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] text-neutral-500">
+        <div className="pt-2 border-t border-neutral-100 dark:border-zinc-800/80 flex items-center justify-between text-micro font-normal text-neutral-500">
           <span>
             {activeRightTab === "FLOW"
               ? "Target cycle: <3.0 days"

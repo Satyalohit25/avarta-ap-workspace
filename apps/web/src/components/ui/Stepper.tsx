@@ -81,7 +81,7 @@ export function Stepper({
                 onClick={() => onStepClick?.(stepNumber)}
                 aria-label={`Step ${stepNumber}: ${step.label}`}
                 className={cn(
-                  "flex items-center gap-1.5 group text-left select-none transition-colors duration-100 duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded p-0.5",
+                  "flex items-center gap-1.5 group text-left select-none transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded p-0.5",
                   onStepClick ? "cursor-pointer" : "cursor-default"
                 )}
                 aria-current={isCurrent ? "step" : undefined}
@@ -112,7 +112,7 @@ export function Stepper({
                 {/* Label text */}
                 <span
                   className={cn(
-                    "text-[11px] tracking-tight whitespace-nowrap transition-colors",
+                    "text-micro tracking-tight whitespace-nowrap transition-colors",
                     isCurrent && statusColors.activeText,
                     isCompleted &&
                       "text-neutral-700 dark:text-zinc-300 font-medium",

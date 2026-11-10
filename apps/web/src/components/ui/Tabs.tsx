@@ -39,7 +39,7 @@ export function Tabs({ tabs, defaultTabId, variant = "line", onChange }: TabsPro
             key={tab.id}
             value={tab.id}
             className={cn(
-              "text-body-sm font-medium transition-colors duration-100 duration-fast flex items-center gap-2 focus:outline-none",
+              "text-body-sm font-medium transition-colors duration-100 flex items-center gap-2 focus:outline-none",
               variant === "pill"
                 ? tab.id === activeTab
                   ? "h-7 px-3 rounded-md bg-white dark:bg-zinc-800 text-neutral-900 dark:text-zinc-100 font-semibold shadow-2xs"
@@ -52,7 +52,7 @@ export function Tabs({ tabs, defaultTabId, variant = "line", onChange }: TabsPro
             {tab.icon && <span className="shrink-0">{tab.icon}</span>}
             <span>{tab.label}</span>
             {tab.badge !== undefined && (
-              <span className="text-micro font-mono bg-neutral-200/60 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 px-1.5 py-0.25 rounded-full">
+              <span className="text-micro font-mono bg-neutral-200/60 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 px-1.5 rounded-full">
                 {tab.badge}
               </span>
             )}

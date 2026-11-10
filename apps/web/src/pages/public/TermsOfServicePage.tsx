@@ -22,7 +22,7 @@ export default function TermsOfServicePage() {
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Terms of Service</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">Terms of Service</h1>
           <p className="text-caption text-neutral-500 dark:text-zinc-400">
             Last Updated: October 13, 2026 | Enterprise SaaS Master Subscription Terms
           </p>
@@ -30,21 +30,21 @@ export default function TermsOfServicePage() {
 
         <div className="space-y-6 text-body-sm leading-relaxed text-neutral-700 dark:text-zinc-300">
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">1. Acceptance & Permitted Use</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">1. Acceptance & Permitted Use</h2>
             <p>
               By accessing or using Avarta AP Workspace ("the Service"), your organization agrees to these Terms of Service. The Service is provided as an operational accounts payable workbench designed to complement your existing general ledger and ERP systems (such as QuickBooks, Xero, Tally Prime, SAP, and NetSuite).
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">2. Customer Data & Intellectual Property</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">2. Customer Data & Intellectual Property</h2>
             <p>
               You retain all ownership, title, and intellectual property rights in and to all invoices, vendor catalogs, financial figures, purchase orders, and payment records uploaded or processed through the Service.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">3. Financial Workflow & Human-in-the-Loop Governance</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">3. Financial Workflow & Human-in-the-Loop Governance</h2>
             <p>
               The Service employs machine learning and heuristic models to assist in data extraction and 3-way matching. In accordance with system policy:
             </p>
@@ -56,21 +56,21 @@ export default function TermsOfServicePage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">4. Service Level & Uptime Commitments</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">4. Service Level & Uptime Commitments</h2>
             <p>
               We target 99.9% uptime for core API and workstation access, excluding scheduled maintenance. Emergency security patches will be announced via system notifications.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">5. Termination & Data Portability</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">5. Termination & Data Portability</h2>
             <p>
               Upon termination or cancellation of your subscription, you may export all historical general ledger entries, audit timelines, and original invoice PDFs via our immutable Archive Vault. In accordance with our non-negotiable compliance rules, records are never abruptly purged without structured export.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100">6. Governing Law</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">6. Governing Law</h2>
             <p>
               These Terms shall be governed by and construed in accordance with the laws of India and applicable commercial statutes, without regard to conflict of law principles.
             </p>

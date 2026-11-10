@@ -6,14 +6,23 @@ import {
   Wallet,
   CheckCircle2,
   Building2,
-  Loader2,
 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "../../../components/ui/Card";
 import { StatsCard } from "../../../components/ui/StatsCard";
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "../../../components/ui/table";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "../../../components/ui/table";
 import { formatCurrency } from "../../../lib/formatters";
 import { apiRequest } from "../../../api/client";
-import { OperationalReportDataset, ThroughputDataPoint } from "../helpers/reportsData";
+import {
+  OperationalReportDataset,
+  ThroughputDataPoint,
+} from "../helpers/reportsData";
 import { tokens } from "../../../design-system/tokens";
 
 interface OperationalReportViewProps {
@@ -49,15 +58,23 @@ const EMPTY_DATASET: OperationalReportDataset = {
   topVendors: [],
 };
 
-export function OperationalReportView({ timeRange }: OperationalReportViewProps) {
-  const [hoveredBar, setHoveredBar] = useState<ThroughputDataPoint | null>(null);
-  const [liveData, setLiveData] = useState<OperationalReportDataset | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export function OperationalReportView({
+  timeRange,
+}: OperationalReportViewProps) {
+  const [hoveredBar, setHoveredBar] = useState<ThroughputDataPoint | null>(
+    null,
+  );
+  const [liveData, setLiveData] = useState<OperationalReportDataset | null>(
+    null,
+  );
+  const [_isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
     setIsLoading(true);
-    apiRequest<{ data: OperationalReportDataset }>(`/reports/operational?timeRange=${timeRange}`)
+    apiRequest<{ data: OperationalReportDataset }>(
+      `/reports/operational?timeRange=${timeRange}`,
+    )
       .then((res) => {
         if (isMounted && res.data) {
           setLiveData(res.data);
@@ -79,12 +96,17 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
 
   const maxThroughput = Math.max(
     ...data.throughputSeries.map((d) => d.processed + d.exceptions),
-    1
+    1,
   );
 
-  const totalProcessedPeriod = data.throughputSeries.reduce((acc, curr) => acc + curr.processed, 0);
-  const totalExceptionsPeriod = data.throughputSeries.reduce((acc, curr) => acc + curr.exceptions, 0);
-
+  const totalProcessedPeriod = data.throughputSeries.reduce(
+    (acc, curr) => acc + curr.processed,
+    0,
+  );
+  const totalExceptionsPeriod = data.throughputSeries.reduce(
+    (acc, curr) => acc + curr.exceptions,
+    0,
+  );
 
   return (
     <div className="space-y-6">
@@ -98,7 +120,9 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
           change={data.kpis.straightThroughRate.trend?.value}
           changeType="positive"
           subtitle={data.kpis.straightThroughRate.subtitle}
-          icon={<Zap size={16} className="text-emerald-600 dark:text-emerald-400" />}
+          icon={
+            <Zap size={16} className="text-emerald-600 dark:text-emerald-400" />
+          }
         />
         <StatsCard
           title={data.kpis.avgCycleTime.title}
@@ -106,7 +130,9 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
           change={data.kpis.avgCycleTime.trend?.value}
           changeType="positive"
           subtitle={data.kpis.avgCycleTime.subtitle}
-          icon={<Clock size={16} className="text-indigo-600 dark:text-indigo-400" />}
+          icon={
+            <Clock size={16} className="text-indigo-600 dark:text-indigo-400" />
+          }
         />
         <StatsCard
           title={data.kpis.exceptionResolutionTime.title}
@@ -114,7 +140,12 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
           change={data.kpis.exceptionResolutionTime.trend?.value}
           changeType="positive"
           subtitle={data.kpis.exceptionResolutionTime.subtitle}
-          icon={<AlertTriangle size={16} className="text-amber-600 dark:text-amber-400" />}
+          icon={
+            <AlertTriangle
+              size={16}
+              className="text-amber-600 dark:text-amber-400"
+            />
+          }
         />
         <StatsCard
           title={data.kpis.totalSpendVolume.title}
@@ -151,15 +182,25 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
           <div className="relative h-44 w-full pt-3 pb-1 border-b border-neutral-200 dark:border-zinc-800 flex flex-col justify-between">
             {/* Tooltip Overlay */}
             {hoveredBar && (
-              <div className="absolute top-1 left-1/2 -translate-x-1/2 z-20 bg-neutral-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-micro font-mono px-3 py-1.5 rounded-md shadow-xl pointer-events-none whitespace-nowrap animate-in fade-in zoom-in-95 duration-150 flex items-center gap-3">
-                <span className="font-bold text-indigo-300 dark:text-indigo-700">{hoveredBar.dateStr || hoveredBar.label}</span>
+              <div className="absolute top-1 left-1/2 -translate-x-1/2 z-20 bg-neutral-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-micro font-mono px-3 py-1.5 rounded-md shadow-overlay pointer-events-none whitespace-nowrap animate-in fade-in zoom-in-95 duration-150 flex items-center gap-3">
+                <span className="font-bold text-indigo-300 dark:text-indigo-700">
+                  {hoveredBar.dateStr || hoveredBar.label}
+                </span>
                 <span className="text-neutral-300 dark:text-zinc-600">•</span>
                 <span>{hoveredBar.processed} touchless</span>
-                <span className="text-amber-400 dark:text-amber-600 font-semibold">• {hoveredBar.exceptions} exceptions</span>
+                <span className="text-amber-400 dark:text-amber-600 font-semibold">
+                  • {hoveredBar.exceptions} exceptions
+                </span>
                 <span className="text-emerald-400 dark:text-emerald-600 font-bold">
-                  ({hoveredBar.processed + hoveredBar.exceptions > 0
-                    ? Math.round((hoveredBar.processed / (hoveredBar.processed + hoveredBar.exceptions)) * 100)
-                    : 100}% STP)
+                  (
+                  {hoveredBar.processed + hoveredBar.exceptions > 0
+                    ? Math.round(
+                        (hoveredBar.processed /
+                          (hoveredBar.processed + hoveredBar.exceptions)) *
+                          100,
+                      )
+                    : 100}
+                  % STP)
                 </span>
               </div>
             )}
@@ -181,7 +222,10 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                 const padTop = 15;
                 const padBottom = 20;
                 const plotH = height - padTop - padBottom;
-                const stepX = items.length > 1 ? (width - padX * 2) / (items.length - 1) : width / 2;
+                const stepX =
+                  items.length > 1
+                    ? (width - padX * 2) / (items.length - 1)
+                    : width / 2;
 
                 const processedCoords = items.map((item, i) => ({
                   x: padX + i * stepX,
@@ -196,7 +240,9 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                 }));
 
                 // Build smooth cubic bezier path for processed curve
-                const buildSmoothPath = (coords: { x: number; y: number }[]) => {
+                const buildSmoothPath = (
+                  coords: { x: number; y: number }[],
+                ) => {
                   if (coords.length === 0) return "";
                   let d = `M ${coords[0].x} ${coords[0].y}`;
                   for (let i = 0; i < coords.length - 1; i++) {
@@ -214,10 +260,14 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                 const processedLinePath = buildSmoothPath(processedCoords);
                 const exceptionLinePath = buildSmoothPath(exceptionCoords);
 
-                const lastProcessed = processedCoords[processedCoords.length - 1] || { x: width - padX, y: height - padBottom };
-                const firstProcessed = processedCoords[0] || { x: padX, y: height - padBottom };
+                const lastProcessed = processedCoords[
+                  processedCoords.length - 1
+                ] || { x: width - padX, y: height - padBottom };
+                const firstProcessed = processedCoords[0] || {
+                  x: padX,
+                  y: height - padBottom,
+                };
                 const areaPath = `${processedLinePath} L ${lastProcessed.x} ${height - padBottom} L ${firstProcessed.x} ${height - padBottom} Z`;
-
 
                 return (
                   <svg
@@ -226,15 +276,51 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                     preserveAspectRatio="none"
                   >
                     <defs>
-                      <linearGradient id="processed-gradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={tokens.color.primary} stopOpacity="0.35" />
-                        <stop offset="60%" stopColor={tokens.color.primary} stopOpacity="0.08" />
-                        <stop offset="100%" stopColor={tokens.color.primary} stopOpacity="0.0" />
+                      <linearGradient
+                        id="processed-gradient"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor={tokens.color.primary}
+                          stopOpacity="0.35"
+                        />
+                        <stop
+                          offset="60%"
+                          stopColor={tokens.color.primary}
+                          stopOpacity="0.08"
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor={tokens.color.primary}
+                          stopOpacity="0.0"
+                        />
                       </linearGradient>
-                      <linearGradient id="grid-fade" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor="currentColor" stopOpacity="0.05" />
-                        <stop offset="50%" stopColor="currentColor" stopOpacity="0.12" />
-                        <stop offset="100%" stopColor="currentColor" stopOpacity="0.05" />
+                      <linearGradient
+                        id="grid-fade"
+                        x1="0"
+                        y1="0"
+                        x2="1"
+                        y2="0"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="currentColor"
+                          stopOpacity="0.05"
+                        />
+                        <stop
+                          offset="50%"
+                          stopColor="currentColor"
+                          stopOpacity="0.12"
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor="currentColor"
+                          stopOpacity="0.05"
+                        />
                       </linearGradient>
                     </defs>
 
@@ -345,7 +431,9 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                 <div
                   key={i}
                   className={`text-center cursor-pointer transition-colors ${
-                    hoveredBar?.label === item.label ? "text-indigo-600 dark:text-indigo-400 font-bold" : ""
+                    hoveredBar?.label === item.label
+                      ? "text-indigo-600 dark:text-indigo-400 font-bold"
+                      : ""
                   }`}
                   onMouseEnter={() => setHoveredBar(item)}
                   onMouseLeave={() => setHoveredBar(null)}
@@ -377,13 +465,17 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                   </span>
                   <div className="flex items-center gap-3 font-mono text-micro text-neutral-500">
                     <span>{exc.count} occurrences</span>
-                    <span className="font-semibold text-neutral-800 dark:text-zinc-200">{exc.percentage}%</span>
-                    <span className="text-neutral-400">Avg {exc.avgResolutionTime}</span>
+                    <span className="font-semibold text-neutral-800 dark:text-zinc-200">
+                      {exc.percentage}%
+                    </span>
+                    <span className="text-neutral-400">
+                      Avg {exc.avgResolutionTime}
+                    </span>
                   </div>
                 </div>
                 <div className="h-2 w-full bg-neutral-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                   <div
-                    className={`h-full ${exc.colorClass} rounded-full transition-colors duration-100 duration-300`}
+                    className={`h-full ${exc.colorClass} rounded-full transition-colors duration-100`}
                     style={{ width: `${exc.percentage}%` }}
                   />
                 </div>
@@ -407,9 +499,15 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-6 h-6 rounded-md bg-neutral-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
                     {sla.automated ? (
-                      <Zap size={13} className="text-indigo-600 dark:text-indigo-400" />
+                      <Zap
+                        size={13}
+                        className="text-indigo-600 dark:text-indigo-400"
+                      />
                     ) : (
-                      <Clock size={13} className="text-amber-600 dark:text-amber-400" />
+                      <Clock
+                        size={13}
+                        className="text-amber-600 dark:text-amber-400"
+                      />
                     )}
                   </div>
                   <div className="min-w-0">
@@ -417,7 +515,8 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                       {sla.stage}
                     </p>
                     <p className="text-micro font-mono text-neutral-400">
-                      Target SLA: {sla.targetSla} • {sla.automated ? "Touchless Automated" : "Human Decision"}
+                      Target SLA: {sla.targetSla} •{" "}
+                      {sla.automated ? "Touchless Automated" : "Human Decision"}
                     </p>
                   </div>
                 </div>
@@ -426,7 +525,7 @@ export function OperationalReportView({ timeRange }: OperationalReportViewProps)
                   <span className="font-mono font-semibold text-neutral-900 dark:text-zinc-100">
                     {sla.avgDuration}
                   </span>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
+                  <span className="inline-flex items-center gap-1 text-micro font-mono px-2 py-0.5 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
                     <CheckCircle2 size={11} />
                     <span>On Track</span>
                   </span>

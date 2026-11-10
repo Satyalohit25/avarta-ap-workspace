@@ -27,7 +27,6 @@ import {
   FileText,
   CheckCircle2,
   X,
-  ShieldCheck,
   Download,
   FileCheck2,
   Lock,
@@ -35,7 +34,6 @@ import {
   Clock,
 } from "lucide-react";
 import { AvartaCrest } from "../../components/brand/AvartaCrest";
-import { useAuth } from "../../app/AuthContext";
 
 interface ArchivedAuditCertificate {
   invoice: InvoiceListItem;
@@ -51,7 +49,6 @@ export default function ArchivePage() {
     "Ledger Archive",
     "Historical invoice records, completed disbursements, and immutable audit logs.",
   );
-  const { user } = useAuth();
   const { toast } = useToast();
   const [invoices, setInvoices] = useState<InvoiceListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,7 +180,7 @@ Archived by Avarta Accounts Payable Workspace.
       />
 
       {/* ── Statutory Compliance Vault Banner ── */}
-      <div className="rounded-xl border border-indigo-200/80 dark:border-indigo-900/60 bg-gradient-to-r from-indigo-50/70 via-white to-neutral-50/60 dark:from-indigo-950/40 dark:via-zinc-900 dark:to-zinc-900/80 p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="rounded-xl border border-indigo-200/80 dark:border-indigo-900/60 bg-neutral-50 dark:bg-zinc-900 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3 min-w-0">
           <div className="p-2.5 rounded-lg bg-indigo-600 text-white shrink-0 mt-0.5 shadow-xs">
             <Lock size={18} />
@@ -193,7 +190,7 @@ Archived by Avarta Accounts Payable Workspace.
               <span className="font-semibold text-body-sm text-neutral-900 dark:text-zinc-100">
                 Statutory 7-Year Tax &amp; Audit Hold Vault
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-semibold border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
+              <span className="text-[10px] font-mono px-2 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-semibold border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
                 <CheckCircle2 size={11} />
                 <span>Statutory Hold Active</span>
               </span>
@@ -211,7 +208,7 @@ Archived by Avarta Accounts Payable Workspace.
             size="sm"
             variant="primary"
             onClick={handleDownloadAuditPack}
-            className="h-8 text-[11px] font-semibold gap-1.5 shadow-2xs"
+            className="h-8 text-micro font-semibold gap-1.5 shadow-2xs"
           >
             <FileCheck2 size={13} />
             <span>Export Archived Invoices (CSV)</span>
@@ -285,7 +282,7 @@ Archived by Avarta Accounts Payable Workspace.
           />
         </div>
 
-        <span className="text-[11px] font-mono text-neutral-500 dark:text-zinc-400 hidden sm:inline">
+        <span className="text-micro font-normal font-mono text-neutral-500 dark:text-zinc-400 hidden sm:inline">
           Showing {filteredInvoices.length} verified records
         </span>
       </div>
@@ -374,7 +371,7 @@ Archived by Avarta Accounts Payable Workspace.
                           size="sm"
                           variant="outline"
                           onClick={() => handleInspectCertificate(inv)}
-                          className="h-7 text-[11px] font-medium gap-1 cursor-pointer"
+                          className="h-7 text-micro font-medium gap-1 cursor-pointer"
                         >
                           <span>Inspect</span>
                           <ExternalLink size={11} />

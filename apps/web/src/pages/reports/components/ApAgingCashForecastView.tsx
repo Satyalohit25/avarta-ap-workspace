@@ -64,7 +64,7 @@ export function ApAgingCashForecastView() {
     weeks: [],
     currency: "INR",
   });
-  const [isLoading, setIsLoading] = useState(true);
+  const [_isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setIsLoading(true);
@@ -132,7 +132,7 @@ export function ApAgingCashForecastView() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100">
+                <h3 className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100 text-balance">
                   AP Aging Buckets Distribution
                 </h3>
                 <p className="text-caption text-neutral-500">
@@ -215,7 +215,7 @@ export function ApAgingCashForecastView() {
         <Card className="lg:col-span-6">
           <CardHeader>
             <div>
-              <h3 className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100">
+              <h3 className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100 text-balance">
                 Rolling 4-Week Cash Requirements
               </h3>
               <p className="text-caption text-neutral-500">
@@ -245,7 +245,7 @@ export function ApAgingCashForecastView() {
                       <div className="h-2.5 w-full rounded-full bg-neutral-100 dark:bg-zinc-800 overflow-hidden">
                         <div
                           style={{ width: `${heightPct}%` }}
-                          className="h-full bg-indigo-600 rounded-full transition-colors duration-100 duration-300"
+                          className="h-full bg-indigo-600 rounded-full transition-colors duration-100"
                         />
                       </div>
                     </div>
@@ -270,7 +270,7 @@ export function ApAgingCashForecastView() {
       <Card>
         <CardHeader>
           <div>
-            <h3 className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100">
+            <h3 className="text-body-sm font-semibold text-neutral-900 dark:text-zinc-100 text-balance">
               Supplier Aging Breakdown
             </h3>
             <p className="text-caption text-neutral-500">

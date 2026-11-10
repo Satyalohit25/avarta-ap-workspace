@@ -344,7 +344,7 @@ export default function SettingsPage() {
                             <span className="text-micro font-mono font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-400 block">
                               Tenant Organization
                             </span>
-                            <h3 className="text-h3 font-bold text-neutral-900 dark:text-zinc-100 font-sans">
+                            <h3 className="text-h3 font-bold text-neutral-900 dark:text-zinc-100 font-sans text-balance">
                               {formData.orgName || "Your organization"}
                             </h3>
                           </div>
@@ -552,7 +552,7 @@ export default function SettingsPage() {
                                 </span>
                               ))}
                             </div>
-                            <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
+                            <span className="inline-flex items-center gap-1 text-micro font-mono px-2 py-0.5 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
                               <CheckCircle2 size={11} />
                               <span>Enforced</span>
                             </span>
@@ -705,7 +705,7 @@ export default function SettingsPage() {
                                         {log.entityType}:{log.entityId.slice(0, 8)}
                                       </TableCell>
                                       <TableCell className="text-right">
-                                        <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
+                                        <span className="inline-flex items-center gap-1 text-micro font-mono px-2 py-0.5 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
                                           <CheckCircle2 size={11} />
                                           <span>{log.result}</span>
                                         </span>
@@ -752,7 +752,7 @@ export default function SettingsPage() {
                                 <span className="font-semibold text-neutral-900 dark:text-zinc-100">{spec.name}</span>
                               </TableCell>
                               <TableCell>
-                                <span className={`inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full font-semibold ${spec.bgColor} ${spec.color}`}>
+                                <span className={`inline-flex items-center gap-1 text-micro font-mono px-2 py-0.5 rounded-full font-semibold ${spec.bgColor} ${spec.color}`}>
                                   {spec.role}
                                 </span>
                               </TableCell>
@@ -760,7 +760,7 @@ export default function SettingsPage() {
                                 {spec.scope}
                               </TableCell>
                               <TableCell className="text-right">
-                                <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
+                                <span className="inline-flex items-center gap-1 text-micro font-mono px-2 py-0.5 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
                                   <CheckCircle2 size={11} />
                                   <span>Active Policy</span>
                                 </span>

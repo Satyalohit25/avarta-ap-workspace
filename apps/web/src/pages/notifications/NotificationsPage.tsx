@@ -336,7 +336,7 @@ export default function NotificationsPage() {
                       variant="outline"
                       onClick={handleTestWebhook}
                       disabled={testingWebhook}
-                      className="h-7 text-[11px] font-medium gap-1"
+                      className="h-7 text-micro font-medium gap-1"
                     >
                       <Send size={11} />
                       <span>{testingWebhook ? "Sending…" : "Send Test Webhook"}</span>
@@ -369,7 +369,7 @@ export default function NotificationsPage() {
                       variant="outline"
                       onClick={handleTestEmail}
                       disabled={testingEmail}
-                      className="h-7 text-[11px] font-medium gap-1"
+                      className="h-7 text-micro font-medium gap-1"
                     >
                       <Send size={11} />
                       <span>{testingEmail ? "Sending…" : "Send Test Email"}</span>
@@ -458,7 +458,7 @@ export default function NotificationsPage() {
               size="sm"
               onClick={loadFeed}
               disabled={feedLoading}
-              className="gap-1.5 h-8 text-[11px] font-semibold"
+              className="gap-1.5 h-8 text-micro font-semibold"
             >
               <RefreshCw size={13} className={feedLoading ? "animate-spin" : ""} />
               <span>{feedLoading ? "Refreshing…" : "Refresh"}</span>
@@ -468,7 +468,7 @@ export default function NotificationsPage() {
                 variant="outline"
                 size="sm"
                 onClick={markAllAsRead}
-                className="gap-1.5 h-8 text-[11px] font-semibold"
+                className="gap-1.5 h-8 text-micro font-semibold"
               >
                 <CheckCheck size={14} />
                 <span>Mark All as Read</span>
@@ -596,7 +596,7 @@ export default function NotificationsPage() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="h-7 text-[11px] font-semibold gap-1"
+                                  className="h-7 text-micro font-semibold gap-1"
                                 >
                                   <span>{actionLabelFor(n.type)}</span>
                                   <ExternalLink size={11} />
@@ -608,7 +608,7 @@ export default function NotificationsPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => markAsRead(n.id)}
-                                className="h-7 text-[11px] text-neutral-500 hover:text-neutral-900 dark:hover:text-zinc-200"
+                                className="h-7 text-micro text-neutral-500 hover:text-neutral-900 dark:hover:text-zinc-200"
                               >
                                 Mark Read
                               </Button>

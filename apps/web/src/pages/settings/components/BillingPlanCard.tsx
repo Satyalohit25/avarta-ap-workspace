@@ -122,7 +122,7 @@ export function BillingPlanCard() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-body font-semibold text-neutral-900 dark:text-zinc-100">
+                <h3 className="text-body font-semibold text-neutral-900 dark:text-zinc-100 text-balance">
                   {usage.plan.name} Plan
                 </h3>
                 <Badge
@@ -205,7 +205,7 @@ export function BillingPlanCard() {
       <div className="bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-md overflow-hidden">
         <div className="px-5 py-3.5 border-b border-neutral-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-neutral-50/70 dark:bg-zinc-850/50">
           <div>
-            <h3 className="text-body font-semibold text-neutral-900 dark:text-zinc-100">
+            <h3 className="text-body font-semibold text-neutral-900 dark:text-zinc-100 text-balance">
               Workspace Subscription & Entitlements
             </h3>
             <p className="text-caption text-neutral-500 dark:text-zinc-400">
@@ -227,12 +227,12 @@ export function BillingPlanCard() {
                     <div className="flex items-center gap-1.5">
                       <span className="font-semibold text-neutral-900 dark:text-zinc-100">{plan.name}</span>
                       {plan.id === usage.plan.id && (
-                        <span className="text-[9px] font-mono uppercase bg-neutral-200 dark:bg-zinc-700 text-neutral-800 dark:text-zinc-200 px-1 py-0.2 rounded-xs font-semibold">
+                        <span className="text-[9px] font-mono uppercase bg-neutral-200 dark:bg-zinc-700 text-neutral-800 dark:text-zinc-200 px-1 rounded-xs font-semibold">
                           Active
                         </span>
                       )}
                     </div>
-                    <div className="text-neutral-500 font-mono text-[11px] font-normal">
+                    <div className="text-neutral-500 font-mono text-micro font-normal">
                       ₹{plan.priceMonthlyInr.toLocaleString("en-IN")}/mo
                     </div>
                   </th>
@@ -308,7 +308,7 @@ export function BillingPlanCard() {
         <div className="flex items-center justify-between border-b border-neutral-100 dark:border-zinc-800 pb-3">
           <div className="flex items-center gap-2">
             <FileText size={18} className="text-neutral-500 dark:text-zinc-400" />
-            <h3 className="text-body font-semibold text-neutral-900 dark:text-zinc-100">
+            <h3 className="text-body font-semibold text-neutral-900 dark:text-zinc-100 text-balance">
               Billing History & Tax Invoices
             </h3>
           </div>

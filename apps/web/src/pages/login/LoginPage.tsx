@@ -99,7 +99,7 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-sm">
         <div className="text-center mb-6">
           <h1
-            className="font-old-english text-6xl text-neutral-900 dark:text-zinc-50 font-normal leading-none mb-1 tracking-wide min-h-[60px]"
+            className="font-old-english text-6xl text-neutral-900 dark:text-zinc-50 font-normal leading-none mb-1 tracking-wide min-h-[60px] text-balance"
             style={{ letterSpacing: "0.06em" }}
           >
             Avarta
@@ -107,7 +107,7 @@ export default function LoginPage() {
           <p className="text-micro font-semibold uppercase tracking-[0.24em] font-mono text-neutral-500 dark:text-zinc-400 mt-1.5">
             Accounts Payable Workspace
           </p>
-          <p className="text-[11px] font-serif italic text-neutral-400 dark:text-zinc-500 mt-1">
+          <p className="text-micro font-normal font-serif text-neutral-400 dark:text-zinc-500 mt-1">
             आत्मानं विद्धि • Know Thyself
           </p>
         </div>

@@ -4,23 +4,17 @@ import { Command as CommandPrimitive } from "cmdk";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { InvoiceListItem, listInvoices } from "../../api/invoices";
 import { listSuppliers, SupplierListItem } from "../../api/suppliers";
-import { useAuth } from "../../app/AuthContext";
 import { useTheme } from "../../app/ThemeContext";
 import { useToast } from "../ui/ToastContext";
 import {
   Search,
   FileText,
   Building2,
-  UserCheck,
   ArrowRight,
-  Package,
-  CreditCard,
-  AlertTriangle,
   Moon,
   Sun,
   Layers,
   CheckCircle2,
-  Shield,
   Filter,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -36,7 +30,6 @@ export function Command({ isOpen, onClose }: CommandProps) {
   const [invoices, setInvoices] = useState<InvoiceListItem[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierListItem[]>([]);
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
 
@@ -327,7 +320,7 @@ export function Command({ isOpen, onClose }: CommandProps) {
                       <div className="flex items-center gap-2.5 min-w-0">
                         <Building2
                           size={15}
-                          className="text-cyan-600 dark:text-cyan-400 shrink-0"
+                          className="text-indigo-600 dark:text-indigo-400 shrink-0"
                         />
                         <span className="font-medium text-neutral-900 dark:text-zinc-100 truncate">
                           {s.displayName}

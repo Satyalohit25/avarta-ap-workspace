@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
             Avarta AP Workspace
           </span>
         </div>
-        <h2 className="text-center text-h2 font-semibold text-neutral-900 dark:text-zinc-100">
+        <h2 className="text-center text-h2 font-semibold text-neutral-900 dark:text-zinc-100 text-balance">
           Reset your password
         </h2>
         <p className="mt-1 text-center text-caption text-neutral-500 dark:text-zinc-400">
@@ -63,7 +63,7 @@ export default function ForgotPasswordPage() {
                   <CheckCircle2 size={24} />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-body font-semibold text-neutral-900 dark:text-zinc-100">
+                  <h3 className="text-body font-semibold text-neutral-900 dark:text-zinc-100 text-balance">
                     Check your corporate inbox
                   </h3>
                   <p className="text-caption text-neutral-600 dark:text-zinc-400 leading-relaxed">

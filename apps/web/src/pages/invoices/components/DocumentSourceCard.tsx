@@ -384,7 +384,7 @@ export function DocumentSourceCard({
       <div className="p-4 border-b border-neutral-200 dark:border-zinc-800 flex items-center justify-between flex-wrap gap-2">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-body font-bold text-neutral-900 dark:text-zinc-100">
+            <h3 className="text-body font-bold text-neutral-900 dark:text-zinc-100 text-balance">
               Document Source
             </h3>
             <span
@@ -413,7 +413,7 @@ export function DocumentSourceCard({
             >
               <Minus size={13} />
             </button>
-            <span className="text-[11px] font-mono px-1.5 font-medium text-neutral-700 dark:text-zinc-300 min-w-[38px] text-center">
+            <span className="text-micro font-mono px-1.5 font-medium text-neutral-700 dark:text-zinc-300 min-w-[38px] text-center">
               {zoomLevel}%
             </span>
             <button
@@ -445,7 +445,7 @@ export function DocumentSourceCard({
                 onClick={() => setViewMode("preview")}
                 className={`px-2.5 py-1 text-caption font-medium rounded-md transition-colors duration-100 ${
                   viewMode === "preview"
-                    ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-xs"
+                    ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100"
                     : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
                 }`}
               >
@@ -457,7 +457,7 @@ export function DocumentSourceCard({
               onClick={() => setViewMode("voucher")}
               className={`px-2.5 py-1 text-caption font-medium rounded-md transition-colors duration-100 ${
                 viewMode === "voucher"
-                  ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-xs"
+                  ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100"
                   : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
               }`}
             >
@@ -469,7 +469,7 @@ export function DocumentSourceCard({
                 onClick={() => setViewMode("upload")}
                 className={`px-2.5 py-1 text-caption font-medium rounded-md transition-colors duration-100 ${
                   viewMode === "upload"
-                    ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100 shadow-xs"
+                    ? "bg-white dark:bg-zinc-900 text-neutral-900 dark:text-zinc-100"
                     : "text-neutral-600 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200"
                 }`}
               >
@@ -514,13 +514,13 @@ export function DocumentSourceCard({
                     <iframe
                       src={previewUrl}
                       title={`Preview: ${primaryDoc.fileName}`}
-                      className="w-full flex-1 min-h-[500px] border-0 rounded bg-white shadow-xs"
+                      className="w-full flex-1 min-h-[500px] border-0 rounded bg-white"
                       onError={() => setPreviewError(true)}
                     />
                   </div>
                 ) : isImage ? (
                   <div
-                    className="relative inline-block shadow-md max-w-full rounded-sm overflow-hidden"
+                    className="relative inline-block max-w-full rounded-sm overflow-hidden"
                     style={{
                       transform:
                         zoomLevel !== 100
@@ -622,7 +622,7 @@ export function DocumentSourceCard({
                   transformOrigin: "top center",
                   transition: "transform 0.15s ease-out",
                 }}
-                className="relative bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-700 rounded-lg p-5 shadow-xs flex-1 flex flex-col justify-between"
+                className="relative bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-700 rounded-lg p-5 flex-1 flex flex-col justify-between"
               >
                 <div>
                   {/* Header Strip */}
@@ -983,7 +983,7 @@ export function DocumentSourceCard({
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`w-full max-w-md border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors duration-100 duration-200 ${
+              className={`w-full max-w-md border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors duration-100 ${
                 isDragging
                   ? "border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/40 scale-[1.01]"
                   : "border-neutral-200 dark:border-zinc-800 hover:border-indigo-400 dark:hover:border-indigo-600 bg-white dark:bg-zinc-900"
@@ -1065,7 +1065,7 @@ export function DocumentSourceCard({
                       !isMatchFilter ? "opacity-40 hover:opacity-100" : ""
                     } ${
                       isSelected
-                        ? "bg-indigo-600 text-white border-indigo-600 shadow-xs font-semibold"
+                        ? "bg-indigo-600 text-white border-indigo-600 font-semibold"
                         : "bg-white dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border-neutral-200 dark:border-zinc-700 hover:border-indigo-400 dark:hover:border-indigo-500"
                     }`}
                     title={`Click to focus ${b.label} (${b.confidence}% confidence)`}
@@ -1100,7 +1100,7 @@ function PreviewUnavailable({
 }) {
   return (
     <div className="p-6 flex-1 flex flex-col items-center justify-center text-center bg-neutral-50 dark:bg-zinc-800/40 min-h-[360px]">
-      <div className="w-14 h-14 rounded-full bg-white dark:bg-zinc-900 shadow-xs flex items-center justify-center mb-3 border border-neutral-200 dark:border-zinc-700">
+      <div className="w-14 h-14 rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center mb-3 border border-neutral-200 dark:border-zinc-700">
         <AlertCircle
           size={24}
           strokeWidth={1.5}

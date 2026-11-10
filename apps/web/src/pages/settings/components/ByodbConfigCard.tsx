@@ -228,7 +228,7 @@ export function ByodbConfigCard() {
                   href="https://console.neon.tech"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-teal-600 dark:text-teal-400 font-semibold hover:underline"
+                  className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
                 >
                   <span>Neon ↗</span>
                 </a>

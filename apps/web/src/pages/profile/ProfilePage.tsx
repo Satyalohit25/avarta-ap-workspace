@@ -192,7 +192,7 @@ export default function ProfilePage() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-indigo-700 text-white flex items-center justify-center text-xl font-bold font-mono tracking-tight">
+                        <div className="w-full h-full bg-indigo-600 text-white flex items-center justify-center text-xl font-bold font-mono tracking-tight">
                           {fullName
                             .split(" ")
                             .map((n) => n[0])
@@ -344,7 +344,7 @@ export default function ProfilePage() {
                     <span className="text-body-sm font-medium text-neutral-900 dark:text-zinc-100 block">
                       Two-Factor Authentication (MFA)
                     </span>
-                    <span className="text-[11px] text-neutral-500 dark:text-zinc-400">
+                    <span className="text-micro font-normal text-neutral-500 dark:text-zinc-400">
                       {mfaEnrolled ? "Passkey / Authenticator active" : "Required for financial approvals & releases"}
                     </span>
                   </div>
@@ -403,7 +403,7 @@ export default function ProfilePage() {
                   size="sm"
                   variant="outline"
                   onClick={() => setShowNewTokenModal(true)}
-                  className="gap-1 h-7 text-[11px]"
+                  className="gap-1 h-7 text-micro font-normal"
                 >
                   <Plus size={12} />
                   <span>New Token</span>
@@ -448,7 +448,7 @@ export default function ProfilePage() {
                       size="sm"
                       variant="ghost"
                       onClick={() => handleRevokeToken(tok.id, tok.name)}
-                      className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 h-7 px-2 text-[11px]"
+                      className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 h-7 px-2 text-micro font-normal"
                     >
                       Revoke
                     </Button>

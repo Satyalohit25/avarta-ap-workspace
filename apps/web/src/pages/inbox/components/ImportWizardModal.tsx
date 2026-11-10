@@ -465,7 +465,7 @@ export function ImportWizardModal({ isOpen, onClose, onImportComplete }: ImportW
 
                 <div className="border border-neutral-200 dark:border-zinc-800 rounded-xl overflow-hidden max-h-56 overflow-y-auto">
                   <table className="w-full text-left text-caption">
-                    <thead className="bg-neutral-50 dark:bg-zinc-800/60 border-b border-neutral-200 dark:border-zinc-800 text-micro font-semibold text-neutral-500 dark:text-zinc-400 uppercase tracking-wider">
+                    <thead className="bg-neutral-50 dark:bg-zinc-800 border-b border-neutral-200 dark:border-zinc-800 text-micro font-semibold text-neutral-500 dark:text-zinc-400 uppercase tracking-wider">
                       <tr>
                         <th className="p-2.5">Invoice #</th>
                         <th className="p-2.5">Vendor</th>
@@ -582,7 +582,7 @@ export function ImportWizardModal({ isOpen, onClose, onImportComplete }: ImportW
                   <CheckCircle2 size={24} />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-body font-semibold text-neutral-900 dark:text-zinc-100">
+                  <h3 className="text-body font-semibold text-neutral-900 dark:text-zinc-100 text-balance">
                     Import complete
                   </h3>
                   <p className="text-caption text-neutral-600 dark:text-zinc-400">

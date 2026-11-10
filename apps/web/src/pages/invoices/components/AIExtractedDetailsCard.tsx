@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import {
   ChevronDown,
   ChevronUp,
-  AlertCircle,
   Clock,
   ShieldCheck,
   Shield,
@@ -62,7 +61,7 @@ export function AIExtractedDetailsCard({
   extractedAtDate,
   status,
   aiConfidence,
-  validations = [],
+  validations: _validations = [],
   activeFieldId,
   hoveredFieldId,
   onSelectField,
@@ -71,7 +70,6 @@ export function AIExtractedDetailsCard({
   onCorrectField,
 }: AIExtractedDetailsCardProps) {
   const [showTechnical, setShowTechnical] = useState(false);
-  const [showTaxDetails, setShowTaxDetails] = useState(true);
   const [showChecklist, setShowChecklist] = useState(true);
 
   // Derive initial numbers from real props
@@ -239,7 +237,7 @@ export function AIExtractedDetailsCard({
         <div className="flex flex-col min-w-0 pr-2">
           <div className="flex items-center gap-1.5">
             <span
-              className={`text-[12px] font-medium ${
+              className={`text-caption font-medium ${
                 isHighlighted
                   ? "font-semibold text-neutral-900 dark:text-zinc-100"
                   : "text-neutral-600 dark:text-zinc-400"
@@ -248,7 +246,7 @@ export function AIExtractedDetailsCard({
               {label}
             </span>
             {isCorrected && (
-              <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300">
+              <span className="text-[10px] font-mono font-medium px-1.5 rounded bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300">
                 Corrected
               </span>
             )}
@@ -418,17 +416,17 @@ export function AIExtractedDetailsCard({
 
         {/* ── 2. The 10 Canonical Fields (100% matched to Anchors) ── */}
         <div className="divide-y divide-neutral-100 dark:divide-zinc-800/80 border-b border-neutral-200 dark:border-zinc-800">
-          {/* 1. Invoice Number */}
+          {/* Invoice Number */}
           <FieldRow
             fieldKey="invoiceNumber"
-            label="1. Invoice Number"
+            label="Invoice Number"
             value={fieldValues.invoiceNumber}
           />
 
-          {/* 2. Supplier Name */}
+          {/* Supplier Name */}
           <FieldRow
             fieldKey="supplierName"
-            label="2. Supplier / Vendor"
+            label="Supplier / Vendor"
             value={fieldValues.supplierName}
             displayComponent={
               <span className="text-body-sm font-sans font-medium text-neutral-900 dark:text-zinc-100 flex items-center gap-1">
@@ -438,25 +436,25 @@ export function AIExtractedDetailsCard({
             }
           />
 
-          {/* 3. Supplier GSTIN */}
+          {/* Supplier GSTIN */}
           <FieldRow
             fieldKey="supplierGstin"
-            label="3. Supplier GSTIN"
+            label="Supplier GSTIN"
             value={fieldValues.supplierGstin}
             displayComponent={
               <div className="flex items-center gap-1.5 font-mono text-body-sm text-neutral-900 dark:text-zinc-100">
                 <span>{fieldValues.supplierGstin}</span>
-                <span className="text-[10px] px-1 py-0.2 rounded bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400 border border-neutral-200 dark:border-zinc-700">
+                <span className="text-[10px] px-1 rounded bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400 border border-neutral-200 dark:border-zinc-700">
                   Active (27)
                 </span>
               </div>
             }
           />
 
-          {/* 4. Invoice Date */}
+          {/* Invoice Date */}
           <FieldRow
             fieldKey="invoiceDate"
-            label="4. Invoice Date"
+            label="Invoice Date"
             value={fieldValues.invoiceDate}
             displayComponent={
               <span className="text-body-sm font-mono text-neutral-900 dark:text-zinc-100 flex items-center gap-1">
@@ -466,10 +464,10 @@ export function AIExtractedDetailsCard({
             }
           />
 
-          {/* 5. Payment Due Date */}
+          {/* Payment Due Date */}
           <FieldRow
             fieldKey="dueDate"
-            label="5. Payment Due Date"
+            label="Payment Due Date"
             value={fieldValues.dueDate}
             displayComponent={
               <span className="text-body-sm font-mono text-neutral-900 dark:text-zinc-100 flex items-center gap-1">
@@ -480,10 +478,10 @@ export function AIExtractedDetailsCard({
             }
           />
 
-          {/* 6. PO Reference */}
+          {/* PO Reference */}
           <FieldRow
             fieldKey="purchaseOrderNumber"
-            label="6. Purchase Order Ref"
+            label="Purchase Order Ref"
             value={purchaseOrderId || "Not Linked"}
             displayComponent={
               purchaseOrderId ? (
@@ -498,10 +496,10 @@ export function AIExtractedDetailsCard({
             }
           />
 
-          {/* 7. Line Items */}
+          {/* Line Items */}
           <FieldRow
             fieldKey="lineItems"
-            label="7. Line Items"
+            label="Line Items"
             value={`${linesCount} line items`}
             readOnly
             displayComponent={
@@ -512,17 +510,17 @@ export function AIExtractedDetailsCard({
             }
           />
 
-          {/* 8. Taxable Subtotal */}
+          {/* Taxable Subtotal */}
           <FieldRow
             fieldKey="subtotal"
-            label="8. Taxable Subtotal (excl. GST)"
+            label="Taxable Subtotal (excl. GST)"
             value={formatCurrency(taxableNum, currency)}
           />
 
-          {/* 9. Tax Amount */}
+          {/* Tax Amount */}
           <FieldRow
             fieldKey="taxAmount"
-            label="9. Total GST (18.0%)"
+            label="Total GST (18.0%)"
             value={formatCurrency(taxNum, currency)}
             displayComponent={
               <span className="text-body-sm font-mono text-neutral-900 dark:text-zinc-100">
@@ -534,10 +532,10 @@ export function AIExtractedDetailsCard({
             }
           />
 
-          {/* 10. Total Amount */}
+          {/* Total Amount */}
           <FieldRow
             fieldKey="totalAmount"
-            label="10. Invoice Grand Total"
+            label="Invoice Grand Total"
             value={formatCurrency(totalNum, currency)}
             isHighlighted
           />
@@ -551,7 +549,7 @@ export function AIExtractedDetailsCard({
               <span className="text-caption font-bold text-neutral-900 dark:text-zinc-100">
                 Statutory Compliance Checklist
               </span>
-              <span className="text-[11px] font-mono px-2 py-0.2 rounded-full bg-neutral-200 dark:bg-zinc-700 text-neutral-700 dark:text-zinc-300">
+              <span className="text-micro font-mono px-2 rounded-full bg-neutral-200 dark:bg-zinc-700 text-neutral-700 dark:text-zinc-300">
                 5/5 Passed • 1 Direct GL
               </span>
             </div>
@@ -588,7 +586,7 @@ export function AIExtractedDetailsCard({
                       <p className="font-semibold text-neutral-800 dark:text-zinc-200">
                         {c.name}
                       </p>
-                      <p className="text-[11px] text-neutral-500 dark:text-zinc-400 leading-snug">
+                      <p className="text-micro font-normal text-neutral-500 dark:text-zinc-400 leading-snug">
                         {c.desc}
                       </p>
                     </div>

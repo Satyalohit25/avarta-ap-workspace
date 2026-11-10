@@ -44,7 +44,7 @@ export function CardHeader({
   return (
     <div className={cn("p-5 border-b border-neutral-200 dark:border-zinc-800 flex items-center justify-between", className)} {...props}>
       <div>
-        {title && <h3 className="text-h3 text-neutral-900 dark:text-zinc-100 font-semibold tracking-tight">{title}</h3>}
+        {title && <h3 className="text-h3 text-neutral-900 dark:text-zinc-100 font-semibold tracking-tight text-balance">{title}</h3>}
         {description && <p className="text-body-sm text-neutral-500 dark:text-zinc-400 mt-0.5">{description}</p>}
       </div>
       {action && <div>{action}</div>}
@@ -54,7 +54,7 @@ export function CardHeader({
 
 export function CardTitle({ className, children, ...props }: HTMLAttributes<HTMLHeadingElement>) {
   return (
-    <h3 className={cn("text-h3 text-neutral-900 dark:text-zinc-100 font-semibold tracking-tight", className)} {...props}>
+    <h3 className={cn("text-h3 text-neutral-900 dark:text-zinc-100 font-semibold tracking-tight text-balance", className)} {...props}>
       {children}
     </h3>
   );
