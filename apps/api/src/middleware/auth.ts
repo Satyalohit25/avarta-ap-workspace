@@ -33,11 +33,11 @@ function isApiKeyBlocked(req: Request): boolean {
 // as authority — it is always derived here, from the verified token, and
 // every downstream repository query must use req.auth.organizationId.
 export async function requireAuth(req: Request, _res: Response, next: NextFunction) {
+  // Credentials are accepted only from the Authorization header. Tokens in a
+  // query string leak into proxy logs, browser history, and Referer headers.
   const header = req.headers.authorization;
   const token = header?.startsWith("Bearer ")
     ? header.slice("Bearer ".length)
-    : typeof req.query.token === "string"
-    ? req.query.token
     : null;
 
   if (!token) {

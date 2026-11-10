@@ -92,7 +92,10 @@ export async function isTokenRevokedAsync(token: string, payload: AuthTokenPaylo
       return true;
     }
   } catch {
-    // In case DB is temporarily unreachable during tests
+    // Fail closed: if revocation state cannot be verified, the token must not
+    // be trusted. A transient database outage should deny access, not bypass
+    // revocation.
+    return true;
   }
 
   // Check user token version against DB
@@ -106,7 +109,8 @@ export async function isTokenRevokedAsync(token: string, payload: AuthTokenPaylo
         return true;
       }
     } catch {
-      // In case DB is unreachable
+      // Fail closed for the same reason as above.
+      return true;
     }
   }
 

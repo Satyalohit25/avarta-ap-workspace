@@ -12,6 +12,15 @@ function hasErrorCode(err: unknown, code: string): err is { code: string } {
   );
 }
 
+function hasErrorType(err: unknown, type: string): err is { type: string } {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "type" in err &&
+    (err as { type: unknown }).type === type
+  );
+}
+
 // Doc 14 §14.7 standard error response shape.
 export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction) {
   if (err instanceof ApiError) {
@@ -31,6 +40,28 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
         code: "VALIDATION_ERROR",
         message: "Request validation failed",
         details: err.flatten(),
+        requestId: req.requestId,
+      },
+    });
+  }
+
+  // Body-parser rejects oversized or malformed JSON before route handlers run.
+  // These are client errors, not server faults, and must not become noisy 500s.
+  if (hasErrorType(err, "entity.too.large")) {
+    return res.status(413).json({
+      error: {
+        code: "PAYLOAD_TOO_LARGE",
+        message: "Request body is too large.",
+        requestId: req.requestId,
+      },
+    });
+  }
+
+  if (hasErrorType(err, "entity.parse.failed")) {
+    return res.status(400).json({
+      error: {
+        code: "INVALID_JSON",
+        message: "Request body is not valid JSON.",
         requestId: req.requestId,
       },
     });

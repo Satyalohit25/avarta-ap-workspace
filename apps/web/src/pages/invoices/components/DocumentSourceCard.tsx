@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, DragEvent, ChangeEvent } from "react";
+import { useState, useEffect, useRef, useMemo, DragEvent, ChangeEvent } from "react";
 import {
   FileText,
   Download,
@@ -210,10 +210,43 @@ export function DocumentSourceCard({
 
   const isPdf = primaryDoc?.mimeType.includes("pdf");
   const isImage = primaryDoc?.mimeType.startsWith("image/");
-  const authToken = typeof window !== "undefined" ? getAccessToken() : null;
-  const previewUrl = primaryDoc
-    ? `${API_URL}/invoices/${invoiceId}/documents/${primaryDoc.id}/file${authToken ? `?token=${encodeURIComponent(authToken)}` : ""}`
-    : null;
+
+  // Fetch the document with the bearer token, then render a local blob URL.
+  // The access token must never appear in a query string: those leak into
+  // proxy logs, browser history, and Referer headers.
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const primaryDocId = primaryDoc?.id;
+
+  useEffect(() => {
+    if (!primaryDocId) {
+      setPreviewUrl(null);
+      return;
+    }
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    const token = getAccessToken();
+
+    void fetch(`${API_URL}/invoices/${invoiceId}/documents/${primaryDocId}/file`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: "include",
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`Document fetch failed with HTTP ${res.status}`);
+        const blob = await res.blob();
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setPreviewUrl(objectUrl);
+        setPreviewError(false);
+      })
+      .catch(() => {
+        if (!cancelled) setPreviewError(true);
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [invoiceId, primaryDocId]);
 
   // Unified canonical line items: Prioritize database lines passed from invoice
   const totalAmountNum = Number(totalAmount) || 0;

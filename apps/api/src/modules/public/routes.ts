@@ -130,10 +130,9 @@ publicRoutes.post("/invoices/email-webhook", async (req: Request, res: Response)
     });
     res.status(201).json({ data: result });
   } catch (err: unknown) {
+    // Log the detail server-side, but never echo internal errors to the caller.
     console.error("Email webhook processing error:", err);
-    res.status(500).json({
-      error: err instanceof Error ? err.message : "Failed to process inbound email",
-    });
+    res.status(500).json({ error: "Failed to process inbound email" });
   }
 });
 

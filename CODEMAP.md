@@ -1,7 +1,7 @@
 # CODEMAP.md — Avarta AP Workspace Architecture & System Map
 <!-- Auto-maintained structural map & capability catalog for engineering agents & external analysis (Argon).
      Last Updated: 2026-11-09
-     Test Verification: 340 passing unit/integration tests across 50 suites | Zero TypeScript errors across apps/api and apps/web. -->
+     Test Verification: 344 passing unit/integration tests across 51 suites | Zero TypeScript errors across apps/api and apps/web. -->
 
 ## 1. Workspace Overview
 
@@ -375,7 +375,7 @@ React 18 Single-Page Application configured with Vite, React Router v6, Tailwind
 ## 7. Automated Test Suite & Quality Gates
 
 - **Test Runner:** Vitest with dynamic test reconciliation ([`apps/api/scripts/reconcile-tests.ts`](file:///d:/Antigravity/ap-saas/apps/api/scripts/reconcile-tests.ts)).
-- **Current Verified Suite:** **340 passing unit & integration tests across 50 suites (0 failures).**
+- **Current Verified Suite:** **344 passing unit & integration tests across 51 suites (0 failures).**
 - **AST Tenant Security Scanner:** [`apps/api/src/config/tenant-guard-static.test.ts`](file:///d:/Antigravity/ap-saas/apps/api/src/config/tenant-guard-static.test.ts) parses all TypeScript files in `apps/api/src` to mathematically verify every Prisma query includes tenant scoping.
 - **Type Safety:** Both `apps/api` and `apps/web` pass `tsc --noEmit` with zero errors.
 - **End-to-End Suite:** Playwright tests in `apps/web/e2e/` covering authentication, invoice processing, exception resolution, and payment runs.

@@ -1,9 +1,23 @@
-import { describe, it, expect } from "vitest";
-import { spawnSync } from "child_process";
+import { describe, it, expect, beforeAll } from "vitest";
+import { spawnSync, execSync } from "child_process";
+import * as fs from "fs";
 import * as path from "path";
 
 describe("Item 6: Real Entrypoint Server Boot Validation", () => {
+  const repoRoot = path.resolve(__dirname, "../../../../../");
   const serverPath = path.resolve(__dirname, "../../../dist/app/server.js");
+
+  beforeAll(() => {
+    // A fresh clone has no build output. Build the real entrypoint once so this
+    // suite validates what ships instead of failing with MODULE_NOT_FOUND.
+    if (!fs.existsSync(serverPath)) {
+      execSync("pnpm --filter @ap-saas/api build", {
+        cwd: repoRoot,
+        stdio: "pipe",
+        timeout: 120000,
+      });
+    }
+  }, 150000);
 
   it("fails to boot real server entrypoint (exit code 1) when NODE_ENV=production and MASTER_DEV_PASSWORD is set", () => {
     const result = spawnSync(process.execPath, [serverPath], {

@@ -44,6 +44,9 @@ describe("Item 12: Bundle Hygiene, Build Verification, and Source Scans", () => 
           cwd: repoRoot,
           stdio: "pipe",
           timeout: 60000,
+          // Vitest sets NODE_ENV=test. Force a real production bundle so the
+          // scan validates what actually ships, not a jsxDEV development build.
+          env: { ...process.env, NODE_ENV: "production" },
         });
       } catch (err: any) {
         throw new Error(
@@ -58,7 +61,7 @@ describe("Item 12: Bundle Hygiene, Build Verification, and Source Scans", () => 
         `apps/web/dist is missing or invalid. Run 'pnpm --filter @ap-saas/web build' before executing bundle hygiene scans.`
       );
     }
-  });
+  }, 120000);
 
   it("verifies apps/web/dist is free from sensitive credentials and demo fixtures", () => {
     const distFiles = getAllFiles(webDistDir);

@@ -69,7 +69,13 @@ async function resolveOrganizationId(to: string, from: string, explicitOrgId?: s
  * and starts automated capture and validation pipeline.
  */
 export async function processInboundEmail(input: InboundEmailInput): Promise<InboundEmailResult> {
-  const { from, to, subject, body: _body, attachments = [], organizationId: explicitOrgId } = input;
+  const { from, to, subject, body: _body, attachments = [], organizationId: bodyOrgId } = input;
+
+  // Tenant isolation: organizationId from a request body is never authority.
+  // In production the tenant is resolved from the signed recipient address or
+  // the known supplier sender. The body hint is only honoured in local
+  // development/testing where no routing domain exists.
+  const explicitOrgId = process.env.NODE_ENV === "production" ? undefined : bodyOrgId;
 
   const organizationId = await resolveOrganizationId(to, from, explicitOrgId);
 

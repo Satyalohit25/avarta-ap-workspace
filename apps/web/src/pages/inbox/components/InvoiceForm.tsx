@@ -641,7 +641,7 @@ export function InvoiceForm({
     const result = invoiceFormSchema.safeParse(formPayload);
     if (!result.success) {
       const errors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
+      result.error.issues.forEach((err) => {
         const field = err.path.join(".");
         if (field) errors[field] = err.message;
       });

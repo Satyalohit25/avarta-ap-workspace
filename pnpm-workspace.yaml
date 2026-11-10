@@ -5,3 +5,7 @@ allowBuilds:
   '@prisma/engines': true
   esbuild: true
   prisma: true
+overrides:
+  'body-parser@<1.20.9': '1.20.9'
+  'qs@<6.16.1': '6.16.1'
+  'proxy-addr@<2.0.8': '2.0.8'
