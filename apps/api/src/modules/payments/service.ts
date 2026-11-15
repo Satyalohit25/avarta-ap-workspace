@@ -99,6 +99,14 @@ export async function schedulePayment(organizationId: string, input: {
   });
 }
 
+export function calculateIndianFiscalYear(date: Date = new Date()): string {
+  const month = date.getMonth(); // 0 = Jan, 3 = Apr
+  const year = date.getFullYear();
+  const startYear = month >= 3 ? year : year - 1;
+  const endYearShort = String((startYear + 1) % 100).padStart(2, "0");
+  return `FY${startYear}-${endYearShort}`;
+}
+
 // Doc 14 §14.18 execute — runs the SCHEDULED -> PROCESSING_PAYMENT ->
 // PAID/FAILED engine transitions and updates the payment row to match.
 export async function executePayment(
@@ -196,6 +204,8 @@ export async function executePayment(
     amount: Number(payment.amount),
     currency: payment.currency,
     beneficiaryName: payment.invoice?.supplier?.displayName || "Vendor Payee",
+    utrNumber: details?.utrNumber,
+    clearingDocumentNumber: details?.clearingDocumentNumber,
   });
 
   if (!payoutResult.success) {
@@ -210,19 +220,30 @@ export async function executePayment(
       },
     });
     throw ApiError.badRequest(
-      `Payment gateway payout initiation failed: ${payoutResult.errorMessage || "Gateway rejected transaction"}`
+      `Payment execution failed: ${payoutResult.errorMessage || "Gateway rejected transaction"}`
     );
   }
 
-  // Payment confirmed by Gateway Adapter — proceed with state advance
-  await applyTransition({ invoiceId: payment.invoiceId, organizationId, event: "PAYMENT_SUCCESS", triggeredBy: userId });
-
-  const finalUtr = details?.utrNumber || payoutResult.utrNumber || `NEFT-${Date.now().toString().slice(-8)}`;
-  const finalClearingDoc = details?.clearingDocumentNumber || payoutResult.clearingDocumentNumber || `CLR-${Date.now().toString(36).toUpperCase()}`;
+  const finalUtr = details?.utrNumber?.trim() || payoutResult.utrNumber?.trim();
+  if (!finalUtr) {
+    throw ApiError.badRequest(
+      "Bank UTR or settlement transaction reference number is required to confirm payment."
+    );
+  }
+  const finalClearingDoc = details?.clearingDocumentNumber?.trim() || payoutResult.clearingDocumentNumber?.trim() || null;
   const clearingDate = payoutResult.executedAt || new Date();
 
   return prisma.$transaction(async (tx) => {
-    // Stamp invoice with clearing document and buyer invoice id
+    // Payment confirmed by Gateway Adapter / recorded UTR — execute state advance atomically in this transaction (F5)
+    await applyTransition({
+      invoiceId: payment.invoiceId,
+      organizationId,
+      event: "PAYMENT_SUCCESS",
+      triggeredBy: userId,
+      tx,
+    });
+
+    // Stamp invoice with clearing document and legitimate Indian fiscal year (F4)
     await tx.invoice.update({
       where: {
         id_organizationId: {
@@ -232,8 +253,7 @@ export async function executePayment(
       },
       data: {
         erpClearingNumber: finalClearingDoc,
-        buyerInvoiceId: `2522${Date.now().toString().slice(-6)}`,
-        fiscalYear: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
+        fiscalYear: calculateIndianFiscalYear(clearingDate),
       },
     });
 
@@ -275,16 +295,64 @@ export async function generateBankExportFile(
     orderBy: { scheduledDate: "asc" },
   });
 
-  const records = payments.map((p) => ({
-    paymentId: p.id,
-    amount: Number(p.amount),
-    currency: p.currency,
-    beneficiaryName: p.invoice?.supplier?.displayName || "Vendor Payee",
-    accountNumber: "9876543210",
-    routingNumber: p.currency === "INR" ? "HDFC0001234" : "121000358",
-    invoiceNumber: p.invoice?.invoiceNumber || "INV-GEN",
-    dueDate: p.scheduledDate || new Date(),
-  }));
+  if (payments.length === 0) {
+    throw ApiError.badRequest("No payments found eligible for bank export.");
+  }
+
+  const { decryptSecret } = await import("../../lib/crypto");
+
+  const supplierIds = Array.from(
+    new Set(payments.map((p) => p.invoice?.supplierId).filter(Boolean))
+  ) as string[];
+
+  const bankAccounts = await prisma.bankAccount.findMany({
+    where: {
+      organizationId,
+      supplierId: { in: supplierIds },
+    },
+  });
+
+  const records = payments.map((p) => {
+    const supplier = p.invoice?.supplier;
+    const supplierName = supplier?.displayName || p.invoice?.supplierId || "Unknown Vendor";
+
+    if (!supplier?.id) {
+      throw ApiError.badRequest(
+        `Cannot export bank file: Payment for invoice ${p.invoice?.invoiceNumber || p.id} has no associated supplier.`
+      );
+    }
+
+    const supplierAccounts = bankAccounts.filter((ba) => ba.supplierId === supplier.id);
+    const verifiedAccount =
+      supplierAccounts.find((ba) => ba.isPrimary && ba.status === "VERIFIED") ||
+      supplierAccounts.find((ba) => ba.status === "VERIFIED");
+
+    if (!verifiedAccount) {
+      throw ApiError.badRequest(
+        `Cannot export bank file: Supplier '${supplierName}' has no verified bank account.`
+      );
+    }
+
+    let accountNumber: string;
+    try {
+      accountNumber = decryptSecret(verifiedAccount.encryptedAccountNumber);
+    } catch {
+      throw ApiError.badRequest(
+        `Cannot export bank file: Failed to decrypt bank account for supplier '${supplierName}'.`
+      );
+    }
+
+    return {
+      paymentId: p.id,
+      amount: Number(p.amount),
+      currency: p.currency,
+      beneficiaryName: supplier.displayName,
+      accountNumber,
+      routingNumber: verifiedAccount.ifscSwift,
+      invoiceNumber: p.invoice?.invoiceNumber || "INV-GEN",
+      dueDate: p.scheduledDate || new Date(),
+    };
+  });
 
   const { generateNachaFile, generateBankCsv } = await import("./bank-file-generator");
   if (format === "nacha") {

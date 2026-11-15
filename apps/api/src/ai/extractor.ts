@@ -1,6 +1,7 @@
 import fs from "fs";
 import zlib from "zlib";
 import { OUTBOUND_TIMEOUTS } from "../config/timeouts";
+import type { IntegrationRecord } from "../modules/integrations/repository";
 
 export type ConfidenceBand = "HIGH" | "MEDIUM" | "LOW";
 
@@ -125,8 +126,10 @@ export async function extractInvoiceFromFile(
   originalName: string,
   organizationId?: string,
 ): Promise<ExtractedInvoiceData> {
-  let geminiKey = process.env.GEMINI_API_KEY;
-  let openaiKey = process.env.OPENAI_API_KEY;
+  let geminiKey: string | undefined = process.env.GEMINI_API_KEY;
+  let openaiKey: string | undefined = process.env.OPENAI_API_KEY;
+  let tenantByokConfigured = false;
+  let tenantByokRecord: IntegrationRecord | null = null;
 
   // Check tenant BYOK configuration
   if (organizationId) {
@@ -136,11 +139,15 @@ export async function extractInvoiceFromFile(
       const byokRecords = await IntegrationRepository.findByType(organizationId, "BYOK_AI");
       const activeByok = byokRecords.find((r) => r.status === "CONNECTED");
       if (activeByok?.encryptedConfig) {
+        tenantByokRecord = activeByok;
+        tenantByokConfigured = true;
         const plainKey = decryptSecret(activeByok.encryptedConfig);
         if (activeByok.provider === "GEMINI") {
           geminiKey = plainKey;
+          openaiKey = undefined; // Never cross-fallback to another provider's platform key (F2)
         } else if (activeByok.provider === "OPENAI") {
           openaiKey = plainKey;
+          geminiKey = undefined; // Never cross-fallback to another provider's platform key (F2)
         }
       }
     } catch {
@@ -152,8 +159,21 @@ export async function extractInvoiceFromFile(
     try {
       const data = await extractWithGemini(filePath, mimeType, geminiKey);
       if (data) return data;
-    } catch (err) {
-      console.warn("Gemini extraction failed, falling back to heuristic parser:", err);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.warn("Gemini extraction failed, falling back to heuristic parser:", errMsg);
+      if (tenantByokConfigured && tenantByokRecord) {
+        try {
+          const { IntegrationRepository } = await import("../modules/integrations/repository");
+          await IntegrationRepository.upsert({
+            ...tenantByokRecord,
+            status: "ERROR",
+            errorMessage: `Extraction failed: ${errMsg.slice(0, 200)}`,
+          });
+        } catch {
+          // Non-blocking update failure
+        }
+      }
     }
   }
 
@@ -161,8 +181,21 @@ export async function extractInvoiceFromFile(
     try {
       const data = await extractWithOpenAI(filePath, mimeType, openaiKey);
       if (data) return data;
-    } catch (err) {
-      console.warn("OpenAI extraction failed, falling back to heuristic parser:", err);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.warn("OpenAI extraction failed, falling back to heuristic parser:", errMsg);
+      if (tenantByokConfigured && tenantByokRecord) {
+        try {
+          const { IntegrationRepository } = await import("../modules/integrations/repository");
+          await IntegrationRepository.upsert({
+            ...tenantByokRecord,
+            status: "ERROR",
+            errorMessage: `Extraction failed: ${errMsg.slice(0, 200)}`,
+          });
+        } catch {
+          // Non-blocking update failure
+        }
+      }
     }
   }
 
@@ -228,7 +261,9 @@ Return ONLY valid JSON matching this schema:
     },
   );
 
-  if (!response.ok) return null;
+  if (!response.ok) {
+    throw new Error(`Gemini API returned HTTP ${response.status}`);
+  }
   const json = (await response.json()) as {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
   };
@@ -284,7 +319,9 @@ async function extractWithOpenAI(
     }),
   });
 
-  if (!response.ok) return null;
+  if (!response.ok) {
+    throw new Error(`OpenAI API returned HTTP ${response.status}`);
+  }
   const json = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
   };

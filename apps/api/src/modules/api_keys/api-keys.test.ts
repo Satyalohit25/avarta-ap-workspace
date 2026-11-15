@@ -69,13 +69,14 @@ describe("Workspace API keys", () => {
     expect(listed[0]).not.toHaveProperty("key");
   });
 
-  it("authenticates a valid key and inherits the creator's role", async () => {
-    const created = await createApiKey(ORG_A, USER_A, { name: "Ingest" });
+  it("authenticates a valid key and inherits the creator's role with scopes", async () => {
+    const created = await createApiKey(ORG_A, USER_A, { name: "Ingest", scopes: ["invoices:read"] });
     const payload = await authenticateApiKey(created.key as string);
 
     expect(payload.organizationId).toBe(ORG_A);
     expect(payload.userId).toBe(USER_A);
     expect(payload.role).toBe("ADMINISTRATOR");
+    expect(payload.scopes).toEqual(["invoices:read"]);
   });
 
   it("rejects a revoked key", async () => {
@@ -119,6 +120,9 @@ describe("Workspace API keys", () => {
       expect(apiKeyPathIsBlocked(`${prefix}/data-export/invoices`)).toBe(true);
       expect(apiKeyPathIsBlocked(`${prefix}/notifications/preferences`)).toBe(true);
       expect(apiKeyPathIsBlocked(`${prefix}/notifications/test-email`)).toBe(true);
+      expect(apiKeyPathIsBlocked(`${prefix}/approvals`)).toBe(true);
+      expect(apiKeyPathIsBlocked(`${prefix}/payments`)).toBe(true);
+      expect(apiKeyPathIsBlocked(`${prefix}/bank-accounts`)).toBe(true);
     }
 
     // Ingestion routes remain usable by scoped keys.

@@ -256,7 +256,7 @@ export default function PaymentsPage() {
   );
   const activeDisbursementCurrency = activeDisbursementPayments[0]?.currency ?? primaryCurrency;
 
-  async function handleConfirmDisburse(): Promise<PaymentRow | null> {
+  async function handleConfirmDisburse(details?: { utrNumber?: string }): Promise<PaymentRow | null> {
     setBatchExecuting(true);
     let lastExecuted: PaymentRow | null = null;
     try {
@@ -264,7 +264,7 @@ export default function PaymentsPage() {
       for (const p of disbursementModalState.payments) {
         // Enforce per-transaction client idempotency key tied to modal session
         const idempotencyKey = `pay-${p.id}-${sessionKey}`;
-        const result = await executePayment(p.id, undefined, idempotencyKey);
+        const result = await executePayment(p.id, details, idempotencyKey);
         lastExecuted = result.data ?? null;
       }
       const executedIds = new Set(disbursementModalState.payments.map((p) => p.id));

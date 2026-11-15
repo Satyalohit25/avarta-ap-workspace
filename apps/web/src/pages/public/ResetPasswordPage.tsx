@@ -9,7 +9,10 @@ import { Alert } from "../../components/ui/Alert";
 import { apiRequest, ApiRequestError } from "../../api/client";
 
 export default function ResetPasswordPage() {
-  useDocumentTitle("Reset Password", "Set a new secure password for your Avarta AP Workspace account.");
+  useDocumentTitle(
+    "Reset Password",
+    "Set a new secure password for your Avarta AP Workspace account.",
+  );
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") || "";
 
@@ -24,7 +27,9 @@ export default function ResetPasswordPage() {
     setError(null);
 
     if (!token) {
-      setError("Invalid or missing password reset token. Please request a new recovery link.");
+      setError(
+        "Invalid or missing password reset token. Please request a new recovery link.",
+      );
       return;
     }
 
@@ -48,7 +53,7 @@ export default function ResetPasswordPage() {
       setError(
         err instanceof ApiRequestError
           ? err.message
-          : "Failed to reset password. The recovery link may be expired or invalid."
+          : "Failed to reset password. The recovery link may be expired or invalid.",
       );
     } finally {
       setSubmitting(false);
@@ -68,12 +73,16 @@ export default function ResetPasswordPage() {
           Create new password
         </h2>
         <p className="mt-1 text-center text-caption text-neutral-500 dark:text-zinc-400">
-          Choose a strong password with minimum 12 characters to secure your workspace.
+          Choose a strong password with minimum 12 characters to secure your
+          workspace.
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4">
-        <Card level="surface" className="border-neutral-200/80 dark:border-zinc-800 shadow-sm">
+        <Card
+          level="surface"
+          className="border-neutral-200/80 dark:border-zinc-800 shadow-sm"
+        >
           <CardContent className="p-6">
             {success ? (
               <div className="space-y-4 text-center">
@@ -85,7 +94,8 @@ export default function ResetPasswordPage() {
                     Password updated successfully
                   </h3>
                   <p className="text-caption text-neutral-600 dark:text-zinc-400">
-                    Your credentials have been securely updated. You may now log in to your account.
+                    Your credentials have been securely updated. You may now log
+                    in to your account.
                   </p>
                 </div>
                 <div className="pt-2">

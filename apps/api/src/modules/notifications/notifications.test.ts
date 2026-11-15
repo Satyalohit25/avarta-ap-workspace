@@ -161,4 +161,32 @@ describe("Notifications", () => {
     });
     expect(audit).not.toBeNull();
   });
+
+  it("strictly enforces Slack webhook URL constraints (B7 SSRF Protection)", async () => {
+    // 1. Rejects non-HTTPS
+    await expect(
+      updateNotificationPreferences(
+        ORG_A,
+        { slackWebhookUrl: "http://hooks.slack.com/services/T00/B00/X00" },
+        USER_A
+      )
+    ).rejects.toThrow("Slack webhook URL must use HTTPS.");
+
+    // 2. Rejects non-slack host / SSRF attack URLs
+    await expect(
+      updateNotificationPreferences(
+        ORG_A,
+        { slackWebhookUrl: "https://127.0.0.1:5000/attack" },
+        USER_A
+      )
+    ).rejects.toThrow("Only official Slack webhook endpoints (hooks.slack.com) are permitted.");
+
+    await expect(
+      updateNotificationPreferences(
+        ORG_A,
+        { slackWebhookUrl: "https://malicious-internal.corp/webhook" },
+        USER_A
+      )
+    ).rejects.toThrow("Only official Slack webhook endpoints (hooks.slack.com) are permitted.");
+  });
 });

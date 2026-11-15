@@ -28,6 +28,8 @@ export interface PayoutParams {
   purpose?: string;
   narration?: string;
   idempotencyKey?: string;
+  utrNumber?: string;
+  clearingDocumentNumber?: string;
 }
 
 export interface PayoutResult {
@@ -113,36 +115,26 @@ export class RazorpayXAdapter implements IPaymentGatewayAdapter {
         latencyMs: Date.now() - start,
       };
     } catch {
-      // Offline/local fallback if external API is unreachable in test runner
-      if (config.apiKey.startsWith("rzp_test_") || config.environment === "sandbox") {
-        return {
-          success: true,
-          provider: this.provider,
-          message: "RazorpayX test credentials accepted locally; no live API response was received.",
-          latencyMs: 14,
-        };
-      }
       return {
         success: false,
         provider: this.provider,
-        message: "Network error connecting to RazorpayX API endpoint.",
+        message: "Network error connecting to RazorpayX API endpoint. Test credentials cannot be verified offline.",
         latencyMs: Date.now() - start,
       };
     }
   }
 
-  async initiatePayout(config: PaymentGatewayConfig, params: PayoutParams): Promise<PayoutResult> {
+  async initiatePayout(_config: PaymentGatewayConfig, params: PayoutParams): Promise<PayoutResult> {
     const executedAt = new Date();
     const cleanId = params.paymentId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 10);
     const referenceId = `RZP-PAY-${cleanId}-${Date.now().toString(36).toUpperCase()}`;
-    const utrNumber = `RZPX${Date.now().toString().slice(-8)}${Math.floor(1000 + Math.random() * 9000)}`;
 
+    // Automated live payouts via RazorpayX are not yet enabled
     return {
-      success: true,
-      status: "PAID",
+      success: false,
+      status: "FAILED",
       referenceId,
-      utrNumber,
-      clearingDocumentNumber: `CLR-${Date.now().toString(36).toUpperCase()}`,
+      errorMessage: "Automated disbursement via RazorpayX is not enabled for live payouts. Please record disbursements via Direct Corporate Banking (Manual) or export a bank file.",
       executedAt,
     };
   }
@@ -217,18 +209,17 @@ export class CashfreeAdapter implements IPaymentGatewayAdapter {
     }
   }
 
-  async initiatePayout(config: PaymentGatewayConfig, params: PayoutParams): Promise<PayoutResult> {
+  async initiatePayout(_config: PaymentGatewayConfig, params: PayoutParams): Promise<PayoutResult> {
     const executedAt = new Date();
     const cleanId = params.paymentId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8);
     const referenceId = `CF-PAY-${cleanId}-${Date.now().toString(36).toUpperCase()}`;
-    const utrNumber = `CFUTR${Date.now().toString().slice(-8)}${Math.floor(1000 + Math.random() * 9000)}`;
 
+    // Automated live payouts via Cashfree are not yet enabled
     return {
-      success: true,
-      status: "PAID",
+      success: false,
+      status: "FAILED",
       referenceId,
-      utrNumber,
-      clearingDocumentNumber: `CLR-${Date.now().toString(36).toUpperCase()}`,
+      errorMessage: "Automated disbursement via Cashfree Payouts API is not enabled for live payouts. Please record disbursements via Direct Corporate Banking (Manual) or export a bank file.",
       executedAt,
     };
   }
@@ -302,15 +293,14 @@ export class StripeAdapter implements IPaymentGatewayAdapter {
     }
   }
 
-  async initiatePayout(config: PaymentGatewayConfig, params: PayoutParams): Promise<PayoutResult> {
+  async initiatePayout(_config: PaymentGatewayConfig, _params: PayoutParams): Promise<PayoutResult> {
     const executedAt = new Date();
     const referenceId = `tr_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
     return {
-      success: true,
-      status: "PAID",
+      success: false,
+      status: "FAILED",
       referenceId,
-      utrNumber: `STRIPE-${referenceId.toUpperCase()}`,
-      clearingDocumentNumber: `CLR-${Date.now().toString(36).toUpperCase()}`,
+      errorMessage: "Automated disbursement via Stripe is not enabled for live payouts. Please record disbursements via Direct Corporate Banking (Manual) or export a bank file.",
       executedAt,
     };
   }
@@ -329,17 +319,28 @@ export class ManualBankAdapter implements IPaymentGatewayAdapter {
     };
   }
 
-  async initiatePayout(config: PaymentGatewayConfig, params: PayoutParams): Promise<PayoutResult> {
+  async initiatePayout(_config: PaymentGatewayConfig, params: PayoutParams): Promise<PayoutResult> {
     const executedAt = new Date();
     const cleanId = params.paymentId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8);
     const referenceId = `MANUAL-DISBURSE-${cleanId}-${Date.now().toString(36).toUpperCase()}`;
+
+    const utr = params.utrNumber?.trim();
+    if (!utr) {
+      return {
+        success: false,
+        status: "FAILED",
+        referenceId,
+        errorMessage: "Bank UTR or transaction reference number is required to confirm manual disbursement.",
+        executedAt,
+      };
+    }
 
     return {
       success: true,
       status: "PAID",
       referenceId,
-      utrNumber: `NEFT-${Date.now().toString().slice(-8)}`,
-      clearingDocumentNumber: `CLR-${Date.now().toString(36).toUpperCase()}`,
+      utrNumber: utr,
+      clearingDocumentNumber: params.clearingDocumentNumber?.trim() || `CLR-${Date.now().toString(36).toUpperCase()}`,
       executedAt,
     };
   }

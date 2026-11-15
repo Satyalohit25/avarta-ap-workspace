@@ -272,12 +272,7 @@ export function APWorkstationGrid({
   const topSuppliers =
     data?.topSuppliers && data.topSuppliers.length > 0
       ? data.topSuppliers
-      : [
-          { id: "sup-1", name: "Tata Steel Ltd", balance: 354000, currency: "INR", terms: 30 },
-          { id: "sup-2", name: "Dell Technologies Inc", balance: 12500, currency: "USD", terms: 45 },
-          { id: "sup-3", name: "BlueDart Express", balance: 85000, currency: "INR", terms: 15 },
-          { id: "sup-4", name: "Amazon Business", balance: 20900, currency: "INR", terms: 30 },
-        ];
+      : [];
 
   // Reconciled label: blocked = exceptions-in-queue + approvals-awaiting
   const reconciledNote =
@@ -780,30 +775,42 @@ export function APWorkstationGrid({
           {/* ── View 3: Supplier Exposure ── */}
           {activeRightTab === "EXPOSURE" && (
             <div className="mt-2 space-y-1.5 flex-1 min-h-[280px] max-h-[440px] overflow-y-auto pr-1">
-              {topSuppliers.map((sup) => (
-                <div
-                  key={sup.id}
-                  onClick={() => navigate("/suppliers")}
-                  className="p-2 rounded-lg border border-neutral-100 dark:border-zinc-800 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-zinc-800/50 cursor-pointer text-micro font-normal"
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === "Enter" && navigate("/suppliers")}
-                  aria-label={`${sup.name} — ${formatCurrency(sup.balance, sup.currency)}`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Building2 size={13} className="text-neutral-400 shrink-0" aria-hidden="true" />
-                    <span className="font-medium text-neutral-900 dark:text-zinc-100 truncate">
-                      {sup.name}
-                    </span>
+              {topSuppliers.length > 0 ? (
+                topSuppliers.map((sup) => (
+                  <div
+                    key={sup.id}
+                    onClick={() => navigate("/suppliers")}
+                    className="p-2 rounded-lg border border-neutral-100 dark:border-zinc-800 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-zinc-800/50 cursor-pointer text-micro font-normal"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === "Enter" && navigate("/suppliers")}
+                    aria-label={`${sup.name} — ${formatCurrency(sup.balance, sup.currency)}`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Building2 size={13} className="text-neutral-400 shrink-0" aria-hidden="true" />
+                      <span className="font-medium text-neutral-900 dark:text-zinc-100 truncate">
+                        {sup.name}
+                      </span>
+                    </div>
+                    <div className="text-right shrink-0 font-mono">
+                      <span className="font-bold text-neutral-900 dark:text-zinc-100">
+                        {formatCurrency(sup.balance, sup.currency)}
+                      </span>
+                      <span className="text-neutral-400 ml-2 text-[10px]">Net {sup.terms}d</span>
+                    </div>
                   </div>
-                  <div className="text-right shrink-0 font-mono">
-                    <span className="font-bold text-neutral-900 dark:text-zinc-100">
-                      {formatCurrency(sup.balance, sup.currency)}
-                    </span>
-                    <span className="text-neutral-400 ml-2 text-[10px]">Net {sup.terms}d</span>
-                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center h-48 text-center p-4">
+                  <Building2 size={24} className="text-neutral-400 dark:text-zinc-500 mb-2" />
+                  <p className="text-caption font-medium text-neutral-600 dark:text-zinc-400">
+                    No supplier exposure data
+                  </p>
+                  <p className="text-micro text-neutral-400 dark:text-zinc-500">
+                    Suppliers with open invoice balances will appear here.
+                  </p>
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>

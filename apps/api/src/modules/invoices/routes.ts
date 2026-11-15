@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "../../middleware/auth";
+import { requireAuth, requireScope } from "../../middleware/auth";
 import { requireRole } from "../../middleware/permissions";
 import { requireIdempotencyKey } from "../../middleware/idempotency";
 import { upload } from "../../lib/upload";
@@ -29,33 +29,37 @@ invoiceRoutes.use(requireAuth);
 invoiceRoutes.post(
   "/extract",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
+  requireScope("invoices:write"),
   upload.single("file"),
   extractDocumentHandler
 );
 
-invoiceRoutes.get("/needs-attention", needsAttentionHandler);
-invoiceRoutes.get("/", listHandler);
-invoiceRoutes.get("/:invoiceId/audit", auditHandler);
+invoiceRoutes.get("/needs-attention", requireScope("invoices:read"), needsAttentionHandler);
+invoiceRoutes.get("/", requireScope("invoices:read"), listHandler);
+invoiceRoutes.get("/:invoiceId/audit", requireScope("invoices:read"), auditHandler);
 invoiceRoutes.post(
   "/",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
+  requireScope("invoices:write"),
   enforceInvoiceQuota,
   upload.single("file"),
   createHandler
 );
-invoiceRoutes.get("/:invoiceId", getHandler);
+invoiceRoutes.get("/:invoiceId", requireScope("invoices:read"), getHandler);
 invoiceRoutes.put(
   "/:invoiceId",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
+  requireScope("invoices:write"),
   updateHandler
 );
 invoiceRoutes.post(
   "/:invoiceId/documents",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
+  requireScope("invoices:write"),
   upload.single("file"),
   uploadDocumentHandler
 );
-invoiceRoutes.get("/:invoiceId/documents/:documentId/file", getDocumentFileHandler);
+invoiceRoutes.get("/:invoiceId/documents/:documentId/file", requireScope("invoices:read"), getDocumentFileHandler);
 invoiceRoutes.post(
   "/:invoiceId/process",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),

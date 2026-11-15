@@ -36,7 +36,8 @@ const SUBPROCESSORS: SubprocessorEntry[] = [
     name: "Stripe / Razorpay",
     role: "Subscription Billing & Payment Gateway",
     location: "United States / India",
-    dataProcessed: "Subscription status, organization billing details (No raw card data touches our servers)",
+    dataProcessed:
+      "Subscription status, organization billing details (No raw card data touches our servers)",
     securityUrl: "https://stripe.com/privacy",
   },
   {
@@ -49,7 +50,10 @@ const SUBPROCESSORS: SubprocessorEntry[] = [
 ];
 
 export default function SubprocessorsPage() {
-  useDocumentTitle("Subprocessors & Infrastructure", "Authorized third-party infrastructure and AI model subprocessors for Avarta AP Workspace.");
+  useDocumentTitle(
+    "Subprocessors & Infrastructure",
+    "Authorized third-party infrastructure and AI model subprocessors for Avarta AP Workspace.",
+  );
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-zinc-950 text-neutral-900 dark:text-zinc-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-8 bg-white dark:bg-zinc-900 p-8 sm:p-12 rounded-lg border border-neutral-200/80 dark:border-zinc-800">
@@ -63,20 +67,29 @@ export default function SubprocessorsPage() {
           </Link>
           <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
             <Server size={20} />
-            <span className="font-semibold text-body-sm">Avarta AP Workspace</span>
+            <span className="font-semibold text-body-sm">
+              Avarta AP Workspace
+            </span>
           </div>
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-balance">Third-Party Subprocessor Registry</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">
+            Third-Party Subprocessor Registry
+          </h1>
           <p className="text-caption text-neutral-500 dark:text-zinc-400">
-            Last Updated: October 13, 2026 | Compliant with Article 28 GDPR & DPDP Act 2023
+            Last Updated: October 13, 2026 | Compliant with Article 28 GDPR &
+            DPDP Act 2023
           </p>
         </div>
 
         <div className="space-y-6 text-body-sm leading-relaxed text-neutral-700 dark:text-zinc-300">
           <p>
-            To deliver highly reliable, secure, and low-latency accounts payable workflows, Avarta AP Workspace engages third-party infrastructure and service subprocessors. Each entity undergoes rigorous security assessment and is bound by Data Processing Agreements requiring SOC 2 or ISO 27001 equivalence.
+            To deliver highly reliable, secure, and low-latency accounts payable
+            workflows, Avarta AP Workspace engages third-party infrastructure
+            and service subprocessors. Each entity undergoes rigorous security
+            assessment and is bound by Data Processing Agreements requiring SOC
+            2 or ISO 27001 equivalence.
           </p>
 
           <div className="overflow-x-auto border border-neutral-200 dark:border-zinc-800 rounded-xl">
@@ -91,10 +104,19 @@ export default function SubprocessorsPage() {
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-zinc-800">
                 {SUBPROCESSORS.map((sp) => (
-                  <tr key={sp.name} className="hover:bg-neutral-50/50 dark:hover:bg-zinc-800/30">
-                    <td className="p-3.5 font-medium text-neutral-900 dark:text-zinc-100">{sp.name}</td>
-                    <td className="p-3.5 text-neutral-600 dark:text-zinc-300">{sp.role}</td>
-                    <td className="p-3.5 text-caption font-mono text-neutral-500 dark:text-zinc-400">{sp.location}</td>
+                  <tr
+                    key={sp.name}
+                    className="hover:bg-neutral-50/50 dark:hover:bg-zinc-800/30"
+                  >
+                    <td className="p-3.5 font-medium text-neutral-900 dark:text-zinc-100">
+                      {sp.name}
+                    </td>
+                    <td className="p-3.5 text-neutral-600 dark:text-zinc-300">
+                      {sp.role}
+                    </td>
+                    <td className="p-3.5 text-caption font-mono text-neutral-500 dark:text-zinc-400">
+                      {sp.location}
+                    </td>
                     <td className="p-3.5">
                       <a
                         href={sp.securityUrl}
@@ -113,9 +135,20 @@ export default function SubprocessorsPage() {
           </div>
 
           <section className="space-y-2 pt-4">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">Subprocessor Update Notifications</h2>
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-zinc-100 text-balance">
+              Subprocessor Update Notifications
+            </h2>
             <p>
-              Subscribers may subscribe to subprocessor notifications by emailing <a href="mailto:subprocessors@avarta.dev" className="text-indigo-600 dark:text-indigo-400 underline">subprocessors@avarta.dev</a>. Any material changes will be announced minimum 30 days in advance.
+              Subscribers may subscribe to subprocessor notifications by
+              emailing{" "}
+              <a
+                href="mailto:subprocessors@avarta.dev"
+                className="text-indigo-600 dark:text-indigo-400 underline"
+              >
+                subprocessors@avarta.dev
+              </a>
+              . Any material changes will be announced minimum 30 days in
+              advance.
             </p>
           </section>
         </div>

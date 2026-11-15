@@ -154,5 +154,6 @@ export async function authenticateApiKey(rawKey: string) {
     userId: user.id,
     organizationId: record.organizationId,
     role: user.role,
+    scopes: Array.isArray(record.scopes) ? (record.scopes as string[]) : ["invoices:read", "invoices:write"],
   };
 }

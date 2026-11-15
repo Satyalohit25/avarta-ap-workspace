@@ -92,49 +92,25 @@ describe("Item 12: Bundle Hygiene, Build Verification, and Source Scans", () => 
     }
   });
 
-  it("scans API source for 9876543210 in expected-until-Item-B list and verifies exclusion from web dist", () => {
-    // This scan executes in apps/api and scans API source files.
-    // The dist scan stays separate.
-    const expectedUntilItemBStrings = [
-      {
-        id: "MOCK_BANK_ACCOUNT_9876543210",
-        pattern: ["987654", "3210"].join(""),
-        allowedApiFiles: [
-          "src/modules/payments/service.ts",
-          "src/modules/payments/bank-file-generator.test.ts",
-        ],
-        targetRemediation: "Item B (Bank Accounts Module - real DB-backed account resolution)",
-      },
-    ];
+  it("verifies Item B remediation: mock bank account 9876543210 is removed from payments service and web dist", () => {
+    const pattern = ["987654", "3210"].join("");
 
-    const apiSrcFiles = getAllFiles(apiSrcDir).filter(
-      (f) => !f.endsWith("bundle-hygiene.test.ts")
-    );
-
-    for (const item of expectedUntilItemBStrings) {
-      // 1. Scan API source files
-      const matches = searchFilesForString(apiSrcFiles, item.pattern);
+    // 1. Verify payments service.ts does NOT contain the mock bank account
+    const paymentServiceFile = path.join(apiSrcDir, "modules/payments/service.ts");
+    if (fs.existsSync(paymentServiceFile)) {
+      const serviceContent = fs.readFileSync(paymentServiceFile, "utf8");
       expect(
-        matches.length,
-        `Pattern ${item.id} expected in API source until ${item.targetRemediation}, but not found.`
-      ).toBeGreaterThanOrEqual(1);
-
-      for (const match of matches) {
-        const relative = path.relative(path.resolve(__dirname, "../../.."), match).replace(/\\/g, "/");
-        const isAllowed = item.allowedApiFiles.some((allowed) => relative.endsWith(allowed));
-        expect(
-          isAllowed,
-          `Unexpected appearance of ${item.id} in API source outside allowed files: ${relative}. Must be resolved in ${item.targetRemediation}.`
-        ).toBe(true);
-      }
-
-      // 2. Scan Web dist assets: MUST NEVER appear in client-facing bundles
-      const distFiles = getAllFiles(webDistDir);
-      const webDistMatches = searchFilesForString(distFiles, item.pattern);
-      expect(
-        webDistMatches,
-        `Pattern ${item.id} leaked into client-facing web bundle: ${webDistMatches.join(", ")}`
-      ).toHaveLength(0);
+        serviceContent.includes(pattern),
+        "Mock bank account 9876543210 must not appear in payments/service.ts after Item B resolution"
+      ).toBe(false);
     }
+
+    // 2. Scan Web dist assets: MUST NEVER appear in client-facing bundles
+    const distFiles = getAllFiles(webDistDir);
+    const webDistMatches = searchFilesForString(distFiles, pattern);
+    expect(
+      webDistMatches,
+      `Pattern 9876543210 leaked into client-facing web bundle: ${webDistMatches.join(", ")}`
+    ).toHaveLength(0);
   });
 });

@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { resolveAndValidateHost } from "../security/ssrf";
 
 export type EmailProvider = "SMTP" | "RESEND" | "SENDGRID" | "POSTMARK" | "MAILGUN";
 
@@ -74,6 +75,13 @@ function withTimeout<T>(promise: Promise<T>): Promise<T> {
 }
 
 async function sendViaSmtp(config: EmailConfig, message: EmailMessage) {
+  if (config.smtpHost) {
+    const hostCheck = await resolveAndValidateHost(config.smtpHost);
+    if (!hostCheck.safe) {
+      throw new Error(`SSRF Guard Rejection: Prohibited SMTP host (${hostCheck.reason || "blocked address"})`);
+    }
+  }
+
   const transport = nodemailer.createTransport({
     host: config.smtpHost,
     port: config.smtpPort,
@@ -272,6 +280,17 @@ export async function testEmailConnection(
 
   if (config.provider === "SMTP") {
     const startedAt = Date.now();
+    if (config.smtpHost) {
+      const hostCheck = await resolveAndValidateHost(config.smtpHost);
+      if (!hostCheck.safe) {
+        return {
+          success: false,
+          provider: config.provider,
+          latencyMs: Date.now() - startedAt,
+          message: `SSRF Guard Rejection: Prohibited SMTP host (${hostCheck.reason || "blocked address"})`,
+        };
+      }
+    }
     try {
       const transport = nodemailer.createTransport({
         host: config.smtpHost,

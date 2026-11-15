@@ -18,6 +18,9 @@ const API_KEY_BLOCKED_PATHS = [
   "/notifications/preferences",
   "/notifications/test-",
   "/data-export",
+  "/approvals",
+  "/payments",
+  "/bank-accounts",
 ];
 
 export function apiKeyPathIsBlocked(originalUrl: string): boolean {
@@ -27,6 +30,27 @@ export function apiKeyPathIsBlocked(originalUrl: string): boolean {
 
 function isApiKeyBlocked(req: Request): boolean {
   return apiKeyPathIsBlocked(req.originalUrl || req.url);
+}
+
+/**
+ * Enforces specific OAuth/API scope requirements when the request is authenticated via API key.
+ * Standard user sessions (JWT) bypass scope checks and are governed by RBAC.
+ */
+export function requireScope(scope: string) {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    if (!req.auth?.isApiKey) {
+      return next();
+    }
+    const scopes = req.auth.scopes || [];
+    if (!scopes.includes(scope)) {
+      return next(
+        ApiError.forbidden(
+          `API key lacks required scope '${scope}'. Granted scopes: ${scopes.join(", ") || "none"}`
+        )
+      );
+    }
+    next();
+  };
 }
 
 // Doc 14 §14.45: the server never accepts organizationId from the client

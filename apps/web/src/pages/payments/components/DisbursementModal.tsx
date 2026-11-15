@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Dialog } from "../../../components/ui/Dialog";
 import { Button } from "../../../components/ui/Button";
+import { Input } from "../../../components/ui/Input";
 import { formatCurrency } from "../../../lib/formatters";
 import { PaymentRow } from "../../../api/payments";
 import {
@@ -23,7 +24,7 @@ export interface DisbursementModalProps {
   selectedPayments: PaymentRow[];
   totalAmount: number;
   currency: string;
-  onConfirmDisburse: () => Promise<PaymentRow | null>;
+  onConfirmDisburse: (details?: { utrNumber?: string }) => Promise<PaymentRow | null>;
   isExecuting?: boolean;
 }
 
@@ -72,6 +73,7 @@ export function DisbursementModal({
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [copiedRef, setCopiedRef] = useState(false);
   const [receipt, setReceipt] = useState<SettlementReceipt | null>(null);
+  const [utrNumber, setUtrNumber] = useState("");
 
   useEffect(() => {
     if (isOpen) {
@@ -79,6 +81,7 @@ export function DisbursementModal({
       setErrorMessage("");
       setCopiedRef(false);
       setReceipt(null);
+      setUtrNumber("");
     }
   }, [isOpen]);
 
@@ -87,7 +90,9 @@ export function DisbursementModal({
     setErrorMessage("");
 
     try {
-      const executed = await onConfirmDisburse();
+      const executed = await onConfirmDisburse(
+        utrNumber.trim() ? { utrNumber: utrNumber.trim() } : undefined
+      );
       const confirmed = executed?.utrNumber != null && executed?.clearingDate != null;
       setReceipt({
         reference: executed?.id ?? selectedPayments[0]?.id ?? "—",
@@ -452,6 +457,22 @@ export function DisbursementModal({
               </div>
             </div>
 
+            <div className="space-y-1.5 p-3 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-neutral-50/50 dark:bg-zinc-800/40">
+              <label htmlFor="disbursement-utr-input" className="text-caption font-semibold text-neutral-800 dark:text-zinc-200 block">
+                Bank UTR / Transaction Reference Number <span className="text-red-500">*</span>
+              </label>
+              <Input
+                id="disbursement-utr-input"
+                placeholder="e.g. UTR-20261115-987654 or NEFT12345678"
+                value={utrNumber}
+                onChange={(e) => setUtrNumber(e.target.value)}
+                className="font-mono text-body-sm"
+              />
+              <p className="text-micro text-neutral-500 dark:text-zinc-400">
+                A valid bank settlement UTR is required to confirm disbursement and advance ledgers to PAID.
+              </p>
+            </div>
+
             <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/70 flex items-start gap-2 text-caption text-amber-800 dark:text-amber-300">
               <Info size={15} className="shrink-0 mt-0.5" />
               <div className="flex items-center gap-1.5 text-micro">
@@ -469,7 +490,7 @@ export function DisbursementModal({
               </Button>
               <Button
                 onClick={handleDisburse}
-                disabled={busy || selectedPayments.length === 0}
+                disabled={busy || selectedPayments.length === 0 || !utrNumber.trim()}
                 className="gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
               >
                 <ShieldCheck size={15} />

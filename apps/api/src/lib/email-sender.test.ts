@@ -59,4 +59,47 @@ describe("Email sender", () => {
     expect(result.sent).toBe(false);
     expect(result.reason).toMatch(/no email connector/i);
   });
+
+  it("strictly rejects loopback and private IP addresses as SMTP host (B7 SSRF Protection)", async () => {
+    const loopbackResult = await testEmailConnection({
+      provider: "SMTP",
+      fromName: "Finance",
+      fromEmail: "ap@example.com",
+      smtpHost: "127.0.0.1",
+      smtpPort: 25,
+      smtpUser: "user",
+      smtpPassword: "password",
+    });
+
+    expect(loopbackResult.success).toBe(false);
+    expect(loopbackResult.message).toContain("SSRF Guard Rejection");
+    expect(loopbackResult.message).toContain("Loopback address prohibited");
+
+    const localhostResult = await testEmailConnection({
+      provider: "SMTP",
+      fromName: "Finance",
+      fromEmail: "ap@example.com",
+      smtpHost: "localhost",
+      smtpPort: 25,
+      smtpUser: "user",
+      smtpPassword: "password",
+    });
+
+    expect(localhostResult.success).toBe(false);
+    expect(localhostResult.message).toContain("SSRF Guard Rejection");
+
+    const metadataResult = await testEmailConnection({
+      provider: "SMTP",
+      fromName: "Finance",
+      fromEmail: "ap@example.com",
+      smtpHost: "169.254.169.254",
+      smtpPort: 25,
+      smtpUser: "user",
+      smtpPassword: "password",
+    });
+
+    expect(metadataResult.success).toBe(false);
+    expect(metadataResult.message).toContain("SSRF Guard Rejection");
+    expect(metadataResult.message).toContain("metadata");
+  });
 });

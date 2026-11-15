@@ -70,7 +70,8 @@ export function MfaEnrollmentModal({
   };
 
   const handleDownloadRecoveryCodes = () => {
-    const text = `AVARTA AP WORKSPACE - MFA RECOVERY CODES\nGenerated: ${new Date().toISOString()}\n\n` +
+    const text =
+      `AVARTA AP WORKSPACE - MFA RECOVERY CODES\nGenerated: ${new Date().toISOString()}\n\n` +
       recoveryCodes.map((c, i) => `${i + 1}. ${c}`).join("\n") +
       `\n\nKeep these codes in a secure vault. Each code can be used once.`;
     const blob = new Blob([text], { type: "text/plain" });
@@ -80,12 +81,18 @@ export function MfaEnrollmentModal({
     a.download = "avarta-recovery-codes.txt";
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Recovery Codes Downloaded", "Save this file in your corporate password manager.");
+    toast.success(
+      "Recovery Codes Downloaded",
+      "Save this file in your corporate password manager.",
+    );
   };
 
   const handleCompleteEnrollment = () => {
     localStorage.setItem("avarta_mfa_enrolled", "true");
-    toast.success("MFA Enrolled", "Multi-factor authentication is now active for your account.");
+    toast.success(
+      "MFA Enrolled",
+      "Multi-factor authentication is now active for your account.",
+    );
     if (onEnrollComplete) onEnrollComplete();
     handleReset();
   };
@@ -98,7 +105,10 @@ export function MfaEnrollmentModal({
   };
 
   return (
-    <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && handleReset()}>
+    <DialogPrimitive.Root
+      open={isOpen}
+      onOpenChange={(open) => !open && handleReset()}
+    >
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-neutral-950/60 dark:bg-zinc-950/80 transition-opacity" />
         <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 max-h-[90vh] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] overflow-y-auto rounded-lg border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-lg focus:outline-none">
@@ -112,7 +122,8 @@ export function MfaEnrollmentModal({
                   Two-Factor Authentication Setup (A5)
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Description className="text-micro text-neutral-500 dark:text-zinc-400">
-                  Required for approving invoices and releasing financial disbursements
+                  Required for approving invoices and releasing financial
+                  disbursements
                 </DialogPrimitive.Description>
               </div>
             </div>
@@ -158,13 +169,18 @@ export function MfaEnrollmentModal({
                 {method === "totp" ? (
                   <div className="space-y-4">
                     <p className="text-caption text-neutral-600 dark:text-zinc-400">
-                      Scan the QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, 1Password):
+                      Scan the QR code with your authenticator app (Google
+                      Authenticator, Microsoft Authenticator, 1Password):
                     </p>
 
                     {/* QR Code Placeholder Graphic */}
                     <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-950/40">
                       <div className="w-36 h-36 bg-white p-2 rounded-lg border border-neutral-300 dark:border-zinc-700 shadow-2xs flex items-center justify-center">
-                        <svg viewBox="0 0 100 100" className="w-full h-full" fill="currentColor">
+                        <svg
+                          viewBox="0 0 100 100"
+                          className="w-full h-full"
+                          fill="currentColor"
+                        >
                           <path d="M10 10h30v30h-30z M20 20h10v10h-10z M60 10h30v30h-30z M70 20h10v10h-10z M10 60h30v30h-30z M20 70h10v10h-10z M60 60h10v10h-10z M80 60h10v10h-10z M70 70h10v10h-10z M60 80h10v10h-10z M80 80h10v10h-10z" />
                         </svg>
                       </div>
@@ -186,7 +202,11 @@ export function MfaEnrollmentModal({
                           onClick={handleCopySecret}
                           className="px-2 py-1 text-micro font-medium rounded border border-neutral-200 dark:border-zinc-700 hover:bg-neutral-100 dark:hover:bg-zinc-700 flex items-center gap-1 transition-colors"
                         >
-                          {copiedSecret ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                          {copiedSecret ? (
+                            <Check size={12} className="text-emerald-500" />
+                          ) : (
+                            <Copy size={12} />
+                          )}
                           <span>{copiedSecret ? "Copied" : "Copy"}</span>
                         </button>
                       </div>
@@ -194,21 +214,33 @@ export function MfaEnrollmentModal({
                   </div>
                 ) : (
                   <div className="p-6 text-center space-y-3 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-800/40">
-                    <Key size={32} className="text-indigo-600 dark:text-indigo-400 mx-auto" />
+                    <Key
+                      size={32}
+                      className="text-indigo-600 dark:text-indigo-400 mx-auto"
+                    />
                     <h4 className="text-body font-semibold text-neutral-900 dark:text-zinc-100">
                       FIDO2 / WebAuthn Hardware Key
                     </h4>
                     <p className="text-caption text-neutral-500 dark:text-zinc-400 max-w-xs mx-auto">
-                      Use a YubiKey, Apple Touch ID, or Windows Hello to protect your high-value releases.
+                      Use a YubiKey, Apple Touch ID, or Windows Hello to protect
+                      your high-value releases.
                     </p>
                   </div>
                 )}
 
                 <div className="flex items-center justify-between pt-2">
-                  <Button variant="ghost" onClick={handleReset} className="text-neutral-500 text-caption">
+                  <Button
+                    variant="ghost"
+                    onClick={handleReset}
+                    className="text-neutral-500 text-caption"
+                  >
                     Remind me later
                   </Button>
-                  <Button variant="primary" onClick={() => setStep("verify")} className="gap-2">
+                  <Button
+                    variant="primary"
+                    onClick={() => setStep("verify")}
+                    className="gap-2"
+                  >
                     <span>Continue to Verification</span>
                   </Button>
                 </div>
@@ -218,7 +250,8 @@ export function MfaEnrollmentModal({
             {step === "verify" && (
               <form onSubmit={handleVerifyCode} className="space-y-4">
                 <p className="text-caption text-neutral-600 dark:text-zinc-400">
-                  Enter the 6-digit code shown in your authenticator app to confirm setup:
+                  Enter the 6-digit code shown in your authenticator app to
+                  confirm setup:
                 </p>
 
                 {codeError && <Alert type="error">{codeError}</Alert>}
@@ -251,17 +284,27 @@ export function MfaEnrollmentModal({
               <div className="space-y-4">
                 <div className="p-3 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/30">
                   <div className="flex items-start gap-2">
-                    <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                    <AlertCircle
+                      size={16}
+                      className="text-amber-600 shrink-0 mt-0.5"
+                    />
                     <div className="text-caption text-amber-900 dark:text-amber-200">
-                      <strong>Important:</strong> Save these one-time recovery codes now. They are only displayed once and allow access if you lose your phone.
+                      <strong>Important:</strong> Save these one-time recovery
+                      codes now. They are only displayed once and allow access
+                      if you lose your phone.
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 p-3 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-950 font-mono text-body-sm text-neutral-800 dark:text-zinc-200">
                   {recoveryCodes.map((c, i) => (
-                    <div key={i} className="p-1.5 border border-dashed border-neutral-300 dark:border-zinc-800 rounded">
-                      <span className="text-neutral-400 mr-2 text-micro">{i + 1}.</span>
+                    <div
+                      key={i}
+                      className="p-1.5 border border-dashed border-neutral-300 dark:border-zinc-800 rounded"
+                    >
+                      <span className="text-neutral-400 mr-2 text-micro">
+                        {i + 1}.
+                      </span>
                       <span>{c}</span>
                     </div>
                   ))}

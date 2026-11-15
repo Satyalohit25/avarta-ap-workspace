@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 import { ApiError } from "../lib/errors";
+import { logger } from "../lib/logger";
 import { TenantGuardViolationError } from "../config/tenant-guard";
 
 function hasErrorCode(err: unknown, code: string): err is { code: string } {
@@ -82,13 +83,32 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
 
   // Tenant Guard Violation: Log distinctly for SIEM / monitoring
   if (err instanceof TenantGuardViolationError) {
-    console.error(
+    const auditMessage =
       `[SECURITY AUDIT] [TENANT GUARD VIOLATION] ${req.method} ${req.originalUrl || req.url} ` +
       `attempted unguarded ${err.targetAction || "action"} on ${err.targetModel || "model"}. ` +
-      `Operator: ${req.auth?.userId || "unknown"} Org: ${req.auth?.organizationId || "none"} RequestId: ${req.requestId}`
-    );
+      `Operator: ${req.auth?.userId || "unknown"} Org: ${req.auth?.organizationId || "none"} RequestId: ${req.requestId}`;
+    console.error(auditMessage);
+    logger.error("Tenant Guard Violation detected", err, {
+      requestId: req.requestId,
+      organizationId: req.auth?.organizationId,
+      userId: req.auth?.userId,
+      path: req.originalUrl || req.url,
+      method: req.method,
+      statusCode: 500,
+      context: {
+        targetAction: err.targetAction,
+        targetModel: err.targetModel,
+      },
+    });
   } else {
-    console.error(err);
+    logger.error("Internal Server Error (5xx)", err, {
+      requestId: req.requestId,
+      organizationId: req.auth?.organizationId,
+      userId: req.auth?.userId,
+      path: req.originalUrl || req.url,
+      method: req.method,
+      statusCode: 500,
+    });
   }
 
   return res.status(500).json({

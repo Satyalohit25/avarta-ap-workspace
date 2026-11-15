@@ -1,0 +1,108 @@
+name: Avarta AP Workspace CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-checks:
+    name: Static Validation & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck Workspace
+        run: pnpm -r typecheck
+
+      - name: Lint Workspace
+        run: pnpm lint
+
+      - name: Audit UI Invariants
+        run: node apps/web/scripts/audit-ui-invariants.mjs
+
+  unit-tests:
+    name: Unit & Module Test Suite
+    runs-on: ubuntu-latest
+    needs: [static-checks]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @ap-saas/api exec prisma generate
+
+      - name: Build Web Dist for Bundle Hygiene Scan
+        run: pnpm --filter @ap-saas/web build
+
+      - name: Run Bundle Hygiene Scan
+        run: pnpm --filter @ap-saas/api exec vitest run src/modules/system/bundle-hygiene.test.ts
+
+      - name: Run Security & Module Unit Tests
+        env:
+          APP_ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        run: |
+          pnpm --filter @ap-saas/api exec vitest run src/lib/crypto.test.ts src/lib/email-sender.test.ts src/security/ssrf.test.ts src/ai/byok-isolation.test.ts src/modules/payments/bank-export-service.test.ts src/modules/payments/bank-file-generator.test.ts
+
+  build-gate:
+    name: Production Build Gate
+    runs-on: ubuntu-latest
+    needs: [static-checks, unit-tests]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @ap-saas/api exec prisma generate
+
+      - name: Build Production Bundles (Web & API)
+        run: pnpm build
+

@@ -1,6 +1,8 @@
 import { prisma } from "../../config/database";
 import { Prisma } from "@prisma/client";
 import { decryptSecret, encryptSecret } from "../../lib/crypto";
+import { ApiError } from "../../lib/errors";
+import { resolveAndValidateHost } from "../../security/ssrf";
 import { IntegrationRepository } from "../integrations/repository";
 import { IntegrationsService } from "../integrations/service";
 import { UpdateNotificationPreferencesInput } from "./validation";
@@ -211,6 +213,28 @@ export async function updateNotificationPreferences(
     if (input.slackWebhookUrl === "") {
       await IntegrationRepository.remove(organizationId, "NOTIFICATION", "SLACK");
     } else {
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(input.slackWebhookUrl);
+      } catch {
+        throw ApiError.badRequest("Invalid Slack webhook URL format.");
+      }
+
+      if (parsedUrl.protocol !== "https:") {
+        throw ApiError.badRequest("Slack webhook URL must use HTTPS.");
+      }
+
+      if (parsedUrl.hostname !== "hooks.slack.com") {
+        throw ApiError.badRequest(
+          "Invalid Slack webhook host. Only official Slack webhook endpoints (hooks.slack.com) are permitted."
+        );
+      }
+
+      const hostCheck = await resolveAndValidateHost(parsedUrl.hostname);
+      if (!hostCheck.safe) {
+        throw ApiError.badRequest(`SSRF Guard Rejection: ${hostCheck.reason}`);
+      }
+
       await IntegrationRepository.upsert({
         organizationId,
         type: "NOTIFICATION",
@@ -268,6 +292,25 @@ export async function sendTestSlackWebhook(
     url = decryptSecret(slack.encryptedConfig);
   } catch {
     return { sent: false, message: "Slack webhook could not be decrypted." };
+  }
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return { sent: false, message: "Invalid Slack webhook URL format." };
+  }
+
+  if (parsedUrl.protocol !== "https:" || parsedUrl.hostname !== "hooks.slack.com") {
+    return {
+      sent: false,
+      message: "SSRF Guard Rejection: Only official Slack webhooks (https://hooks.slack.com) are permitted.",
+    };
+  }
+
+  const hostCheck = await resolveAndValidateHost(parsedUrl.hostname);
+  if (!hostCheck.safe) {
+    return { sent: false, message: `SSRF Guard Rejection: ${hostCheck.reason}` };
   }
 
   try {
