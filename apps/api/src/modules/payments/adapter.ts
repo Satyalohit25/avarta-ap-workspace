@@ -340,7 +340,7 @@ export class ManualBankAdapter implements IPaymentGatewayAdapter {
       status: "PAID",
       referenceId,
       utrNumber: utr,
-      clearingDocumentNumber: params.clearingDocumentNumber?.trim() || `CLR-${Date.now().toString(36).toUpperCase()}`,
+      clearingDocumentNumber: params.clearingDocumentNumber?.trim() || undefined,
       executedAt,
     };
   }

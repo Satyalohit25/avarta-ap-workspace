@@ -62,7 +62,10 @@ export interface ExtractedInvoiceData {
   fieldBoundingBoxes: Record<string, BoundingBox | null>;
   overallConfidence: number;
   extractionProvider: "GEMINI_FLASH" | "OPENAI" | "HEURISTIC_PARSER";
-  documentLayoutType?: "DHL_COMMERCIAL_INVOICE" | "STANDARD_CORPORATE" | "RETAIL_RECEIPT";
+  documentLayoutType?:
+    | "DHL_COMMERCIAL_INVOICE"
+    | "STANDARD_CORPORATE"
+    | "RETAIL_RECEIPT";
 }
 
 /**
@@ -134,24 +137,35 @@ export async function extractInvoiceFromFile(
   // Check tenant BYOK configuration
   if (organizationId) {
     try {
-      const { IntegrationRepository } = await import("../modules/integrations/repository");
+      const { IntegrationRepository } =
+        await import("../modules/integrations/repository");
       const { decryptSecret } = await import("../lib/crypto");
-      const byokRecords = await IntegrationRepository.findByType(organizationId, "BYOK_AI");
-      const activeByok = byokRecords.find((r) => r.status === "CONNECTED");
-      if (activeByok?.encryptedConfig) {
-        tenantByokRecord = activeByok;
+      const byokRecords = await IntegrationRepository.findByType(
+        organizationId,
+        "BYOK_AI",
+      );
+      if (byokRecords.length > 0) {
+        // Tenant has configured BYOK. Never fall back to platform keys under any circumstances.
+        geminiKey = undefined;
+        openaiKey = undefined;
         tenantByokConfigured = true;
-        const plainKey = decryptSecret(activeByok.encryptedConfig);
-        if (activeByok.provider === "GEMINI") {
-          geminiKey = plainKey;
-          openaiKey = undefined; // Never cross-fallback to another provider's platform key (F2)
-        } else if (activeByok.provider === "OPENAI") {
-          openaiKey = plainKey;
-          geminiKey = undefined; // Never cross-fallback to another provider's platform key (F2)
+
+        const activeByok = byokRecords.find((r) => r.status === "CONNECTED");
+        if (activeByok?.encryptedConfig) {
+          tenantByokRecord = activeByok;
+          const plainKey = decryptSecret(activeByok.encryptedConfig);
+          if (activeByok.provider === "GEMINI") {
+            geminiKey = plainKey;
+          } else if (activeByok.provider === "OPENAI") {
+            openaiKey = plainKey;
+          }
         }
       }
     } catch {
-      // Fallback to default keys
+      if (tenantByokConfigured) {
+        geminiKey = undefined;
+        openaiKey = undefined;
+      }
     }
   }
 
@@ -161,10 +175,16 @@ export async function extractInvoiceFromFile(
       if (data) return data;
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      console.warn("Gemini extraction failed, falling back to heuristic parser:", errMsg);
-      if (tenantByokConfigured && tenantByokRecord) {
+      console.warn(
+        "Gemini extraction failed, falling back to heuristic parser:",
+        errMsg,
+      );
+      // Only mark BYOK as ERROR on permanent credential/auth failures.
+      // Transient failures (timeouts, rate limits) must not flip status to ERROR.
+      if (tenantByokConfigured && tenantByokRecord && /\b(401|403|unauthorized|invalid[_\s-]?api[_\s-]?key)\b/i.test(errMsg)) {
         try {
-          const { IntegrationRepository } = await import("../modules/integrations/repository");
+          const { IntegrationRepository } =
+            await import("../modules/integrations/repository");
           await IntegrationRepository.upsert({
             ...tenantByokRecord,
             status: "ERROR",
@@ -184,9 +204,10 @@ export async function extractInvoiceFromFile(
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       console.warn("OpenAI extraction failed, falling back to heuristic parser:", errMsg);
-      if (tenantByokConfigured && tenantByokRecord) {
+      if (tenantByokConfigured && tenantByokRecord && /\b(401|403|unauthorized|invalid[_\s-]?api[_\s-]?key)\b/i.test(errMsg)) {
         try {
-          const { IntegrationRepository } = await import("../modules/integrations/repository");
+          const { IntegrationRepository } =
+            await import("../modules/integrations/repository");
           await IntegrationRepository.upsert({
             ...tenantByokRecord,
             status: "ERROR",
@@ -246,7 +267,10 @@ Return ONLY valid JSON matching this schema:
               { text: prompt },
               {
                 inlineData: {
-                  mimeType: mimeType === "application/pdf" ? "application/pdf" : mimeType,
+                  mimeType:
+                    mimeType === "application/pdf"
+                      ? "application/pdf"
+                      : mimeType,
                   data: base64Data,
                 },
               },
@@ -350,7 +374,10 @@ function extractWithHeuristics(
   if (fs.existsSync(filePath)) {
     try {
       const buffer = fs.readFileSync(filePath);
-      if (mimeType === "application/pdf" || originalName.toLowerCase().endsWith(".pdf")) {
+      if (
+        mimeType === "application/pdf" ||
+        originalName.toLowerCase().endsWith(".pdf")
+      ) {
         fileText = extractTextFromPdfBuffer(buffer);
       } else {
         fileText = buffer.toString("utf-8", 0, Math.min(buffer.length, 50000));
@@ -415,7 +442,8 @@ function extractWithHeuristics(
       },
       shipTo: {
         name: "Bondi Boutique Pty Ltd",
-        address: "48 Campbell Parade, Bondi Beach, Sydney NSW 2026, New South Wales, Australia",
+        address:
+          "48 Campbell Parade, Bondi Beach, Sydney NSW 2026, New South Wales, Australia",
         phone: "+61 2 9365 4410",
       },
       purchaseOrderNumber: "SO-2026-04517",
@@ -428,7 +456,13 @@ function extractWithHeuristics(
           lineAmount: 180.0,
           hsnSacCode: "6109.10",
           taxRate: 0,
-          boundingBox: { pageNumber: 1, x: 0.048, y: 0.442, width: 0.915, height: 0.2 },
+          boundingBox: {
+            pageNumber: 1,
+            x: 0.048,
+            y: 0.442,
+            width: 0.915,
+            height: 0.2,
+          },
         },
       ],
       subtotal: 180.0,
@@ -449,23 +483,125 @@ function extractWithHeuristics(
       },
       // Exact bounding box coordinates mapped to all 14 numbered sections on the DHL document:
       fieldBoundingBoxes: {
-        supplierName: { pageNumber: 1, x: 0.048, y: 0.188, width: 0.435, height: 0.098 }, // Box 1 SHIPPER
-        invoiceNumber: { pageNumber: 1, x: 0.048, y: 0.312, width: 0.435, height: 0.072 }, // Box 2 Airwaybill No.
-        shipTo: { pageNumber: 1, x: 0.528, y: 0.188, width: 0.435, height: 0.098 }, // Box 3 SHIP TO
-        billTo: { pageNumber: 1, x: 0.528, y: 0.312, width: 0.435, height: 0.098 }, // Box 4 BILL TO
-        lineDescription: { pageNumber: 1, x: 0.048, y: 0.442, width: 0.415, height: 0.198 }, // Box 5 Full Description
-        harmonisedCode: { pageNumber: 1, x: 0.468, y: 0.442, width: 0.105, height: 0.198 }, // Box 6 Harmonised Code
-        quantity: { pageNumber: 1, x: 0.575, y: 0.442, width: 0.08, height: 0.198 }, // Box 7 No. of Pieces
-        currency: { pageNumber: 1, x: 0.658, y: 0.442, width: 0.09, height: 0.198 }, // Box 8 Currency
-        unitPrice: { pageNumber: 1, x: 0.75, y: 0.442, width: 0.105, height: 0.198 }, // Box 9 Unit Value
-        lineTotal: { pageNumber: 1, x: 0.858, y: 0.442, width: 0.105, height: 0.198 }, // Box 10 Total Value
-        lineItems: { pageNumber: 1, x: 0.048, y: 0.442, width: 0.915, height: 0.2 }, // Box 5-10 Line Items Table
-        totalAmount: { pageNumber: 1, x: 0.725, y: 0.642, width: 0.238, height: 0.036 }, // Total Invoice Value: 180.00
-        incoTerms: { pageNumber: 1, x: 0.048, y: 0.675, width: 0.915, height: 0.035 }, // Box 11 INCO Terms
-        purchaseOrderNumber: { pageNumber: 1, x: 0.048, y: 0.715, width: 0.915, height: 0.038 }, // Box 12 Reasons for Export / Sales Order Ref
-        countryOfOrigin: { pageNumber: 1, x: 0.048, y: 0.765, width: 0.915, height: 0.038 }, // Box 13 Origin Declaration
-        declarantSignature: { pageNumber: 1, x: 0.048, y: 0.81, width: 0.915, height: 0.15 }, // Box 14 Declarant & Signature
-        invoiceDate: { pageNumber: 1, x: 0.048, y: 0.15, width: 0.2, height: 0.032 }, // Header DATE
+        supplierName: {
+          pageNumber: 1,
+          x: 0.048,
+          y: 0.188,
+          width: 0.435,
+          height: 0.098,
+        }, // Box 1 SHIPPER
+        invoiceNumber: {
+          pageNumber: 1,
+          x: 0.048,
+          y: 0.312,
+          width: 0.435,
+          height: 0.072,
+        }, // Box 2 Airwaybill No.
+        shipTo: {
+          pageNumber: 1,
+          x: 0.528,
+          y: 0.188,
+          width: 0.435,
+          height: 0.098,
+        }, // Box 3 SHIP TO
+        billTo: {
+          pageNumber: 1,
+          x: 0.528,
+          y: 0.312,
+          width: 0.435,
+          height: 0.098,
+        }, // Box 4 BILL TO
+        lineDescription: {
+          pageNumber: 1,
+          x: 0.048,
+          y: 0.442,
+          width: 0.415,
+          height: 0.198,
+        }, // Box 5 Full Description
+        harmonisedCode: {
+          pageNumber: 1,
+          x: 0.468,
+          y: 0.442,
+          width: 0.105,
+          height: 0.198,
+        }, // Box 6 Harmonised Code
+        quantity: {
+          pageNumber: 1,
+          x: 0.575,
+          y: 0.442,
+          width: 0.08,
+          height: 0.198,
+        }, // Box 7 No. of Pieces
+        currency: {
+          pageNumber: 1,
+          x: 0.658,
+          y: 0.442,
+          width: 0.09,
+          height: 0.198,
+        }, // Box 8 Currency
+        unitPrice: {
+          pageNumber: 1,
+          x: 0.75,
+          y: 0.442,
+          width: 0.105,
+          height: 0.198,
+        }, // Box 9 Unit Value
+        lineTotal: {
+          pageNumber: 1,
+          x: 0.858,
+          y: 0.442,
+          width: 0.105,
+          height: 0.198,
+        }, // Box 10 Total Value
+        lineItems: {
+          pageNumber: 1,
+          x: 0.048,
+          y: 0.442,
+          width: 0.915,
+          height: 0.2,
+        }, // Box 5-10 Line Items Table
+        totalAmount: {
+          pageNumber: 1,
+          x: 0.725,
+          y: 0.642,
+          width: 0.238,
+          height: 0.036,
+        }, // Total Invoice Value: 180.00
+        incoTerms: {
+          pageNumber: 1,
+          x: 0.048,
+          y: 0.675,
+          width: 0.915,
+          height: 0.035,
+        }, // Box 11 INCO Terms
+        purchaseOrderNumber: {
+          pageNumber: 1,
+          x: 0.048,
+          y: 0.715,
+          width: 0.915,
+          height: 0.038,
+        }, // Box 12 Reasons for Export / Sales Order Ref
+        countryOfOrigin: {
+          pageNumber: 1,
+          x: 0.048,
+          y: 0.765,
+          width: 0.915,
+          height: 0.038,
+        }, // Box 13 Origin Declaration
+        declarantSignature: {
+          pageNumber: 1,
+          x: 0.048,
+          y: 0.81,
+          width: 0.915,
+          height: 0.15,
+        }, // Box 14 Declarant & Signature
+        invoiceDate: {
+          pageNumber: 1,
+          x: 0.048,
+          y: 0.15,
+          width: 0.2,
+          height: 0.032,
+        }, // Header DATE
       },
       overallConfidence: 98.2,
       extractionProvider: "HEURISTIC_PARSER",
@@ -476,9 +612,15 @@ function extractWithHeuristics(
   // ---------------------------------------------------------------------------
   // PROFILE 2: BlueDart Express Logistics
   // ---------------------------------------------------------------------------
-  if (combinedSearch.includes("bluedart") || combinedSearch.includes("express freight")) {
-    const invMatch = combinedSearch.match(/(?:inv|invoice|waybill|awb|consign)[\s#:.-]*([A-Za-z0-9-]{6,20})/i);
-    const invoiceNumber = invMatch && invMatch[1] ? invMatch[1].toUpperCase() : "";
+  if (
+    combinedSearch.includes("bluedart") ||
+    combinedSearch.includes("express freight")
+  ) {
+    const invMatch = combinedSearch.match(
+      /(?:inv|invoice|waybill|awb|consign)[\s#:.-]*([A-Za-z0-9-]{6,20})/i,
+    );
+    const invoiceNumber =
+      invMatch && invMatch[1] ? invMatch[1].toUpperCase() : "";
     return {
       invoiceNumber,
       invoiceDate: "2026-10-06",
@@ -494,7 +636,8 @@ function extractWithHeuristics(
       lines: [
         {
           lineNumber: 1,
-          description: "Express Air Freight Consignment Handling & Priority Shipping",
+          description:
+            "Express Air Freight Consignment Handling & Priority Shipping",
           quantity: 12,
           unitPrice: 1500,
           lineAmount: 18000,
@@ -514,11 +657,41 @@ function extractWithHeuristics(
         lineItems: 0.97,
       },
       fieldBoundingBoxes: {
-        supplierName: { pageNumber: 1, x: 0.06, y: 0.06, width: 0.35, height: 0.05 },
-        invoiceNumber: { pageNumber: 1, x: 0.65, y: 0.06, width: 0.28, height: 0.045 },
-        invoiceDate: { pageNumber: 1, x: 0.65, y: 0.115, width: 0.25, height: 0.035 },
-        lineItems: { pageNumber: 1, x: 0.05, y: 0.38, width: 0.9, height: 0.25 },
-        totalAmount: { pageNumber: 1, x: 0.65, y: 0.78, width: 0.28, height: 0.045 },
+        supplierName: {
+          pageNumber: 1,
+          x: 0.06,
+          y: 0.06,
+          width: 0.35,
+          height: 0.05,
+        },
+        invoiceNumber: {
+          pageNumber: 1,
+          x: 0.65,
+          y: 0.06,
+          width: 0.28,
+          height: 0.045,
+        },
+        invoiceDate: {
+          pageNumber: 1,
+          x: 0.65,
+          y: 0.115,
+          width: 0.25,
+          height: 0.035,
+        },
+        lineItems: {
+          pageNumber: 1,
+          x: 0.05,
+          y: 0.38,
+          width: 0.9,
+          height: 0.25,
+        },
+        totalAmount: {
+          pageNumber: 1,
+          x: 0.65,
+          y: 0.78,
+          width: 0.28,
+          height: 0.045,
+        },
       },
       overallConfidence: 96.5,
       extractionProvider: "HEURISTIC_PARSER",
@@ -529,7 +702,10 @@ function extractWithHeuristics(
   // ---------------------------------------------------------------------------
   // PROFILE 3: Salesforce Inc (CAD Software Subscription)
   // ---------------------------------------------------------------------------
-  if (combinedSearch.includes("salesforce") || combinedSearch.includes("sales cloud")) {
+  if (
+    combinedSearch.includes("salesforce") ||
+    combinedSearch.includes("sales cloud")
+  ) {
     return {
       invoiceNumber: "INV-2026-1016",
       invoiceDate: "2026-10-08",
@@ -581,11 +757,41 @@ function extractWithHeuristics(
         lineItems: 0.98,
       },
       fieldBoundingBoxes: {
-        supplierName: { pageNumber: 1, x: 0.05, y: 0.06, width: 0.38, height: 0.05 },
-        invoiceNumber: { pageNumber: 1, x: 0.64, y: 0.055, width: 0.31, height: 0.048 },
-        invoiceDate: { pageNumber: 1, x: 0.64, y: 0.115, width: 0.28, height: 0.038 },
-        lineItems: { pageNumber: 1, x: 0.04, y: 0.36, width: 0.92, height: 0.26 },
-        totalAmount: { pageNumber: 1, x: 0.62, y: 0.81, width: 0.34, height: 0.05 },
+        supplierName: {
+          pageNumber: 1,
+          x: 0.05,
+          y: 0.06,
+          width: 0.38,
+          height: 0.05,
+        },
+        invoiceNumber: {
+          pageNumber: 1,
+          x: 0.64,
+          y: 0.055,
+          width: 0.31,
+          height: 0.048,
+        },
+        invoiceDate: {
+          pageNumber: 1,
+          x: 0.64,
+          y: 0.115,
+          width: 0.28,
+          height: 0.038,
+        },
+        lineItems: {
+          pageNumber: 1,
+          x: 0.04,
+          y: 0.36,
+          width: 0.92,
+          height: 0.26,
+        },
+        totalAmount: {
+          pageNumber: 1,
+          x: 0.62,
+          y: 0.81,
+          width: 0.34,
+          height: 0.05,
+        },
       },
       overallConfidence: 97.4,
       extractionProvider: "HEURISTIC_PARSER",
@@ -598,7 +804,9 @@ function extractWithHeuristics(
   // ---------------------------------------------------------------------------
   const today = new Date();
   const dateStr = today.toISOString().split("T")[0];
-  const dueStr = new Date(today.getTime() + 30 * 86400000).toISOString().split("T")[0];
+  const dueStr = new Date(today.getTime() + 30 * 86400000)
+    .toISOString()
+    .split("T")[0];
 
   // Try extracting currency from text
   let detectedCurrency = "INR";
@@ -610,14 +818,18 @@ function extractWithHeuristics(
 
   // Try extracting invoice number from text or filename
   let detectedInvoiceNum = "";
-  const invMatch = combinedSearch.match(/(?:inv|invoice|bill|awb|airwaybill)[\s#:.-]*([A-Za-z0-9-]{6,16})/i);
+  const invMatch = combinedSearch.match(
+    /(?:inv|invoice|bill|awb|airwaybill)[\s#:.-]*([A-Za-z0-9-]{6,16})/i,
+  );
   if (invMatch && invMatch[1]) {
     detectedInvoiceNum = invMatch[1].toUpperCase();
   }
 
   // Try extracting amount
   let detectedAmount = 0;
-  const amtMatch = combinedSearch.match(/(?:total(?:\s+invoice\s+value)?|amount(?:\s+due)?|balance)[\s:A-Z$€£₹]*([\d,]+\.\d{2})/i);
+  const amtMatch = combinedSearch.match(
+    /(?:total(?:\s+invoice\s+value)?|amount(?:\s+due)?|balance)[\s:A-Z$€£₹]*([\d,]+\.\d{2})/i,
+  );
   if (amtMatch && amtMatch[1]) {
     const parsedAmt = parseFloat(amtMatch[1].replace(/,/g, ""));
     if (!isNaN(parsedAmt) && parsedAmt > 0) {
@@ -630,7 +842,12 @@ function extractWithHeuristics(
 
   const hasInvoiceNum = Boolean(detectedInvoiceNum);
   const hasAmount = detectedAmount > 0;
-  const overallConfidence = hasInvoiceNum && hasAmount ? 78.5 : hasInvoiceNum || hasAmount ? 50.0 : 25.0;
+  const overallConfidence =
+    hasInvoiceNum && hasAmount
+      ? 78.5
+      : hasInvoiceNum || hasAmount
+        ? 50.0
+        : 25.0;
 
   return {
     invoiceNumber: detectedInvoiceNum,
@@ -639,14 +856,20 @@ function extractWithHeuristics(
     currency: detectedCurrency,
     supplier: {
       name: "Global Commercial Supplier",
-      country: detectedCurrency === "SGD" ? "SG" : detectedCurrency === "CAD" ? "CA" : "IN",
+      country:
+        detectedCurrency === "SGD"
+          ? "SG"
+          : detectedCurrency === "CAD"
+            ? "CA"
+            : "IN",
       address: "Industrial Logistics Park, Zone 4",
     },
     lines: hasAmount
       ? [
           {
             lineNumber: 1,
-            description: "Commercial Supply Items & Services (Verified Extracted)",
+            description:
+              "Commercial Supply Items & Services (Verified Extracted)",
             quantity: 1,
             unitPrice: subtotal,
             lineAmount: subtotal,
@@ -666,11 +889,29 @@ function extractWithHeuristics(
       lineItems: hasAmount ? 0.75 : 0.0,
     },
     fieldBoundingBoxes: {
-      supplierName: { pageNumber: 1, x: 0.05, y: 0.06, width: 0.38, height: 0.05 },
-      invoiceNumber: hasInvoiceNum ? { pageNumber: 1, x: 0.64, y: 0.055, width: 0.31, height: 0.048 } : null,
-      invoiceDate: { pageNumber: 1, x: 0.64, y: 0.115, width: 0.28, height: 0.038 },
-      lineItems: hasAmount ? { pageNumber: 1, x: 0.04, y: 0.36, width: 0.92, height: 0.26 } : null,
-      totalAmount: hasAmount ? { pageNumber: 1, x: 0.62, y: 0.81, width: 0.34, height: 0.05 } : null,
+      supplierName: {
+        pageNumber: 1,
+        x: 0.05,
+        y: 0.06,
+        width: 0.38,
+        height: 0.05,
+      },
+      invoiceNumber: hasInvoiceNum
+        ? { pageNumber: 1, x: 0.64, y: 0.055, width: 0.31, height: 0.048 }
+        : null,
+      invoiceDate: {
+        pageNumber: 1,
+        x: 0.64,
+        y: 0.115,
+        width: 0.28,
+        height: 0.038,
+      },
+      lineItems: hasAmount
+        ? { pageNumber: 1, x: 0.04, y: 0.36, width: 0.92, height: 0.26 }
+        : null,
+      totalAmount: hasAmount
+        ? { pageNumber: 1, x: 0.62, y: 0.81, width: 0.34, height: 0.05 }
+        : null,
     },
     overallConfidence,
     extractionProvider: "HEURISTIC_PARSER",

@@ -21,7 +21,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
@@ -52,7 +52,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
@@ -69,14 +69,10 @@ jobs:
       - name: Build Web Dist for Bundle Hygiene Scan
         run: pnpm --filter @ap-saas/web build
 
-      - name: Run Bundle Hygiene Scan
-        run: pnpm --filter @ap-saas/api exec vitest run src/modules/system/bundle-hygiene.test.ts
-
-      - name: Run Security & Module Unit Tests
+      - name: Run Full Test Suite
         env:
           APP_ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-        run: |
-          pnpm --filter @ap-saas/api exec vitest run src/lib/crypto.test.ts src/lib/email-sender.test.ts src/security/ssrf.test.ts src/ai/byok-isolation.test.ts src/modules/payments/bank-export-service.test.ts src/modules/payments/bank-file-generator.test.ts
+        run: pnpm --filter @ap-saas/api test
 
   build-gate:
     name: Production Build Gate
@@ -89,7 +85,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
@@ -105,4 +101,3 @@ jobs:
 
       - name: Build Production Bundles (Web & API)
         run: pnpm build
-

@@ -60,7 +60,7 @@ describe("generateBankExportFile - Real Bank Account Resolution (Item B / B1)", 
     ] as any);
 
     await expect(generateBankExportFile(orgId, "csv")).rejects.toThrow(
-      "Cannot export bank file: Supplier 'Unverified Supplier' has no verified bank account."
+      "Cannot export bank file: Supplier 'Unverified Supplier' has no verified bank account.",
     );
   });
 
@@ -85,7 +85,7 @@ describe("generateBankExportFile - Real Bank Account Resolution (Item B / B1)", 
     vi.mocked(prisma.bankAccount.findMany).mockResolvedValue([]);
 
     await expect(generateBankExportFile(orgId, "csv")).rejects.toThrow(
-      "Cannot export bank file: Supplier 'No Bank Supplier' has no verified bank account."
+      "Cannot export bank file: Supplier 'No Bank Supplier' has no verified bank account.",
     );
   });
 
@@ -130,4 +130,3 @@ describe("generateBankExportFile - Real Bank Account Resolution (Item B / B1)", 
     expect(csvResult).toContain("25000.00");
   });
 });
-

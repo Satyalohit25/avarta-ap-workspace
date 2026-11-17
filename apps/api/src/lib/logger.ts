@@ -21,7 +21,7 @@ export interface LogEntry {
 function emitLog(
   level: "info" | "warn" | "error",
   message: string,
-  meta?: Partial<LogEntry>
+  meta?: Partial<LogEntry>,
 ) {
   const entry: LogEntry = {
     level,
@@ -49,9 +49,8 @@ export const logger = {
       error instanceof Error
         ? { name: error.name, message: error.message, stack: error.stack }
         : error
-        ? { message: String(error) }
-        : undefined;
+          ? { message: String(error) }
+          : undefined;
     emitLog("error", message, { ...meta, error: errorDetails });
   },
 };
-

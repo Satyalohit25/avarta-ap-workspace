@@ -63,17 +63,20 @@ invoiceRoutes.get("/:invoiceId/documents/:documentId/file", requireScope("invoic
 invoiceRoutes.post(
   "/:invoiceId/process",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
+  requireScope("invoices:write"),
   requireIdempotencyKey,
   processHandler
 );
 invoiceRoutes.post(
   "/:invoiceId/transitions",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "APPROVER", "FINANCE_EXECUTIVE"),
+  requireScope("invoices:write"),
   transitionHandler
 );
 invoiceRoutes.post(
   "/:invoiceId/erp-sync",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
+  requireScope("invoices:write"),
   requireIdempotencyKey,
   erpSyncHandler
 );

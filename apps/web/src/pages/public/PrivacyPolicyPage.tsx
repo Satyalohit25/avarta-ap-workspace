@@ -52,8 +52,13 @@ export default function PrivacyPolicyPage() {
             <p>
               Under our <strong>Bring Your Own Database (BYODB)</strong> and{" "}
               <strong>Bring Your Own Key (BYOK)</strong> models, enterprise
-              customers retain sovereign ownership and control over where their
-              invoice images, financial records, and vendor details reside.
+              customers can connect their own database credentials and AI API
+              keys. BYODB currently verifies connectivity to the customer's
+              database; it does not automatically route operational invoice,
+              supplier, or payment data to that database. All operational data
+              resides in the Platform's managed database with strict per-tenant
+              isolation. BYOK routes document extraction requests through the
+              customer's own AI provider agreement.
             </p>
           </section>
 

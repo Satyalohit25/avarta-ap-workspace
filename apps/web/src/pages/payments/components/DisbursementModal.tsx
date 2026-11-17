@@ -457,21 +457,35 @@ export function DisbursementModal({
               </div>
             </div>
 
-            <div className="space-y-1.5 p-3 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-neutral-50/50 dark:bg-zinc-800/40">
-              <label htmlFor="disbursement-utr-input" className="text-caption font-semibold text-neutral-800 dark:text-zinc-200 block">
-                Bank UTR / Transaction Reference Number <span className="text-red-500">*</span>
-              </label>
-              <Input
-                id="disbursement-utr-input"
-                placeholder="e.g. UTR-20261115-987654 or NEFT12345678"
-                value={utrNumber}
-                onChange={(e) => setUtrNumber(e.target.value)}
-                className="font-mono text-body-sm"
-              />
-              <p className="text-micro text-neutral-500 dark:text-zinc-400">
-                A valid bank settlement UTR is required to confirm disbursement and advance ledgers to PAID.
-              </p>
-            </div>
+            {isSingle ? (
+              <div className="space-y-1.5 p-3 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-neutral-50/50 dark:bg-zinc-800/40">
+                <label htmlFor="disbursement-utr-input" className="text-caption font-semibold text-neutral-800 dark:text-zinc-200 block">
+                  Bank UTR / Transaction Reference Number <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="disbursement-utr-input"
+                  placeholder="e.g. UTR-20261115-987654 or NEFT12345678"
+                  value={utrNumber}
+                  onChange={(e) => setUtrNumber(e.target.value)}
+                  className="font-mono text-body-sm"
+                />
+                <p className="text-micro text-neutral-500 dark:text-zinc-400">
+                  A valid bank settlement UTR is required to confirm disbursement and advance ledgers to PAID.
+                </p>
+              </div>
+            ) : (
+              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/70 flex items-start gap-2 text-caption text-red-800 dark:text-red-300">
+                <Info size={15} className="shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-semibold">Batch manual disbursement is not supported</p>
+                  <p className="text-micro">
+                    Each payment requires its own unique bank UTR. To settle multiple payments at once,
+                    use Export Batch to generate a bank file, then record each payment individually with
+                    its UTR after bank processing.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/70 flex items-start gap-2 text-caption text-amber-800 dark:text-amber-300">
               <Info size={15} className="shrink-0 mt-0.5" />
@@ -490,11 +504,11 @@ export function DisbursementModal({
               </Button>
               <Button
                 onClick={handleDisburse}
-                disabled={busy || selectedPayments.length === 0 || !utrNumber.trim()}
+                disabled={busy || selectedPayments.length === 0 || !isSingle || !utrNumber.trim()}
                 className="gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
               >
                 <ShieldCheck size={15} />
-                <span>{busy ? "Executing…" : isSingle ? "Execute Payment" : "Execute Batch"}</span>
+                <span>{busy ? "Executing…" : "Execute Payment"}</span>
               </Button>
             </div>
           </>

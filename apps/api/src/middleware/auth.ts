@@ -23,9 +23,21 @@ const API_KEY_BLOCKED_PATHS = [
   "/bank-accounts",
 ];
 
+// Financial workflow actions on invoices that API keys must never trigger.
+// These are sub-routes of /invoices/:id and can't be caught by prefix matching.
+const API_KEY_BLOCKED_SUFFIXES = [
+  "/transitions",
+  "/process",
+  "/erp-sync",
+];
+
 export function apiKeyPathIsBlocked(originalUrl: string): boolean {
   const path = originalUrl.replace(/^\/api(?:\/v1)?/, "");
-  return API_KEY_BLOCKED_PATHS.some((prefix) => path.startsWith(prefix));
+  if (API_KEY_BLOCKED_PATHS.some((prefix) => path.startsWith(prefix))) {
+    return true;
+  }
+  // Block financial sub-actions on any resource (e.g. /invoices/:id/transitions)
+  return API_KEY_BLOCKED_SUFFIXES.some((suffix) => path.endsWith(suffix));
 }
 
 function isApiKeyBlocked(req: Request): boolean {

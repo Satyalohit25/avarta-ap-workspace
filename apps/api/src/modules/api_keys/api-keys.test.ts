@@ -123,6 +123,11 @@ describe("Workspace API keys", () => {
       expect(apiKeyPathIsBlocked(`${prefix}/approvals`)).toBe(true);
       expect(apiKeyPathIsBlocked(`${prefix}/payments`)).toBe(true);
       expect(apiKeyPathIsBlocked(`${prefix}/bank-accounts`)).toBe(true);
+
+      // Financial workflow sub-actions on invoices must also be blocked
+      expect(apiKeyPathIsBlocked(`${prefix}/invoices/inv-123/transitions`)).toBe(true);
+      expect(apiKeyPathIsBlocked(`${prefix}/invoices/inv-123/process`)).toBe(true);
+      expect(apiKeyPathIsBlocked(`${prefix}/invoices/inv-123/erp-sync`)).toBe(true);
     }
 
     // Ingestion routes remain usable by scoped keys.
