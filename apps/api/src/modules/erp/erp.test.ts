@@ -71,6 +71,7 @@ describe("ERP Sync (CSV Adapter) (Step 8)", () => {
       invoiceNumber: "INV-2026-001",
       currency: "INR",
       totalAmount: 118000 as any,
+      subtotalAmount: 100000 as any,
       taxAmount: 18000 as any,
       supplier: { displayName: "Acme Industrial" },
     } as any);
@@ -98,6 +99,36 @@ describe("ERP Sync (CSV Adapter) (Step 8)", () => {
         invoiceId: "inv-123",
         event: "ERP_SUCCESS",
       })
+    );
+  });
+
+  it("refuses to build journal entry if subtotal is null or missing (T-107)", () => {
+    const mockInvoice = {
+      id: "inv-null-subtotal",
+      invoiceNumber: "INV-2026-NULL-SUB",
+      currency: "INR",
+      subtotalAmount: null,
+      taxAmount: 18000,
+      totalAmount: 118000,
+    };
+
+    expect(() => buildJournalEntry(mockInvoice as any)).toThrow(
+      "Cannot post ERP journal entry: invoice INV-2026-NULL-SUB has missing subtotal amount."
+    );
+  });
+
+  it("refuses to build journal entry if tax is null or missing (T-107)", () => {
+    const mockInvoice = {
+      id: "inv-null-tax",
+      invoiceNumber: "INV-2026-NULL-TAX",
+      currency: "INR",
+      subtotalAmount: 100000,
+      taxAmount: null,
+      totalAmount: 100000,
+    };
+
+    expect(() => buildJournalEntry(mockInvoice as any)).toThrow(
+      "Cannot post ERP journal entry: invoice INV-2026-NULL-TAX has missing tax amount."
     );
   });
 });

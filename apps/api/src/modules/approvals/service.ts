@@ -175,6 +175,38 @@ export async function verifyApprovalAuthority(
       `Cannot approve invoice ${invoiceNumber}: Invoice has an unresolved blocking exception "${openException.type}". Exceptions must be resolved before financial approval.`
     );
   }
+
+  // 4. T-107: An invoice with null subtotal or tax cannot be approved; raises MISSING_TAX_DATA exception
+  const invRecord = await tx.invoice.findFirst({
+    where: { id: invoiceId, organizationId },
+    select: { subtotalAmount: true, taxAmount: true },
+  });
+  if (invRecord && (invRecord.subtotalAmount === null || invRecord.taxAmount === null)) {
+    const existingTaxEx = await tx.exception.findFirst({
+      where: {
+        invoiceId,
+        organizationId,
+        type: "MISSING_TAX_DATA",
+        status: { in: ["OPEN", "ASSIGNED", "UNDER_REVIEW"] },
+      },
+    });
+    if (!existingTaxEx) {
+      await tx.exception.create({
+        data: {
+          organizationId,
+          invoiceId,
+          type: "MISSING_TAX_DATA",
+          severity: "HIGH",
+          title: "Missing Statutory Tax Data",
+          description: "Invoice has missing subtotal or tax amount. Values must be entered before approval.",
+          status: "OPEN",
+        },
+      });
+    }
+    throw ApiError.badRequest(
+      `Cannot approve invoice ${invoiceNumber}: Subtotal and tax amount cannot be null. Please resolve the MISSING_TAX_DATA exception by entering statutory tax values.`
+    );
+  }
 }
 
 /**

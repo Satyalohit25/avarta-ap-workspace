@@ -14,9 +14,20 @@ export function buildJournalEntry(invoice: {
   totalAmount: unknown;
   supplier?: { displayName?: string; legalName?: string } | null;
 }): JournalEntry {
+  if (invoice.subtotalAmount === null || invoice.subtotalAmount === undefined) {
+    throw new Error(
+      `Cannot post ERP journal entry: invoice ${invoice.invoiceNumber} has missing subtotal amount.`
+    );
+  }
+  if (invoice.taxAmount === null || invoice.taxAmount === undefined) {
+    throw new Error(
+      `Cannot post ERP journal entry: invoice ${invoice.invoiceNumber} has missing tax amount.`
+    );
+  }
+
   const total = Number(invoice.totalAmount);
-  const tax = Number(invoice.taxAmount ?? 0);
-  const subtotal = total - tax;
+  const subtotal = Number(invoice.subtotalAmount);
+  const tax = Number(invoice.taxAmount);
   const vendorName = invoice.supplier?.displayName || invoice.supplier?.legalName || "Verified AP Supplier";
   const postingDate = new Date().toISOString().split("T")[0];
   const entryNumber = `JE-AVARTA-${Date.now().toString().slice(-6)}`;
@@ -70,6 +81,12 @@ export async function syncInvoiceWithErp(params: {
   });
 
   if (!invoice) throw ApiError.notFound("Invoice not found");
+
+  if (invoice.subtotalAmount === null || invoice.taxAmount === null) {
+    throw ApiError.badRequest(
+      `Cannot sync invoice ${invoice.invoiceNumber} with ERP: Subtotal or tax amount is missing. Statutory tax data is required for double-entry ledger posting.`
+    );
+  }
 
   const entry = buildJournalEntry(invoice);
   const syncResult = await defaultAdapter.exportJournalEntry(entry);

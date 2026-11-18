@@ -1,11 +1,15 @@
-import { describe, expect, it } from "vitest";
+import fs from "fs";
+import path from "path";
+import os from "os";
+import { describe, expect, it, vi } from "vitest";
 import {
   calculateGstinCheckDigit,
   validateGstinChecksum,
   validateTaxArithmetic,
 } from "./tax-validator";
+import { extractWithHeuristics } from "../../ai/extractor";
 
-describe("Tax ID & Arithmetic Validation (Step 10)", () => {
+describe("Tax ID & Arithmetic Validation (Step 10 & T-107)", () => {
   describe("GSTIN Checksum Verification", () => {
     it("validates legitimate Indian GSTINs with correct Modulo-36 check digits", () => {
       // Tata Consultancy Services Ltd (Maharashtra): 27AAACT2727Q1ZW
@@ -55,5 +59,164 @@ describe("Tax ID & Arithmetic Validation (Step 10)", () => {
       expect(result.isValid).toBe(false);
       expect(result.difference).toBe(7000);
     });
+
+    it("identifies missing subtotal as invalid with missingData flag (T-107)", () => {
+      const result = validateTaxArithmetic(null, 18000, 118000);
+      expect(result.isValid).toBe(false);
+      expect(result.missingData).toBe(true);
+    });
+
+    it("identifies missing tax as invalid with missingData flag (T-107)", () => {
+      const result = validateTaxArithmetic(100000, null, 118000);
+      expect(result.isValid).toBe(false);
+      expect(result.missingData).toBe(true);
+    });
+
+    it("identifies both missing as invalid with missingData flag (T-107)", () => {
+      const result = validateTaxArithmetic(null, null, 118000);
+      expect(result.isValid).toBe(false);
+      expect(result.missingData).toBe(true);
+    });
+  });
+
+  describe("T-107: Stop Fabricating Subtotal and Tax (Extraction, Validation & Approval)", () => {
+    it("fallback extractor returns null for missing subtotal and tax instead of 85% estimate", () => {
+      const tmpFile = path.join(os.tmpdir(), `test-inv-missing-${Date.now()}.txt`);
+      fs.writeFileSync(tmpFile, "INVOICE #INV-8899 Date: 2026-09-01 Total Amount: 10,000.00");
+
+      try {
+        const result = extractWithHeuristics(tmpFile, "text/plain", "invoice.txt");
+        expect(result.totalAmount).toBe(10000);
+        expect(result.subtotal).toBeNull();
+        expect(result.taxAmount).toBeNull();
+      } finally {
+        if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+      }
+    });
+
+    it("fallback extractor extracts subtotal and tax when explicitly present in document", () => {
+      const tmpFile = path.join(os.tmpdir(), `test-inv-present-${Date.now()}.txt`);
+      fs.writeFileSync(
+        tmpFile,
+        "INVOICE #INV-8899 Subtotal: 8,500.00 Tax Amount: 1,500.00 Total Amount: 10,000.00"
+      );
+
+      try {
+        const result = extractWithHeuristics(tmpFile, "text/plain", "invoice.txt");
+        expect(result.totalAmount).toBe(10000);
+        expect(result.subtotal).toBe(8500);
+        expect(result.taxAmount).toBe(1500);
+      } finally {
+        if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+      }
+    });
+
+    it("runValidations produces MISSING_TAX_DATA failure when subtotal is null", async () => {
+      const { runValidations } = await import("./service");
+      const { prisma } = await import("../../config/database");
+
+      vi.spyOn(prisma.invoice, "findFirst").mockResolvedValue(null);
+      vi.spyOn(prisma.validation, "create").mockResolvedValue({} as any);
+
+      const mockInvoice = {
+        id: "inv-null-subtotal",
+        organizationId: "org-test",
+        invoiceNumber: "INV-NULL-SUB",
+        totalAmount: 10000 as any,
+        subtotalAmount: null,
+        taxAmount: 1800 as any,
+        supplierId: null,
+      };
+
+      const failures = await runValidations("org-test", mockInvoice as any, 95);
+      const taxFailure = failures.find((f) => f.ruleCode === "TAX_CALCULATION");
+
+      expect(taxFailure).toBeDefined();
+      expect(taxFailure?.exceptionType).toBe("MISSING_TAX_DATA");
+      expect(taxFailure?.message).toContain("missing statutory subtotal or tax amount");
+    }, 20000);
+
+    it("runValidations produces MISSING_TAX_DATA failure when tax is null", async () => {
+      const { runValidations } = await import("./service");
+      const { prisma } = await import("../../config/database");
+
+      vi.spyOn(prisma.invoice, "findFirst").mockResolvedValue(null);
+      vi.spyOn(prisma.validation, "create").mockResolvedValue({} as any);
+
+      const mockInvoice = {
+        id: "inv-null-tax",
+        organizationId: "org-test",
+        invoiceNumber: "INV-NULL-TAX",
+        totalAmount: 10000 as any,
+        subtotalAmount: 8500 as any,
+        taxAmount: null,
+        supplierId: null,
+      };
+
+      const failures = await runValidations("org-test", mockInvoice as any, 95);
+      const taxFailure = failures.find((f) => f.ruleCode === "TAX_CALCULATION");
+
+      expect(taxFailure).toBeDefined();
+      expect(taxFailure?.exceptionType).toBe("MISSING_TAX_DATA");
+    }, 20000);
+
+    it("runValidations passes tax calculation when subtotal and tax are explicitly entered and balance", async () => {
+      const { runValidations } = await import("./service");
+      const { prisma } = await import("../../config/database");
+
+      vi.spyOn(prisma.invoice, "findFirst").mockResolvedValue(null);
+      vi.spyOn(prisma.validation, "create").mockResolvedValue({} as any);
+
+      const mockInvoice = {
+        id: "inv-valid-tax",
+        organizationId: "org-test",
+        invoiceNumber: "INV-VALID-TAX",
+        totalAmount: 11800 as any,
+        subtotalAmount: 10000 as any,
+        taxAmount: 1800 as any,
+        supplierId: null,
+      };
+
+      const failures = await runValidations("org-test", mockInvoice as any, 95);
+      const taxFailure = failures.find((f) => f.ruleCode === "TAX_CALCULATION");
+
+      expect(taxFailure).toBeUndefined();
+    }, 20000);
+
+    it("blocks approval and raises MISSING_TAX_DATA when subtotal or tax is null", async () => {
+      const { verifyApprovalAuthority } = await import("../approvals/service");
+
+      const mockTx = {
+        auditLog: { findFirst: vi.fn().mockResolvedValue(null) },
+        exception: {
+          findFirst: vi.fn().mockResolvedValue(null),
+          create: vi.fn().mockResolvedValue({ id: "ex-1" }),
+        },
+        invoice: {
+          findFirst: vi.fn().mockResolvedValue({
+            subtotalAmount: null,
+            taxAmount: null,
+          }),
+        },
+      } as any;
+
+      await expect(
+        verifyApprovalAuthority(mockTx, {
+          organizationId: "org-1",
+          invoiceId: "inv-null-tax",
+          invoiceNumber: "INV-NULL-TAX",
+          totalAmount: 10000,
+        })
+      ).rejects.toThrow(/Subtotal and tax amount cannot be null.*MISSING_TAX_DATA/);
+
+      expect(mockTx.exception.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: "MISSING_TAX_DATA",
+            invoiceId: "inv-null-tax",
+          }),
+        })
+      );
+    }, 20000);
   });
 });
