@@ -399,7 +399,6 @@ model Payment {
 
   paymentReference String?
   utrNumber        String? // Bank NEFT/RTGS/Wire Unique Transaction Reference (proof for vendor)
-  clearingDate     DateTime? // Exact date bank debited/cleared payment
   clearingDocumentNumber String? // ERP clearing document reference (e.g. 2533000040)
   amount           Decimal @db.Decimal(18, 2)
   currency         String  @default("INR")

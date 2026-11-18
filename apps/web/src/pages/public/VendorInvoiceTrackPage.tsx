@@ -26,7 +26,7 @@ interface VendorTrackData {
   publicStatusStage: number; // 1: Received, 2: Under Review, 3: Approved for Payment, 4: Paid
   estimatedPaymentDate?: string | null;
   utrNumber?: string | null;
-  clearingDate?: string | null;
+  settlementDate?: string | null;
   clearingDocumentNumber?: string | null;
   notes: string;
 }
@@ -231,7 +231,7 @@ export default function VendorInvoiceTrackPage() {
                   <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-emerald-100 dark:border-emerald-950">
                     <span className="text-[10px] text-neutral-400 uppercase block">Bank Clearing Date</span>
                     <span className="font-semibold text-neutral-900 dark:text-zinc-100 text-body-sm block mt-0.5">
-                      {data.clearingDate ? formatDate(data.clearingDate) : "Cleared"}
+                      {data.settlementDate ? formatDate(data.settlementDate) : "Cleared"}
                     </span>
                   </div>
 

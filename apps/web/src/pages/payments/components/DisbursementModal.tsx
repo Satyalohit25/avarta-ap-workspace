@@ -24,7 +24,7 @@ export interface DisbursementModalProps {
   selectedPayments: PaymentRow[];
   totalAmount: number;
   currency: string;
-  onConfirmDisburse: (details?: { utrNumber?: string }) => Promise<PaymentRow | null>;
+  onConfirmDisburse: (details?: { utrNumber?: string; settlementDate?: string }) => Promise<PaymentRow | null>;
   isExecuting?: boolean;
 }
 
@@ -37,7 +37,7 @@ interface SettlementReceipt {
   amount: number;
   currency: string;
   utrNumber: string | null;
-  clearingDate: string | null;
+  settlementDate: string | null;
   clearingDocumentNumber: string | null;
   bankConfirmed: boolean;
 }
@@ -74,6 +74,7 @@ export function DisbursementModal({
   const [copiedRef, setCopiedRef] = useState(false);
   const [receipt, setReceipt] = useState<SettlementReceipt | null>(null);
   const [utrNumber, setUtrNumber] = useState("");
+  const [settlementDate, setSettlementDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
     if (isOpen) {
@@ -82,6 +83,7 @@ export function DisbursementModal({
       setCopiedRef(false);
       setReceipt(null);
       setUtrNumber("");
+      setSettlementDate(new Date().toISOString().slice(0, 10));
     }
   }, [isOpen]);
 
@@ -91,19 +93,24 @@ export function DisbursementModal({
 
     try {
       const executed = await onConfirmDisburse(
-        utrNumber.trim() ? { utrNumber: utrNumber.trim() } : undefined
+        utrNumber.trim()
+          ? {
+              utrNumber: utrNumber.trim(),
+              settlementDate: settlementDate ? new Date(settlementDate).toISOString() : undefined,
+            }
+          : undefined
       );
-      const confirmed = executed?.utrNumber != null && executed?.clearingDate != null;
+      const confirmed = executed?.utrNumber != null && executed?.settlementDate != null;
       setReceipt({
         reference: executed?.id ?? selectedPayments[0]?.id ?? "—",
         timestamp: formatReceiptTimestamp(
-          executed?.clearingDate ?? new Date().toISOString()
+          executed?.settlementDate ?? new Date().toISOString()
         ),
         method: executed?.method ?? singlePayment?.method ?? "Configured payment route",
         amount: totalAmount,
         currency,
         utrNumber: executed?.utrNumber ?? null,
-        clearingDate: executed?.clearingDate ?? null,
+        settlementDate: executed?.settlementDate ?? null,
         clearingDocumentNumber: executed?.clearingDocumentNumber ?? null,
         bankConfirmed: confirmed,
       });
@@ -132,7 +139,7 @@ export function DisbursementModal({
       `SETTLEMENT REFERENCE : ${receipt.reference}`,
       `TRANSACTION STATUS   : ${receipt.bankConfirmed ? "CONFIRMED BY PAYMENT ROUTE" : "RECORDED — BANK CONFIRMATION PENDING"}`,
       `BANK UTR NUMBER      : ${receipt.utrNumber ?? "Pending"}`,
-      `BANK CLEARING DATE   : ${receipt.clearingDate ?? "Pending"}`,
+      `BANK SETTLEMENT DATE : ${receipt.settlementDate ?? "Pending"}`,
       `ERP CLEARING DOC REF : ${receipt.clearingDocumentNumber ?? "Pending ERP sync"}`,
       `EXECUTION TIMESTAMP  : ${receipt.timestamp}`,
       `SETTLEMENT ROUTE     : ${receipt.method}`,
@@ -283,10 +290,10 @@ export function DisbursementModal({
                 </div>
                 <div>
                   <span className="text-micro text-neutral-400 dark:text-zinc-500 uppercase block">
-                    Clearing Date
+                    Settlement Date
                   </span>
                   <span className="text-neutral-800 dark:text-zinc-200 font-medium font-mono text-caption">
-                    {receipt.clearingDate ?? "Pending"}
+                    {receipt.settlementDate ?? "Pending"}
                   </span>
                 </div>
                 <div>
@@ -458,20 +465,38 @@ export function DisbursementModal({
             </div>
 
             {isSingle ? (
-              <div className="space-y-1.5 p-3 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-neutral-50/50 dark:bg-zinc-800/40">
-                <label htmlFor="disbursement-utr-input" className="text-caption font-semibold text-neutral-800 dark:text-zinc-200 block">
-                  Bank UTR / Transaction Reference Number <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  id="disbursement-utr-input"
-                  placeholder="e.g. UTR-20261115-987654 or NEFT12345678"
-                  value={utrNumber}
-                  onChange={(e) => setUtrNumber(e.target.value)}
-                  className="font-mono text-body-sm"
-                />
-                <p className="text-micro text-neutral-500 dark:text-zinc-400">
-                  A valid bank settlement UTR is required to confirm disbursement and advance ledgers to PAID.
-                </p>
+              <div className="space-y-3 p-3 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-neutral-50/50 dark:bg-zinc-800/40">
+                <div className="space-y-1.5">
+                  <label htmlFor="disbursement-utr-input" className="text-caption font-semibold text-neutral-800 dark:text-zinc-200 block">
+                    Bank UTR / Transaction Reference Number <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="disbursement-utr-input"
+                    placeholder="e.g. UTR-20261115-987654 or NEFT12345678"
+                    value={utrNumber}
+                    onChange={(e) => setUtrNumber(e.target.value)}
+                    className="font-mono text-body-sm"
+                  />
+                  <p className="text-micro text-neutral-500 dark:text-zinc-400">
+                    A valid bank settlement UTR is required to confirm disbursement and advance ledgers to PAID.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="disbursement-settlement-date-input" className="text-caption font-semibold text-neutral-800 dark:text-zinc-200 block">
+                    Settlement Date <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="disbursement-settlement-date-input"
+                    type="date"
+                    value={settlementDate}
+                    onChange={(e) => setSettlementDate(e.target.value)}
+                    className="font-mono text-body-sm"
+                  />
+                  <p className="text-micro text-neutral-500 dark:text-zinc-400">
+                    The value date when funds were debited by the bank.
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/70 flex items-start gap-2 text-caption text-red-800 dark:text-red-300">
@@ -504,7 +529,7 @@ export function DisbursementModal({
               </Button>
               <Button
                 onClick={handleDisburse}
-                disabled={busy || selectedPayments.length === 0 || !isSingle || !utrNumber.trim()}
+                disabled={busy || selectedPayments.length === 0 || !isSingle || !utrNumber.trim() || !settlementDate.trim()}
                 className="gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
               >
                 <ShieldCheck size={15} />

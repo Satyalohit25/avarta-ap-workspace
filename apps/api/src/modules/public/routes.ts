@@ -77,7 +77,7 @@ publicRoutes.get("/invoices/track/:token", publicTrackRateLimiter, async (req: R
         publicStatusStage,
         estimatedPaymentDate: invoice.dueDate,
         utrNumber: latestPayment?.utrNumber ?? null,
-        clearingDate: latestPayment?.clearingDate ?? null,
+        settlementDate: latestPayment?.settlementDate ?? null,
         clearingDocumentNumber: latestPayment?.clearingDocumentNumber ?? null,
         notes,
       },

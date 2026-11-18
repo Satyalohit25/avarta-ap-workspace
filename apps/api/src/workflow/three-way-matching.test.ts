@@ -84,7 +84,7 @@ describe("Tata Chemicals 3-Way Matching & GRN Quality Inspection Law", () => {
   it("validates bank UTR number and clearing document presence for remittance intimation", () => {
     const paymentRemittance = {
       utrNumber: "NEFT-TATAPAY-8941029",
-      clearingDate: "2026-09-02",
+      settlementDate: "2026-09-02",
       clearingDocumentNumber: "2533000040",
       status: "PAID",
     };

@@ -42,6 +42,20 @@ export async function executeHandler(req: Request, res: Response, next: NextFunc
   }
 }
 
+export async function retryHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    res.json({
+      data: await paymentService.retryPayment(
+        orgId(req),
+        req.params.paymentId,
+        req.auth?.userId
+      ),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function batchRunHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const paymentIds = Array.isArray(req.body?.paymentIds) ? req.body.paymentIds : undefined;

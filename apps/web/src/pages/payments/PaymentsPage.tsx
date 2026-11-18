@@ -1,7 +1,7 @@
 import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { listPayments, executePayment, PaymentRow } from "../../api/payments";
+import { listPayments, executePayment, retryPayment, PaymentRow } from "../../api/payments";
 import { API_URL, getAccessToken } from "../../api/client";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SkeletonRows } from "../../components/Skeleton";
@@ -73,6 +73,7 @@ export default function PaymentsPage() {
 
   const scheduledCount = rows.filter((r) => r.status === "SCHEDULED" || r.status === "AWAITING_SCHEDULE").length;
   const paidCount = rows.filter((r) => r.status === "PAID").length;
+  const failedCount = rows.filter((r) => r.status === "FAILED").length;
 
   const filteredRows = useMemo(() => {
     let list = rows;
@@ -80,6 +81,8 @@ export default function PaymentsPage() {
       list = list.filter((r) => r.status === "SCHEDULED" || r.status === "AWAITING_SCHEDULE");
     } else if (statusFilter === "PAID") {
       list = list.filter((r) => r.status === "PAID");
+    } else if (statusFilter === "FAILED") {
+      list = list.filter((r) => r.status === "FAILED");
     }
 
     if (searchQuery.trim()) {
@@ -256,7 +259,7 @@ export default function PaymentsPage() {
   );
   const activeDisbursementCurrency = activeDisbursementPayments[0]?.currency ?? primaryCurrency;
 
-  async function handleConfirmDisburse(details?: { utrNumber?: string }): Promise<PaymentRow | null> {
+  async function handleConfirmDisburse(details?: { utrNumber?: string; settlementDate?: string }): Promise<PaymentRow | null> {
     setBatchExecuting(true);
     let lastExecuted: PaymentRow | null = null;
     try {
@@ -364,6 +367,7 @@ export default function PaymentsPage() {
             { id: "ALL", label: `All Payments (${rows.length})`, content: null },
             { id: "SCHEDULED", label: `Scheduled (${scheduledCount})`, content: null },
             { id: "PAID", label: `Paid / Cleared (${paidCount})`, content: null },
+            { id: "FAILED", label: `Failed (${failedCount})`, content: null },
           ]}
           defaultTabId={statusFilter}
           variant="pill"
@@ -517,9 +521,9 @@ export default function PaymentsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-neutral-500 dark:text-zinc-400 font-mono text-micro">
-                        {p.clearingDate ? (
+                        {p.settlementDate ? (
                           <div>
-                            <span>{formatDate(p.clearingDate)}</span>
+                            <span>{formatDate(p.settlementDate)}</span>
                             <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block font-sans font-medium">Cleared</span>
                           </div>
                         ) : (
@@ -548,6 +552,23 @@ export default function PaymentsPage() {
                             <CheckCircle2 size={13} />
                             <span>Disbursed</span>
                           </span>
+                        ) : p.status === "FAILED" ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                await retryPayment(p.id);
+                                toast.success("Payment Retried", "Payment reset to SCHEDULED state.");
+                                await load();
+                              } catch (err) {
+                                toast.error("Retry Failed", err instanceof Error ? err.message : "Failed to retry payment");
+                              }
+                            }}
+                            className="h-7 text-caption border-amber-500/50 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                          >
+                            Retry
+                          </Button>
                         ) : (
                           <span className="text-micro text-neutral-400 font-mono">
                             {p.status}

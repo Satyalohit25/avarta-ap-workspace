@@ -12,6 +12,8 @@ export interface ApplyTransitionInput {
   event: WorkflowEvent;
   triggeredBy?: string | null;
   reason?: string | null;
+  utrNumber?: string;
+  settlementDate?: Date;
   tx?: Prisma.TransactionClient;
 }
 
@@ -30,6 +32,8 @@ export async function applyTransition({
   event,
   triggeredBy,
   reason,
+  utrNumber,
+  settlementDate,
   tx: providedTx,
 }: ApplyTransitionInput) {
   return runWithEngineBypass(async () => {
@@ -176,11 +180,22 @@ export async function applyTransition({
 
     // Relational Side Effect: Payment Finalization
     if (rule.to === "PAID") {
+      const finalUtr = utrNumber?.trim();
+      const finalSettlementDate = settlementDate ?? new Date();
+
+      if (!finalUtr) {
+        throw ApiError.badRequest(
+          "Bank UTR or settlement transaction reference number is required to transition to PAID."
+        );
+      }
+
       await tx.payment.updateMany({
         where: { invoiceId, organizationId, status: { not: "PAID" } },
         data: {
           status: "PAID",
-          processedAt: new Date(),
+          processedAt: finalSettlementDate,
+          settlementDate: finalSettlementDate,
+          utrNumber: finalUtr,
         },
       });
 

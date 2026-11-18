@@ -11,7 +11,7 @@ export interface PaymentRow {
   status: string;
   method: string;
   utrNumber?: string | null;
-  clearingDate?: string | null;
+  settlementDate?: string | null;
   clearingDocumentNumber?: string | null;
 }
 
@@ -21,13 +21,21 @@ export function listPayments() {
 
 export function executePayment(
   paymentId: string,
-  details?: { utrNumber?: string; clearingDocumentNumber?: string },
+  details?: { utrNumber?: string; settlementDate?: string; clearingDocumentNumber?: string },
   idempotencyKey?: string
 ) {
   const key = idempotencyKey || `pay-${paymentId}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   return apiRequest<{ data: PaymentRow }>(`/payments/${paymentId}/execute`, {
     method: "POST",
     body: details,
+    headers: { "Idempotency-Key": key },
+  });
+}
+
+export function retryPayment(paymentId: string, idempotencyKey?: string) {
+  const key = idempotencyKey || `retry-pay-${paymentId}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  return apiRequest<{ data: PaymentRow }>(`/payments/${paymentId}/retry`, {
+    method: "POST",
     headers: { "Idempotency-Key": key },
   });
 }

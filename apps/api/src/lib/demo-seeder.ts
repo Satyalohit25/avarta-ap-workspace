@@ -1158,7 +1158,7 @@ export async function seedDemoDataset(prismaClient: PrismaClient): Promise<SeedS
           processedAt: isPaid ? item.payment.date : null,
           status: item.payment.status as unknown as never,
           ...(isPaid
-            ? { utrNumber, settlementDate: item.payment.date, clearingDate: item.payment.date }
+            ? { utrNumber, settlementDate: item.payment.date }
             : {}),
         },
       });
