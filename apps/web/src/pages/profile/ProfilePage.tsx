@@ -1,5 +1,5 @@
 import { useDocumentTitle } from "../../lib/useDocumentTitle";
-import { useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { useAuth } from "../../app/AuthContext";
 import {
   User,
@@ -57,10 +57,16 @@ export default function ProfilePage() {
   const [newTokenName, setNewTokenName] = useState("");
   const [showNewTokenModal, setShowNewTokenModal] = useState(false);
   const [showMfaModal, setShowMfaModal] = useState(false);
-  const [mfaEnrolled, setMfaEnrolled] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return localStorage.getItem("avarta_mfa_enrolled") === "true";
-  });
+
+  // T-002: Clear any legacy fake MFA flag from localStorage on load.
+  // Real server-backed TOTP MFA will be introduced in T-105.
+  useEffect(() => {
+    try {
+      localStorage.removeItem("avarta_mfa_enrolled");
+    } catch {
+      // ignore in environments without localStorage
+    }
+  }, []);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
     return localStorage.getItem("avarta_user_avatar") || null;
   });
@@ -339,30 +345,27 @@ export default function ProfilePage() {
             <CardContent className="p-5 space-y-3.5">
               <div className="flex items-center justify-between pb-3 border-b border-neutral-100 dark:border-zinc-800">
                 <div className="flex items-center gap-2.5">
-                  <ShieldCheck size={16} className={mfaEnrolled ? "text-emerald-600 dark:text-emerald-400" : "text-amber-500"} />
+                  <ShieldCheck size={16} className="text-neutral-400 dark:text-zinc-500" />
                   <div>
                     <span className="text-body-sm font-medium text-neutral-900 dark:text-zinc-100 block">
                       Two-Factor Authentication (MFA)
                     </span>
                     <span className="text-micro font-normal text-neutral-500 dark:text-zinc-400">
-                      {mfaEnrolled ? "Passkey / Authenticator active" : "Required for financial approvals & releases"}
+                      Hardware passkeys &amp; TOTP authenticator (Coming soon in T-105)
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`text-micro font-semibold px-2 py-0.5 rounded-full border ${
-                    mfaEnrolled
-                      ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
-                      : "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
-                  }`}>
-                    {mfaEnrolled ? "Enrolled" : "Not Enrolled"}
+                  <span className="text-micro font-semibold px-2 py-0.5 rounded-full border bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400 border-neutral-200 dark:border-zinc-700">
+                    Not Available
                   </span>
                   <button
                     type="button"
                     onClick={() => setShowMfaModal(true)}
-                    className="text-micro font-semibold text-indigo-600 dark:text-indigo-400 hover:underline px-1 py-0.5"
+                    className="text-micro font-medium text-neutral-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline px-1 py-0.5"
+                    title="View MFA implementation status"
                   >
-                    {mfaEnrolled ? "Reconfigure" : "Setup (A5)"}
+                    Coming Soon
                   </button>
                 </div>
               </div>
@@ -494,11 +497,10 @@ export default function ProfilePage() {
         </form>
       </Dialog>
 
-      {/* A5 MFA Enrollment Modal */}
+      {/* T-002: MFA Status & Coming Soon Modal */}
       <MfaEnrollmentModal
         isOpen={showMfaModal}
         onClose={() => setShowMfaModal(false)}
-        onEnrollComplete={() => setMfaEnrolled(true)}
       />
     </div>
   );
