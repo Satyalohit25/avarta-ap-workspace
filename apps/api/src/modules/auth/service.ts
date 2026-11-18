@@ -262,6 +262,7 @@ export function _clearTokenRotationSuccessorsForTest() {
 }
 
 interface RotationSuccessor {
+  newRawRefreshToken: string;
   accessToken: string;
   expiresIn: number;
   rotatedAt: number;
