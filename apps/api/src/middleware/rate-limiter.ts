@@ -1,10 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 import { getClientIp } from "../lib/client-ip";
+import { readRefreshCookie } from "../lib/refresh-cookie";
+import crypto from "crypto";
 
 interface RateLimiterOptions {
   windowMs: number;
   maxRequests: number;
   message?: string;
+  keyGenerator?: (req: Request) => string;
 }
 
 interface ClientRecord {
@@ -16,28 +19,28 @@ interface ClientRecord {
  * Protects auth endpoints against brute-force and API endpoints against DoS.
  */
 export function createRateLimiter(options: RateLimiterOptions) {
-  const { windowMs, maxRequests, message = "Too many requests. Please slow down and try again later." } = options;
+  const { windowMs, maxRequests, message = "Too many requests. Please slow down and try again later.", keyGenerator } = options;
   const clients = new Map<string, ClientRecord>();
 
   // Periodically clean up stale client IPs every 5 minutes
   setInterval(() => {
     const now = Date.now();
-    for (const [ip, record] of clients.entries()) {
+    for (const [key, record] of clients.entries()) {
       record.timestamps = record.timestamps.filter((ts) => now - ts < windowMs);
       if (record.timestamps.length === 0) {
-        clients.delete(ip);
+        clients.delete(key);
       }
     }
   }, 5 * 60 * 1000).unref();
 
   return (req: Request, res: Response, next: NextFunction) => {
-    const ip = getClientIp(req);
+    const clientKey = keyGenerator ? keyGenerator(req) : getClientIp(req);
     const now = Date.now();
 
-    let record = clients.get(ip);
+    let record = clients.get(clientKey);
     if (!record) {
       record = { timestamps: [] };
-      clients.set(ip, record);
+      clients.set(clientKey, record);
     }
 
     // Filter out timestamps outside window
@@ -62,6 +65,21 @@ export const authRateLimiter = createRateLimiter({
   windowMs: 60 * 1000, // 1 minute
   maxRequests: 15,     // 15 attempts per minute
   message: "Too many login attempts from this IP. Please wait a minute before trying again.",
+});
+
+export const refreshRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 60,     // 60 refreshes per minute per client/token
+  message: "Too many refresh attempts. Please wait a minute before trying again.",
+  keyGenerator: (req: Request) => {
+    const ip = getClientIp(req);
+    const token = readRefreshCookie(req) || req.body?.refreshToken;
+    if (token) {
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex").slice(0, 16);
+      return `${ip}:${tokenHash}`;
+    }
+    return ip;
+  },
 });
 
 export const apiRateLimiter = createRateLimiter({

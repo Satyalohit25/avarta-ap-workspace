@@ -118,13 +118,39 @@ export async function regenerateRecoveryCodes(password: string, code: string): P
   });
 }
 
+let inFlightRefreshPromise: Promise<string> | null = null;
+
 export async function refreshAuthToken(): Promise<string> {
-  // The refresh token is an httpOnly cookie; no request body is needed.
-  const result = await apiRequest<{ accessToken: string }>("/auth/refresh", {
-    method: "POST",
-  });
-  setAccessToken(result.accessToken);
-  return result.accessToken;
+  if (inFlightRefreshPromise) {
+    return inFlightRefreshPromise;
+  }
+
+  const executeRefresh = async (): Promise<string> => {
+    try {
+      // The refresh token is an httpOnly cookie; no request body is needed.
+      const result = await apiRequest<{ accessToken: string }>("/auth/refresh", {
+        method: "POST",
+      });
+      setAccessToken(result.accessToken);
+      return result.accessToken;
+    } finally {
+      inFlightRefreshPromise = null;
+    }
+  };
+
+  // Cross-tab coordination: Use Web Locks API (navigator.locks) when available
+  if (typeof navigator !== "undefined" && "locks" in navigator && navigator.locks?.request) {
+    inFlightRefreshPromise = (async () => {
+      const token = await navigator.locks.request("avarta_auth_refresh_lock", async () => {
+        return await executeRefresh();
+      });
+      return token as string;
+    })();
+  } else {
+    inFlightRefreshPromise = executeRefresh();
+  }
+
+  return await inFlightRefreshPromise;
 }
 
 export async function fetchCurrentUser(): Promise<CurrentUser> {

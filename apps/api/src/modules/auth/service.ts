@@ -244,53 +244,149 @@ export async function login(email: string, password: string, clientIp = "127.0.0
   };
 }
 
+// In-memory cache for token rotation grace window:
+// When token A is rotated to token B, concurrent requests with token A within GRACE_WINDOW_MS
+// receive token B and the same user session instead of 401.
+// Replay of token A AFTER the grace window triggers token family revocation (security violation).
+let rotationGraceWindowMs = 20 * 1000; // 20 seconds default
+
+// Exported for testing token rotation grace window behavior
+export function _setRotationGraceWindowForTest(windowMs: number) {
+  rotationGraceWindowMs = windowMs;
+}
+export function _resetRotationGraceWindowForTest() {
+  rotationGraceWindowMs = 20 * 1000;
+}
+export function _clearTokenRotationSuccessorsForTest() {
+  tokenRotationSuccessors.clear();
+}
+
+interface RotationSuccessor {
+  accessToken: string;
+  expiresIn: number;
+  rotatedAt: number;
+  userId: string;
+  organizationId: string;
+}
+const tokenRotationSuccessors = new Map<string, RotationSuccessor>();
+
+// Periodically prune expired rotation successor records every 60 seconds
+setInterval(() => {
+  const now = Date.now();
+  for (const [hash, successor] of tokenRotationSuccessors.entries()) {
+    // Keep record slightly longer than grace window (e.g. 24 hours or until token expiry) to detect reuse after grace window
+    if (now - successor.rotatedAt > 24 * 60 * 60 * 1000) {
+      tokenRotationSuccessors.delete(hash);
+    }
+  }
+}, 60 * 1000).unref();
+
+// In-flight refresh promises mapped by tokenHash to guarantee single-flight rotation per token
+const inFlightServerRotations = new Map<string, Promise<{ accessToken: string; refreshToken: string; expiresIn: number }>>();
+
 export async function rotateRefreshToken(rawRefreshToken: string) {
   if (!rawRefreshToken) {
     throw ApiError.badRequest("Refresh token is required");
   }
   const tokenHash = crypto.createHash("sha256").update(rawRefreshToken).digest("hex");
-  const record = await prisma.refreshToken.findUnique({
-    where: { tokenHash },
-    include: { user: { include: { organization: true } } },
-  });
 
-  if (!record || record.revokedAt || record.expiresAt.getTime() < Date.now()) {
-    throw ApiError.unauthorized("Refresh token is invalid, expired, or has been revoked.");
-  }
-  if (record.user.status !== "ACTIVE") {
-    throw ApiError.unauthorized("User account is inactive or disabled");
+  const existingInFlight = inFlightServerRotations.get(tokenHash);
+  if (existingInFlight) {
+    return await existingInFlight;
   }
 
-  // Revoke the old refresh token (Strict rotation policy)
-  await prisma.refreshToken.update({
-    where: { id: record.id },
-    data: { revokedAt: new Date() },
-  });
+  const rotationPromise = (async () => {
+    // Check if this token was already rotated and within the grace window
+    const successor = tokenRotationSuccessors.get(tokenHash);
+    if (successor) {
+      const elapsed = Date.now() - successor.rotatedAt;
+      if (elapsed <= rotationGraceWindowMs) {
+        // Grace window hit: return the already-issued successor session
+        return {
+          accessToken: successor.accessToken,
+          refreshToken: successor.newRawRefreshToken,
+          expiresIn: successor.expiresIn,
+        };
+      } else {
+        // Replay of a rotated token after grace window expired!
+        // This is a token reuse attack: revoke the entire token family for this user
+        await revokeAllUserTokensAsync(successor.userId);
+        await prisma.auditLog.create({
+          data: {
+            organizationId: successor.organizationId,
+            userId: successor.userId,
+            action: "TOKEN_FAMILY_REVOCATION",
+            entityType: "User",
+            entityId: successor.userId,
+            result: "SUCCESS",
+          },
+        }).catch(() => {});
 
-  // Issue brand-new refresh token
-  const newRawRefreshToken = crypto.randomBytes(40).toString("hex");
-  const newTokenHash = crypto.createHash("sha256").update(newRawRefreshToken).digest("hex");
-  await prisma.refreshToken.create({
-    data: {
+        throw ApiError.unauthorized("Refresh token reuse detected. Token family has been revoked.");
+      }
+    }
+
+    const record = await prisma.refreshToken.findUnique({
+      where: { tokenHash },
+      include: { user: { include: { organization: true } } },
+    });
+
+    if (!record || record.revokedAt || record.expiresAt.getTime() < Date.now()) {
+      throw ApiError.unauthorized("Refresh token is invalid, expired, or has been revoked.");
+    }
+
+    if (record.user.status !== "ACTIVE") {
+      throw ApiError.unauthorized("User account is inactive or disabled");
+    }
+
+    // Revoke the old refresh token (Strict rotation policy with grace window)
+    await prisma.refreshToken.update({
+      where: { id: record.id },
+      data: { revokedAt: new Date() },
+    });
+
+    // Issue brand-new refresh token
+    const newRawRefreshToken = crypto.randomBytes(40).toString("hex");
+    const newTokenHash = crypto.createHash("sha256").update(newRawRefreshToken).digest("hex");
+    await prisma.refreshToken.create({
+      data: {
+        userId: record.userId,
+        organizationId: record.organizationId,
+        tokenHash: newTokenHash,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    const newAccessToken = signAccessToken({
       userId: record.userId,
       organizationId: record.organizationId,
-      tokenHash: newTokenHash,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    },
-  });
+      role: record.user.role,
+      tokenVersion: record.user.tokenVersion ?? 0,
+    });
 
-  const newAccessToken = signAccessToken({
-    userId: record.userId,
-    organizationId: record.organizationId,
-    role: record.user.role,
-    tokenVersion: record.user.tokenVersion ?? 0,
-  });
+    // Record rotation successor for grace window
+    tokenRotationSuccessors.set(tokenHash, {
+      newRawRefreshToken,
+      accessToken: newAccessToken,
+      expiresIn: env.jwtExpiresIn,
+      rotatedAt: Date.now(),
+      userId: record.userId,
+      organizationId: record.organizationId,
+    });
 
-  return {
-    accessToken: newAccessToken,
-    refreshToken: newRawRefreshToken,
-    expiresIn: env.jwtExpiresIn,
-  };
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRawRefreshToken,
+      expiresIn: env.jwtExpiresIn,
+    };
+  })();
+
+  inFlightServerRotations.set(tokenHash, rotationPromise);
+  try {
+    return await rotationPromise;
+  } finally {
+    inFlightServerRotations.delete(tokenHash);
+  }
 }
 
 export async function logout(accessToken: string, userId: string, refreshToken?: string) {
@@ -302,6 +398,9 @@ export async function logout(accessToken: string, userId: string, refreshToken?:
   // Revoke refresh token in DB if provided
   if (refreshToken) {
     const tokenHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
+    // Clear any rotation successor mapping so a logged out token cannot be refreshed via grace window
+    tokenRotationSuccessors.delete(tokenHash);
+
     await prisma.refreshToken.updateMany({
       where: { tokenHash, revokedAt: null },
       data: { revokedAt: new Date() },

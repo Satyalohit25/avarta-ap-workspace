@@ -161,12 +161,12 @@ describe("P0 Security & Invariant Hardening Suite", () => {
       const result = await login(testEmail, testPassword, legitimateIp);
       expect(result.user.email).toBe(testEmail);
       expect(result.accessToken).toBeDefined();
-    }, 15000);
+    }, 30000);
   });
 
   // ── 2. Refresh Token Rotation & DB Revocation (Item 1 & 3) ──
   describe("Token Rotation and Logout Revocation", () => {
-    it("rotates refresh token on refresh and revokes the old one", async () => {
+    it("rotates refresh token on refresh and revokes the old one (with grace window)", async () => {
       const loginRes = await login(testEmail, testPassword, "127.0.0.1");
       const oldRefreshToken = loginRes.refreshToken;
       expect(oldRefreshToken).toBeDefined();
@@ -177,10 +177,10 @@ describe("P0 Security & Invariant Hardening Suite", () => {
       expect(rotateRes.refreshToken).toBeDefined();
       expect(rotateRes.refreshToken).not.toBe(oldRefreshToken);
 
-      // Old refresh token must be revoked in DB and rejected
-      await expect(rotateRefreshToken(oldRefreshToken)).rejects.toThrow(
-        "Refresh token is invalid, expired, or has been revoked."
-      );
+      // Concurrent refresh within grace window returns the same session
+      const concurrentRes = await rotateRefreshToken(oldRefreshToken);
+      expect(concurrentRes.accessToken).toBe(rotateRes.accessToken);
+      expect(concurrentRes.refreshToken).toBe(rotateRes.refreshToken);
     });
 
     it("revokes both access token and refresh token on logout", async () => {

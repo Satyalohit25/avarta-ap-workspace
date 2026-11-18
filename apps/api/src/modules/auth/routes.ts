@@ -20,7 +20,7 @@ import {
 } from "./controller";
 import { requireAuth } from "../../middleware/auth";
 import { requireRole } from "../../middleware/permissions";
-import { authRateLimiter } from "../../middleware/rate-limiter";
+import { authRateLimiter, refreshRateLimiter } from "../../middleware/rate-limiter";
 import { enforceSeatLimit } from "../billing/middleware";
 
 export const authRoutes = Router();
@@ -29,7 +29,7 @@ authRoutes.get("/config", authConfigHandler);
 authRoutes.post("/signup", authRateLimiter, signupHandler);
 authRoutes.post("/register", authRateLimiter, signupHandler);
 authRoutes.post("/login", authRateLimiter, loginHandler);
-authRoutes.post("/refresh", authRateLimiter, refreshHandler);
+authRoutes.post("/refresh", refreshRateLimiter, refreshHandler);
 authRoutes.post("/logout", requireAuth, logoutHandler);
 authRoutes.get("/me", requireAuth, meHandler);
 

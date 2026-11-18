@@ -9,6 +9,12 @@ import {
   refreshAuthToken,
   signup as apiSignup,
 } from "../api/auth";
+import { isPublicPath } from "./publicRoutes";
+
+function hasSessionHint(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.cookie.split(";").some((c) => c.trim().startsWith("avarta_session_hint="));
+}
 
 interface AuthContextValue {
   user: CurrentUser | null;
@@ -30,9 +36,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function restoreSession() {
       // The access token lives in memory only, so on a page reload the only
-      // way back in is the httpOnly refresh cookie. Refresh first, then
-      // confirm the session with /auth/me. A missing/expired cookie simply
-      // means the visitor is signed out — not an error to surface.
+      // way back in is the httpOnly refresh cookie.
+      // On public routes without a session hint cookie, skip refresh entirely
+      // to prevent unnecessary 401s, redirects, and rate limiter exhaustion.
+      const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+      if (isPublicPath(currentPath) && !hasSessionHint()) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       try {
         await refreshAuthToken();
         const current = await fetchCurrentUser();

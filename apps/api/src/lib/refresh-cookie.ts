@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 
 export const REFRESH_COOKIE_NAME = "avarta_refresh";
+export const SESSION_HINT_COOKIE_NAME = "avarta_session_hint";
 const REFRESH_COOKIE_PATH = "/api";
 const REFRESH_COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
@@ -11,10 +12,20 @@ function cookieAttributes(): string {
   return `HttpOnly; Path=${REFRESH_COOKIE_PATH}; SameSite=Strict${secure}`;
 }
 
+function sessionHintCookieAttributes(): string {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  // Non-HttpOnly cookie so client-side code can detect if a session exists before calling /auth/refresh
+  return `Path=/; SameSite=Lax${secure}`;
+}
+
 export function setRefreshCookie(res: Response, token: string): void {
   res.append(
     "Set-Cookie",
     `${REFRESH_COOKIE_NAME}=${encodeURIComponent(token)}; ${cookieAttributes()}; Max-Age=${REFRESH_COOKIE_MAX_AGE_SECONDS}`
+  );
+  res.append(
+    "Set-Cookie",
+    `${SESSION_HINT_COOKIE_NAME}=1; ${sessionHintCookieAttributes()}; Max-Age=${REFRESH_COOKIE_MAX_AGE_SECONDS}`
   );
 }
 
@@ -22,6 +33,10 @@ export function clearRefreshCookie(res: Response): void {
   res.append(
     "Set-Cookie",
     `${REFRESH_COOKIE_NAME}=; ${cookieAttributes()}; Max-Age=0`
+  );
+  res.append(
+    "Set-Cookie",
+    `${SESSION_HINT_COOKIE_NAME}=; ${sessionHintCookieAttributes()}; Max-Age=0`
   );
 }
 
