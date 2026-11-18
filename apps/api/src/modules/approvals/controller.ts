@@ -22,7 +22,8 @@ export async function approveHandler(req: Request, res: Response, next: NextFunc
       req.auth.role as Role,
       req.body?.notes ?? req.body?.comment,
       req.body?.overrideSoloAdmin,
-      req.body?.overrideReason
+      req.body?.overrideReason,
+      req.body?.confirmations
     );
     res.json({ data: result });
   } catch (err) {
@@ -37,7 +38,8 @@ export async function rejectHandler(req: Request, res: Response, next: NextFunct
       req.auth.organizationId,
       req.params.approvalId,
       req.auth.userId,
-      req.body?.reason
+      req.body?.reason,
+      req.body?.closePermanently
     );
     res.json({ data: result });
   } catch (err) {

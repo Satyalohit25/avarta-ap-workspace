@@ -758,7 +758,9 @@ export async function transitionInvoice(
   comment?: string,
   userRole?: string,
   overrideSoloAdmin?: boolean,
-  overrideReason?: string
+  overrideReason?: string,
+  confirmations?: unknown[],
+  closePermanently?: boolean
 ) {
   if (action === "RETRY_VALIDATION") {
     return retryValidation(organizationId, invoiceId, userId);
@@ -785,6 +787,7 @@ export async function transitionInvoice(
       notes: comment,
       overrideSoloAdmin,
       overrideReason,
+      confirmations,
     });
   } else if (action === "REJECT") {
     if (!comment) throw ApiError.badRequest("Comment is required for rejection.");
@@ -793,6 +796,7 @@ export async function transitionInvoice(
       invoiceId,
       userId,
       reason: comment,
+      closePermanently,
     });
   } else if (action === "RUN_MATCHING" || action === "SUBMIT_APPROVAL") {
     await runThreeWayMatching({ organizationId, invoiceId, userId });
@@ -1039,6 +1043,158 @@ export async function regenerateInvoiceTrackingToken(
     trackingUrl: `${env.webOrigin}/track/${rawToken}`,
     expiresAt,
   };
+}
+
+export async function overrideLineVariance(params: {
+  organizationId: string;
+  invoiceId: string;
+  lineId: string;
+  userId: string;
+  userRole?: string;
+  overrideAccepted: boolean;
+  reason: string;
+}) {
+  const { organizationId, invoiceId, lineId, userId, userRole, overrideAccepted, reason } = params;
+
+  // Authorization: Variance override requires role permitted by approval tier (FINANCE_MANAGER, ADMINISTRATOR)
+  if (userRole && !["ADMINISTRATOR", "FINANCE_MANAGER"].includes(userRole)) {
+    throw ApiError.forbidden(
+      `Role "${userRole}" is not authorized to override line item variances. Required role: FINANCE_MANAGER or ADMINISTRATOR.`
+    );
+  }
+
+  const cleanReason = (reason || "").trim();
+  if (cleanReason.length < 10) {
+    throw ApiError.badRequest("Variance override requires a justification reason of at least 10 characters.");
+  }
+
+  const line = await prisma.invoiceLine.findFirst({
+    where: { id: lineId, invoiceId, invoice: { organizationId } },
+  });
+  if (!line) {
+    throw ApiError.notFound("Invoice line item not found");
+  }
+
+  const updatedLine = await prisma.invoiceLine.update({
+    where: { id: lineId },
+    data: {
+      overrideAccepted,
+      overrideReason: cleanReason,
+      overrideUserId: userId,
+      overrideAt: new Date(),
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      organizationId,
+      userId,
+      action: "LINE_VARIANCE_OVERRIDDEN",
+      entityType: "INVOICE_LINE",
+      entityId: lineId,
+      beforeData: {
+        lineNumber: line.lineNumber,
+        overrideAccepted: line.overrideAccepted,
+        overrideReason: line.overrideReason,
+      },
+      afterData: {
+        lineNumber: updatedLine.lineNumber,
+        overrideAccepted: updatedLine.overrideAccepted,
+        overrideReason: updatedLine.overrideReason,
+      },
+    },
+  });
+
+  return updatedLine;
+}
+
+export async function updateLineMatchStatus(params: {
+  organizationId: string;
+  invoiceId: string;
+  lineId: string;
+  userId: string;
+  userRole?: string;
+  matchStatus: string;
+}) {
+  const { organizationId, invoiceId, lineId, userId, userRole, matchStatus } = params;
+
+  if (userRole && !["ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"].includes(userRole)) {
+    throw ApiError.forbidden(
+      `Role "${userRole}" is not authorized to update line item match status.`
+    );
+  }
+
+  const allowedStatuses = ["MATCHED", "PRICE_VARIANCE", "QTY_VARIANCE", "MANUAL_OVERRIDE"];
+  if (!allowedStatuses.includes(matchStatus)) {
+    throw ApiError.badRequest(`Invalid matchStatus. Must be one of: ${allowedStatuses.join(", ")}`);
+  }
+
+  const line = await prisma.invoiceLine.findFirst({
+    where: { id: lineId, invoiceId, invoice: { organizationId } },
+  });
+  if (!line) {
+    throw ApiError.notFound("Invoice line item not found");
+  }
+
+  const updatedLine = await prisma.invoiceLine.update({
+    where: { id: lineId },
+    data: { matchStatus },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      organizationId,
+      userId,
+      action: "LINE_MATCH_STATUS_UPDATED",
+      entityType: "INVOICE_LINE",
+      entityId: lineId,
+      beforeData: {
+        lineNumber: line.lineNumber,
+        matchStatus: line.matchStatus,
+      },
+      afterData: {
+        lineNumber: updatedLine.lineNumber,
+        matchStatus: updatedLine.matchStatus,
+      },
+    },
+  });
+
+  return updatedLine;
+}
+
+export async function updateDecisionChecklist(params: {
+  organizationId: string;
+  invoiceId: string;
+  userId: string;
+  confirmations: unknown[];
+}) {
+  const { organizationId, invoiceId, userId, confirmations } = params;
+
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: invoiceId, organizationId },
+  });
+  if (!invoice) throw ApiError.notFound("Invoice not found");
+
+  const updatedInvoice = await prisma.invoice.update({
+    where: { id: invoiceId },
+    data: {
+      decisionChecklist: JSON.stringify(confirmations),
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      organizationId,
+      userId,
+      action: "DECISION_HUB_CHECKLIST_UPDATED",
+      entityType: "INVOICE",
+      entityId: invoiceId,
+      beforeData: { decisionChecklist: invoice.decisionChecklist },
+      afterData: { decisionChecklist: updatedInvoice.decisionChecklist },
+    },
+  });
+
+  return { decisionChecklist: confirmations };
 }
 
 

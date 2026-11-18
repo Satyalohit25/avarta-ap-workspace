@@ -5,6 +5,7 @@ import {
   signupHandler,
   refreshHandler,
   meHandler,
+  updateMeHandler,
   listTeamHandler,
   inviteTeamHandler,
   acceptInviteHandler,
@@ -32,6 +33,7 @@ authRoutes.post("/login", authRateLimiter, loginHandler);
 authRoutes.post("/refresh", authRateLimiter, refreshHandler);
 authRoutes.post("/logout", requireAuth, logoutHandler);
 authRoutes.get("/me", requireAuth, meHandler);
+authRoutes.patch("/me", requireAuth, updateMeHandler);
 
 // Team management endpoints
 authRoutes.get("/team", requireAuth, listTeamHandler);

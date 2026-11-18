@@ -188,6 +188,7 @@ export async function executeInvoiceApproval({
   notes,
   overrideSoloAdmin,
   overrideReason,
+  confirmations,
 }: {
   organizationId: string;
   invoiceId: string;
@@ -196,6 +197,7 @@ export async function executeInvoiceApproval({
   notes?: string;
   overrideSoloAdmin?: boolean;
   overrideReason?: string;
+  confirmations?: unknown[];
 }) {
   return prisma.$transaction(async (tx) => {
     // Acquire pessimistic row lock on Invoice table with verified casing
@@ -235,6 +237,21 @@ export async function executeInvoiceApproval({
       overrideReason,
     });
 
+    if (confirmations && Array.isArray(confirmations) && confirmations.length > 0) {
+      await tx.approval.updateMany({
+        where: { invoiceId, status: "PENDING" },
+        data: {
+          confirmations: JSON.stringify(confirmations),
+        },
+      });
+      await tx.invoice.update({
+        where: { id: invoiceId },
+        data: {
+          decisionChecklist: JSON.stringify(confirmations),
+        },
+      });
+    }
+
     await applyTransition({
       invoiceId,
       organizationId,
@@ -253,11 +270,13 @@ export async function executeInvoiceRejection({
   invoiceId,
   userId,
   reason,
+  closePermanently,
 }: {
   organizationId: string;
   invoiceId: string;
   userId?: string;
   reason?: string;
+  closePermanently?: boolean;
 }) {
   if (!reason || reason.trim().length === 0) {
     throw ApiError.badRequest("A reason is required when rejecting an invoice");
@@ -287,14 +306,35 @@ export async function executeInvoiceRejection({
       );
     }
 
-    await applyTransition({
-      invoiceId,
-      organizationId,
-      event: "REJECTED",
-      triggeredBy: userId,
-      reason: reason.trim(),
-      tx,
-    });
+    if (closePermanently) {
+      // Reject and close directly archives the invoice
+      await tx.approval.updateMany({
+        where: { invoiceId, status: "PENDING" },
+        data: {
+          status: "REJECTED",
+          respondedAt: new Date(),
+          comment: `[REJECT & CLOSE] ${reason.trim()}`,
+        },
+      });
+
+      await applyTransition({
+        invoiceId,
+        organizationId,
+        event: "ARCHIVE_COMPLETE",
+        triggeredBy: userId,
+        reason: `Rejected and closed: ${reason.trim()}`,
+        tx,
+      });
+    } else {
+      await applyTransition({
+        invoiceId,
+        organizationId,
+        event: "REJECTED",
+        triggeredBy: userId,
+        reason: reason.trim(),
+        tx,
+      });
+    }
 
     return lockedInvoice;
   });
@@ -308,6 +348,7 @@ export async function approveApproval(
   notes?: string,
   overrideSoloAdmin?: boolean,
   overrideReason?: string,
+  confirmations?: unknown[],
 ) {
   const approval = await prisma.approval.findFirst({
     where: { id: approvalId, invoice: { organizationId } },
@@ -330,6 +371,7 @@ export async function approveApproval(
     notes,
     overrideSoloAdmin,
     overrideReason,
+    confirmations,
   });
 
   return prisma.approval.findFirst({
@@ -343,6 +385,7 @@ export async function rejectApproval(
   approvalId: string,
   userId?: string,
   reason?: string,
+  closePermanently?: boolean,
 ) {
   const approval = await prisma.approval.findFirst({
     where: { id: approvalId, invoice: { organizationId } },
@@ -367,6 +410,7 @@ export async function rejectApproval(
     invoiceId: approval.invoiceId,
     userId,
     reason,
+    closePermanently,
   });
 
   return prisma.approval.findFirst({

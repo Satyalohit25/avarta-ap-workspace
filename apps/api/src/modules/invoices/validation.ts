@@ -75,6 +75,8 @@ export const transitionSchema = z
     comment: z.string().optional(),
     overrideSoloAdmin: z.boolean().optional(),
     overrideReason: z.string().optional(),
+    confirmations: z.array(z.any()).optional(),
+    closePermanently: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.action === "REJECT" && (!data.comment || data.comment.trim().length === 0)) {

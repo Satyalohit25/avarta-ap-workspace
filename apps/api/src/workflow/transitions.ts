@@ -46,6 +46,9 @@ export const TRANSITIONS: TransitionRule[] = [
   { from: "PROCESSING_PAYMENT", event: "PAYMENT_FAILURE", to: "SCHEDULED" },
   { from: "PAID", event: "ERP_SUCCESS", to: "ERP_SYNC" },
   { from: "ERP_SYNC", event: "ARCHIVE_COMPLETE", to: "ARCHIVED" },
+  // T-202: Documented permanent closure / archive path for rejected or terminal exception invoices
+  { from: "VALIDATION_FAILED", event: "ARCHIVE_COMPLETE", to: "ARCHIVED" },
+  { from: "WAITING_APPROVAL", event: "ARCHIVE_COMPLETE", to: "ARCHIVED" },
 ];
 
 export function findTransition(from: WorkflowState, event: WorkflowEvent): TransitionRule | undefined {

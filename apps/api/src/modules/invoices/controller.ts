@@ -187,7 +187,9 @@ export async function transitionHandler(req: Request, res: Response, next: NextF
       body.comment,
       req.auth?.role,
       body.overrideSoloAdmin,
-      body.overrideReason
+      body.overrideReason,
+      body.confirmations,
+      body.closePermanently
     );
     res.json({ data: invoice });
   } catch (err) {
