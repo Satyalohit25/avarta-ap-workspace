@@ -9,6 +9,7 @@ export interface CurrentUser {
   organizationName?: string;
   activeAdminCount?: number;
   isSoloAdmin?: boolean;
+  mfaEnabled?: boolean;
 }
 
 export interface SignupPayload {
@@ -22,6 +23,21 @@ export interface SignupPayload {
 
 export interface AuthConfig {
   signupEnabled: boolean;
+}
+
+export interface LoginResult {
+  mfaRequired: boolean;
+  challengeToken?: string;
+  user?: CurrentUser;
+}
+
+export interface MfaEnrollResult {
+  secret: string;
+  otpauthUri: string;
+}
+
+export interface MfaEnableResult {
+  recoveryCodes: string[];
 }
 
 export async function fetchAuthConfig(): Promise<AuthConfig> {
@@ -38,14 +54,68 @@ export async function signup(payload: SignupPayload): Promise<CurrentUser> {
   return result.user;
 }
 
-export async function login(email: string, password: string): Promise<CurrentUser> {
+export async function login(email: string, password: string): Promise<LoginResult> {
   const normalizedEmail = email.trim().toLowerCase();
-  const result = await apiRequest<{ user: CurrentUser; accessToken: string }>("/auth/login", {
+  const result = await apiRequest<{
+    mfaRequired?: boolean;
+    challengeToken?: string;
+    user?: CurrentUser;
+    accessToken?: string;
+  }>("/auth/login", {
     method: "POST",
     body: { email: normalizedEmail, password },
   });
+
+  if (result.mfaRequired) {
+    return {
+      mfaRequired: true,
+      challengeToken: result.challengeToken,
+    };
+  }
+
+  if (result.accessToken) {
+    setAccessToken(result.accessToken);
+  }
+  return {
+    mfaRequired: false,
+    user: result.user,
+  };
+}
+
+export async function challengeMfa(challengeToken: string, code: string): Promise<CurrentUser> {
+  const result = await apiRequest<{ user: CurrentUser; accessToken: string }>("/auth/mfa/challenge", {
+    method: "POST",
+    body: { challengeToken, code: code.trim() },
+  });
   setAccessToken(result.accessToken);
   return result.user;
+}
+
+export async function enrollMfa(): Promise<MfaEnrollResult> {
+  return await apiRequest<MfaEnrollResult>("/auth/mfa/enroll", {
+    method: "POST",
+  });
+}
+
+export async function enableMfa(secret: string, code: string): Promise<MfaEnableResult> {
+  return await apiRequest<MfaEnableResult>("/auth/mfa/enable", {
+    method: "POST",
+    body: { secret, code: code.trim() },
+  });
+}
+
+export async function disableMfa(password: string, code: string): Promise<{ success: boolean }> {
+  return await apiRequest<{ success: boolean }>("/auth/mfa/disable", {
+    method: "POST",
+    body: { password, code: code.trim() },
+  });
+}
+
+export async function regenerateRecoveryCodes(password: string, code: string): Promise<{ recoveryCodes: string[] }> {
+  return await apiRequest<{ recoveryCodes: string[] }>("/auth/mfa/recovery-codes", {
+    method: "POST",
+    body: { password, code: code.trim() },
+  });
 }
 
 export async function refreshAuthToken(): Promise<string> {

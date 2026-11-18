@@ -22,6 +22,7 @@ import { PageHeader } from "../../components/layout/PageHeader";
 import { Dialog } from "../../components/ui/Dialog";
 import { useToast } from "../../components/ui/ToastContext";
 import { MfaEnrollmentModal } from "./components/MfaEnrollmentModal";
+import { DisableMfaModal } from "./components/DisableMfaModal";
 
 interface ApiToken {
   id: string;
@@ -33,7 +34,7 @@ interface ApiToken {
 
 export default function ProfilePage() {
   useDocumentTitle("My Profile", "Manage your user profile, credentials, and notification preferences.");
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const [saved, setSaved] = useState(false);
   const [fullName, setFullName] = useState(user?.name ?? "Finance User");
@@ -57,6 +58,7 @@ export default function ProfilePage() {
   const [newTokenName, setNewTokenName] = useState("");
   const [showNewTokenModal, setShowNewTokenModal] = useState(false);
   const [showMfaModal, setShowMfaModal] = useState(false);
+  const [showDisableMfaModal, setShowDisableMfaModal] = useState(false);
 
   // T-002: Clear any legacy fake MFA flag from localStorage on load.
   // Real server-backed TOTP MFA will be introduced in T-105.
@@ -345,28 +347,53 @@ export default function ProfilePage() {
             <CardContent className="p-5 space-y-3.5">
               <div className="flex items-center justify-between pb-3 border-b border-neutral-100 dark:border-zinc-800">
                 <div className="flex items-center gap-2.5">
-                  <ShieldCheck size={16} className="text-neutral-400 dark:text-zinc-500" />
+                  <ShieldCheck
+                    size={16}
+                    className={
+                      user?.mfaEnabled
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-neutral-400 dark:text-zinc-500"
+                    }
+                  />
                   <div>
                     <span className="text-body-sm font-medium text-neutral-900 dark:text-zinc-100 block">
                       Two-Factor Authentication (MFA)
                     </span>
                     <span className="text-micro font-normal text-neutral-500 dark:text-zinc-400">
-                      Hardware passkeys &amp; TOTP authenticator (Coming soon in T-105)
+                      {user?.mfaEnabled
+                        ? "Authenticator app (TOTP) is active and protecting your account."
+                        : "Secure your account with standard TOTP authenticator apps (1Password, Google Authenticator)."}
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-micro font-semibold px-2 py-0.5 rounded-full border bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400 border-neutral-200 dark:border-zinc-700">
-                    Not Available
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowMfaModal(true)}
-                    className="text-micro font-medium text-neutral-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline px-1 py-0.5"
-                    title="View MFA implementation status"
-                  >
-                    Coming Soon
-                  </button>
+                  {user?.mfaEnabled ? (
+                    <>
+                      <span className="text-micro font-semibold px-2 py-0.5 rounded-full border bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
+                        Enrolled
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowDisableMfaModal(true)}
+                        className="text-micro font-medium text-red-600 dark:text-red-400 hover:underline px-1 py-0.5"
+                      >
+                        Disable
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-micro font-semibold px-2 py-0.5 rounded-full border bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400 border-neutral-200 dark:border-zinc-700">
+                        Not Configured
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowMfaModal(true)}
+                        className="text-micro font-medium text-indigo-600 dark:text-indigo-400 hover:underline px-1 py-0.5"
+                      >
+                        Configure
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -497,10 +524,16 @@ export default function ProfilePage() {
         </form>
       </Dialog>
 
-      {/* T-002: MFA Status & Coming Soon Modal */}
+      {/* T-105: MFA Enrollment & Disable Modals */}
       <MfaEnrollmentModal
         isOpen={showMfaModal}
         onClose={() => setShowMfaModal(false)}
+        onEnrollComplete={() => refreshUser()}
+      />
+      <DisableMfaModal
+        isOpen={showDisableMfaModal}
+        onClose={() => setShowDisableMfaModal(false)}
+        onDisabled={() => refreshUser()}
       />
     </div>
   );

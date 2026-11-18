@@ -4,6 +4,7 @@ import {
   SignupPayload,
   fetchCurrentUser,
   login as apiLogin,
+  challengeMfa as apiChallengeMfa,
   logout as apiLogout,
   refreshAuthToken,
   signup as apiSignup,
@@ -12,9 +13,11 @@ import {
 interface AuthContextValue {
   user: CurrentUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ mfaRequired: boolean; challengeToken?: string }>;
+  challengeMfa: (challengeToken: string, code: string) => Promise<void>;
   signup: (payload: SignupPayload) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   setPersonaRole: (role: "Administrator" | "Finance Manager" | "Finance Executive" | "Approver" | "Read Only") => void;
 }
 
@@ -44,8 +47,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function login(email: string, password: string) {
-    const loggedInUser = await apiLogin(email, password);
+    const res = await apiLogin(email, password);
+    if (!res.mfaRequired && res.user) {
+      setUser(res.user);
+    }
+    return {
+      mfaRequired: Boolean(res.mfaRequired),
+      challengeToken: res.challengeToken,
+    };
+  }
+
+  async function challengeMfa(challengeToken: string, code: string) {
+    const loggedInUser = await apiChallengeMfa(challengeToken, code);
     setUser(loggedInUser);
+  }
+
+  async function refreshUser() {
+    try {
+      const current = await fetchCurrentUser();
+      setUser(current);
+    } catch {
+      // ignore
+    }
   }
 
   async function signup(payload: SignupPayload) {
@@ -64,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, setPersonaRole }}>
+    <AuthContext.Provider value={{ user, loading, login, challengeMfa, refreshUser, signup, logout, setPersonaRole }}>
       {children}
     </AuthContext.Provider>
   );

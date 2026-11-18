@@ -1,6 +1,15 @@
 import { NextFunction, Request, Response } from "express";
-import { loginSchema, signupSchema, acceptInviteSchema } from "./validation";
+import {
+  loginSchema,
+  signupSchema,
+  acceptInviteSchema,
+  mfaEnableSchema,
+  mfaDisableSchema,
+  mfaRegenerateRecoveryCodesSchema,
+  mfaChallengeSchema,
+} from "./validation";
 import * as authService from "./service";
+import * as mfaService from "./mfa-service";
 import { ApiError } from "../../lib/errors";
 import { prisma } from "../../config/database";
 import { getClientIp } from "../../lib/client-ip";
@@ -60,7 +69,9 @@ export async function loginHandler(req: Request, res: Response, next: NextFuncti
     const body = loginSchema.parse(req.body);
     const clientIp = getClientIp(req);
     const result = await authService.login(body.email, body.password, clientIp);
-    setRefreshCookie(res, result.refreshToken);
+    if (!result.mfaRequired && result.refreshToken) {
+      setRefreshCookie(res, result.refreshToken);
+    }
     res.json(result);
   } catch (err) {
     next(err);
@@ -190,5 +201,70 @@ export async function authConfigHandler(_req: Request, res: Response, next: Next
     next(err);
   }
 }
+
+// ── T-105: Multi-Factor Authentication (MFA / TOTP) Handlers ──
+
+export async function mfaEnrollHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) throw ApiError.unauthorized("Authentication required");
+    const result = await mfaService.startMfaEnrollment(userId);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function mfaEnableHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = req.auth?.userId;
+    const organizationId = req.auth?.organizationId;
+    if (!userId || !organizationId) throw ApiError.unauthorized("Authentication required");
+    const body = mfaEnableSchema.parse(req.body);
+    const result = await mfaService.enableMfa(userId, organizationId, body.secret, body.code);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function mfaDisableHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = req.auth?.userId;
+    const organizationId = req.auth?.organizationId;
+    if (!userId || !organizationId) throw ApiError.unauthorized("Authentication required");
+    const body = mfaDisableSchema.parse(req.body);
+    const result = await mfaService.disableMfa(userId, organizationId, body.password, body.code);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function mfaRegenerateRecoveryCodesHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = req.auth?.userId;
+    const organizationId = req.auth?.organizationId;
+    if (!userId || !organizationId) throw ApiError.unauthorized("Authentication required");
+    const body = mfaRegenerateRecoveryCodesSchema.parse(req.body);
+    const result = await mfaService.regenerateRecoveryCodes(userId, organizationId, body.password, body.code);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function mfaChallengeHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const body = mfaChallengeSchema.parse(req.body);
+    const clientIp = getClientIp(req);
+    const result = await mfaService.challengeMfa(body.challengeToken, body.code, clientIp);
+    setRefreshCookie(res, result.refreshToken);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 
 

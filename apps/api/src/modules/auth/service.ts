@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import { prisma } from "../../config/database";
 import { ApiError } from "../../lib/errors";
 import {
@@ -179,10 +180,23 @@ export async function login(email: string, password: string, clientIp = "127.0.0
     throw ApiError.unauthorized("Invalid email or password");
   }
 
-  // Clear failed attempts upon successful login
+  // Clear failed attempts upon successful password verification
   await prisma.loginLockout.deleteMany({
     where: { identifierHash },
   }).catch(() => {});
+
+  // T-105: If user has MFA enabled, return an MFA challenge instead of issuing a session.
+  if (user.mfaEnabled) {
+    const challengeToken = jwt.sign(
+      { sub: user.id, orgId: user.organizationId, purpose: "mfa_challenge" },
+      env.jwtSecret,
+      { expiresIn: "5m" }
+    );
+    return {
+      mfaRequired: true,
+      challengeToken,
+    };
+  }
 
   const accessToken = signAccessToken({
     userId: user.id,
@@ -212,6 +226,7 @@ export async function login(email: string, password: string, clientIp = "127.0.0
   });
 
   return {
+    mfaRequired: false,
     user: {
       id: user.id,
       name: user.fullName,
@@ -221,6 +236,7 @@ export async function login(email: string, password: string, clientIp = "127.0.0
       organizationName: user.organization?.name,
       activeAdminCount,
       isSoloAdmin: user.role === "ADMINISTRATOR" && activeAdminCount === 1,
+      mfaEnabled: false,
     },
     accessToken,
     refreshToken: rawRefreshToken,
@@ -328,6 +344,7 @@ export async function getCurrentUser(userId: string) {
     role: user.role,
     activeAdminCount,
     isSoloAdmin: user.role === "ADMINISTRATOR" && activeAdminCount === 1,
+    mfaEnabled: Boolean(user.mfaEnabled),
   };
 }
 

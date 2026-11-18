@@ -184,6 +184,12 @@ model User {
   createdInvitations  OrganizationInvitation[] @relation("CreatedInvitations")
   passwordResetTokens PasswordResetToken[]
 
+  // T-105: Multi-Factor Authentication (TOTP)
+  mfaEnabled          Boolean                  @default(false)
+  mfaSecret           String?
+  mfaRecoveryCodes    String?
+  mfaEnrolledAt       DateTime?
+
   @@unique([organizationId, email])
 }
 

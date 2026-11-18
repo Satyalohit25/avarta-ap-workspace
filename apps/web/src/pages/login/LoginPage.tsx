@@ -1,6 +1,6 @@
 import { FormEvent, useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { useAuth } from "../../app/AuthContext";
 import { fetchAuthConfig } from "../../api/auth";
 import { ApiRequestError } from "../../api/client";
@@ -14,7 +14,7 @@ import { useDocumentTitle } from "../../lib/useDocumentTitle";
 
 export default function LoginPage() {
   useDocumentTitle("Sign In", "Access the Avarta Accounts Payable Workspace.");
-  const { login } = useAuth();
+  const { login, challengeMfa } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,6 +24,11 @@ export default function LoginPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // MFA Challenge State
+  const [mfaChallengeToken, setMfaChallengeToken] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaError, setMfaError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -66,7 +71,13 @@ export default function LoginPage() {
 
     setSubmitting(true);
     try {
-      await login(trimmedEmail, password);
+      const res = await login(trimmedEmail, password);
+      if (res.mfaRequired && res.challengeToken) {
+        setMfaChallengeToken(res.challengeToken);
+        setMfaCode("");
+        setMfaError(null);
+        return;
+      }
       const params = new URLSearchParams(window.location.search);
       const returnToParam = params.get("returnTo");
       const safeTarget = sanitizeReturnTo(returnToParam);
@@ -76,6 +87,35 @@ export default function LoginPage() {
         err instanceof ApiRequestError
           ? err.message
           : "Invalid credentials. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleMfaSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (submitting) return;
+
+    setMfaError(null);
+    const trimmedCode = mfaCode.trim();
+    if (!trimmedCode) {
+      setMfaError("Verification code is required");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await challengeMfa(mfaChallengeToken!, trimmedCode);
+      const params = new URLSearchParams(window.location.search);
+      const returnToParam = params.get("returnTo");
+      const safeTarget = sanitizeReturnTo(returnToParam);
+      navigate(safeTarget, { replace: true });
+    } catch (err) {
+      setMfaError(
+        err instanceof ApiRequestError
+          ? err.message
+          : "Invalid verification code. Please try again."
       );
     } finally {
       setSubmitting(false);
@@ -117,116 +157,176 @@ export default function LoginPage() {
           className="relative border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-md overflow-hidden"
         >
           <CardContent className="p-6 md:p-8">
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-              <Input
-                id="loginEmail"
-                name="email"
-                type="email"
-                autoComplete="username"
-                label="Email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (emailError) setEmailError(null);
-                }}
-                error={emailError ?? undefined}
-                placeholder="name@company.com"
-                aria-label="Email address"
-                required
-              />
-
-              <Input
-                id="loginPassword"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                label="Password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (passwordError) setPasswordError(null);
-                }}
-                error={passwordError ?? undefined}
-                rightIcon={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    className="text-neutral-400 hover:text-neutral-600 dark:text-zinc-500 dark:hover:text-zinc-300 focus:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400 dark:focus-visible:ring-zinc-400 rounded p-0.5 transition-colors"
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                  >
-                    {showPassword ? (
-                      <EyeOff size={16} aria-hidden="true" />
-                    ) : (
-                      <Eye size={16} aria-hidden="true" />
-                    )}
-                  </button>
-                }
-                placeholder="••••••••"
-                aria-label="Password"
-                required
-              />
-
-              <div className="flex justify-end -mt-2">
-                <Link
-                  to="/forgot-password"
-                  className="text-micro font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-
-              {error && <Alert type="error">{error}</Alert>}
-
-              <Button
-                type="submit"
-                disabled={submitting}
-                className="w-full h-10 font-semibold text-body-sm rounded-md"
-              >
-                {submitting ? "Signing in..." : "Sign in"}
-              </Button>
-
-              {signupEnabled && (
-                <div
-                  className="text-center pt-1"
-                  data-testid="create-workspace-link-container"
-                >
-                  <span className="text-body-sm text-neutral-500 dark:text-zinc-400">
-                    New to Avarta?{" "}
-                    <Link
-                      to="/signup"
-                      className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
-                    >
-                      Create a workspace
-                    </Link>
-                  </span>
+            {mfaChallengeToken ? (
+              <form onSubmit={handleMfaSubmit} className="space-y-4" noValidate>
+                <div className="text-center mb-2">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 mb-2 border border-indigo-200 dark:border-indigo-800">
+                    <ShieldCheck size={20} aria-hidden="true" />
+                  </div>
+                  <h2 className="text-body font-semibold text-neutral-900 dark:text-zinc-100">
+                    Two-Factor Authentication
+                  </h2>
+                  <p className="text-body-sm text-neutral-500 dark:text-zinc-400 mt-1">
+                    Enter the 6-digit code from your authenticator app or an 8-character recovery code.
+                  </p>
                 </div>
-              )}
 
-              {import.meta.env.DEV && (
-                <div className="pt-2">
+                <Input
+                  id="mfaCode"
+                  name="mfaCode"
+                  type="text"
+                  autoFocus
+                  autoComplete="one-time-code"
+                  label="Verification Code"
+                  value={mfaCode}
+                  onChange={(e) => {
+                    setMfaCode(e.target.value);
+                    if (mfaError) setMfaError(null);
+                  }}
+                  error={mfaError ?? undefined}
+                  placeholder="123456 or recovery code"
+                  className="font-mono text-center tracking-wider text-lg"
+                  aria-label="Two-factor verification code"
+                  required
+                />
+
+                {mfaError && <Alert type="error">{mfaError}</Alert>}
+
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full h-10 font-semibold text-body-sm rounded-md"
+                >
+                  {submitting ? "Verifying..." : "Verify & Sign In"}
+                </Button>
+
+                <div className="text-center pt-2">
                   <button
                     type="button"
                     onClick={() => {
-                      setEmail("admin@avarta.dev");
-                      setPassword("devpassword123");
-                      setEmailError(null);
-                      setPasswordError(null);
+                      setMfaChallengeToken(null);
+                      setMfaCode("");
+                      setMfaError(null);
                       setError(null);
                     }}
-                    className="w-full py-1.5 px-2 rounded-sm border border-neutral-200 dark:border-zinc-750 bg-neutral-100/70 dark:bg-zinc-800/80 text-neutral-700 dark:text-zinc-300 text-micro font-mono flex items-center justify-center gap-1.5 hover:bg-neutral-200/70 dark:hover:bg-zinc-700/80 transition-colors duration-100"
+                    className="text-body-sm font-medium text-neutral-500 dark:text-zinc-400 hover:text-neutral-700 dark:hover:text-zinc-200 transition-colors"
                   >
-                    <span className="px-1 py-0.5 text-[9px] font-semibold bg-neutral-200 dark:bg-zinc-700 rounded-xs">
-                      DEV
-                    </span>
-                    <span>
-                      Load Dev Operator Credentials (admin@avarta.dev)
-                    </span>
+                    ← Back to Sign In
                   </button>
                 </div>
-              )}
-            </form>
+              </form>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                <Input
+                  id="loginEmail"
+                  name="email"
+                  type="email"
+                  autoComplete="username"
+                  label="Email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (emailError) setEmailError(null);
+                  }}
+                  error={emailError ?? undefined}
+                  placeholder="name@company.com"
+                  aria-label="Email address"
+                  required
+                />
+
+                <Input
+                  id="loginPassword"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  label="Password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (passwordError) setPasswordError(null);
+                  }}
+                  error={passwordError ?? undefined}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="text-neutral-400 hover:text-neutral-600 dark:text-zinc-500 dark:hover:text-zinc-300 focus:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400 dark:focus-visible:ring-zinc-400 rounded p-0.5 transition-colors"
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showPassword ? (
+                        <EyeOff size={16} aria-hidden="true" />
+                      ) : (
+                        <Eye size={16} aria-hidden="true" />
+                      )}
+                    </button>
+                  }
+                  placeholder="••••••••"
+                  aria-label="Password"
+                  required
+                />
+
+                <div className="flex justify-end -mt-2">
+                  <Link
+                    to="/forgot-password"
+                    className="text-micro font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+
+                {error && <Alert type="error">{error}</Alert>}
+
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full h-10 font-semibold text-body-sm rounded-md"
+                >
+                  {submitting ? "Signing in..." : "Sign in"}
+                </Button>
+
+                {signupEnabled && (
+                  <div
+                    className="text-center pt-1"
+                    data-testid="create-workspace-link-container"
+                  >
+                    <span className="text-body-sm text-neutral-500 dark:text-zinc-400">
+                      New to Avarta?{" "}
+                      <Link
+                        to="/signup"
+                        className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+                      >
+                        Create a workspace
+                      </Link>
+                    </span>
+                  </div>
+                )}
+
+                {import.meta.env.DEV && (
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmail("admin@avarta.dev");
+                        setPassword("devpassword123");
+                        setEmailError(null);
+                        setPasswordError(null);
+                        setError(null);
+                      }}
+                      className="w-full py-1.5 px-2 rounded-sm border border-neutral-200 dark:border-zinc-750 bg-neutral-100/70 dark:bg-zinc-800/80 text-neutral-700 dark:text-zinc-300 text-micro font-mono flex items-center justify-center gap-1.5 hover:bg-neutral-200/70 dark:hover:bg-zinc-700/80 transition-colors duration-100"
+                    >
+                      <span className="px-1 py-0.5 text-[9px] font-semibold bg-neutral-200 dark:bg-zinc-700 rounded-xs">
+                        DEV
+                      </span>
+                      <span>
+                        Load Dev Operator Credentials (admin@avarta.dev)
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </form>
+            )}
           </CardContent>
         </Card>
 
