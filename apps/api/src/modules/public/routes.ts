@@ -100,11 +100,36 @@ publicRoutes.post("/invoices/email-webhook", async (req: Request, res: Response)
         res.status(401).json({ error: "Missing cryptographic email webhook signature or secret" });
         return;
       }
+
+      // Verify timestamp freshness if timestamp header or payload Date is provided (max 5 minutes)
+      const timestampHeader =
+        (req.headers["x-webhook-timestamp"] as string) ||
+        (req.headers["x-postmark-timestamp"] as string) ||
+        req.body?.timestamp ||
+        req.body?.Date;
+
+      if (timestampHeader) {
+        const parsedDate = new Date(timestampHeader).getTime();
+        if (!isNaN(parsedDate)) {
+          const ageMs = Math.abs(Date.now() - parsedDate);
+          if (ageMs > 5 * 60 * 1000) {
+            res.status(401).json({ error: "Webhook timestamp expired (older than 5 minutes)" });
+            return;
+          }
+        }
+      }
+
       const rawPayload = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
       const expected = crypto.createHmac("sha256", webhookSecret).update(rawPayload).digest("hex");
       let isValid = false;
       try {
-        isValid = crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+        const sigBuf = Buffer.from(signature);
+        const expectedBuf = Buffer.from(expected);
+        if (sigBuf.length === expectedBuf.length) {
+          isValid = crypto.timingSafeEqual(sigBuf, expectedBuf);
+        } else {
+          isValid = false;
+        }
       } catch {
         isValid = false;
       }
@@ -114,7 +139,12 @@ publicRoutes.post("/invoices/email-webhook", async (req: Request, res: Response)
       }
     }
 
-    const { from, to, subject, body, attachments, organizationId } = req.body;
+    const { from, to, subject, body, attachments, organizationId, messageId: bodyMessageId } = req.body;
+    const messageId =
+      (req.headers["x-message-id"] as string) ||
+      (req.headers["message-id"] as string) ||
+      bodyMessageId;
+
     if (!from || !to || !subject) {
       res.status(400).json({ error: "Missing required fields: from, to, subject" });
       return;
@@ -127,6 +157,7 @@ publicRoutes.post("/invoices/email-webhook", async (req: Request, res: Response)
       body,
       attachments,
       organizationId,
+      messageId,
     });
     res.status(201).json({ data: result });
   } catch (err: unknown) {

@@ -13,6 +13,7 @@ export interface WebhookResult {
 
 /**
  * Validates Stripe/Razorpay HMAC signature.
+ * Enforces buffer length check before timing-safe comparison to avoid runtime throwing (T-210 / BILL-HMAC-01).
  */
 export function verifyWebhookSignature(rawPayload: string, signature: string, secret: string): boolean {
   if (!signature || !secret) return false;
@@ -21,7 +22,12 @@ export function verifyWebhookSignature(rawPayload: string, signature: string, se
       .createHmac("sha256", secret)
       .update(rawPayload)
       .digest("hex");
-    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig));
+    const sigBuf = Buffer.from(signature);
+    const expectedBuf = Buffer.from(expectedSig);
+    if (sigBuf.length !== expectedBuf.length) {
+      return false;
+    }
+    return crypto.timingSafeEqual(sigBuf, expectedBuf);
   } catch {
     return false;
   }
@@ -37,6 +43,24 @@ export async function handleBillingWebhook(req: Request, res: Response): Promise
       res.status(401).json({ error: "Missing cryptographic webhook signature or configured secret" });
       return;
     }
+
+    // Verify timestamp freshness if timestamp header or payload created timestamp is provided (max 5 minutes)
+    const timestampHeader =
+      (req.headers["stripe-signature-timestamp"] as string) ||
+      (req.headers["x-webhook-timestamp"] as string) ||
+      (req.body?.created ? String(req.body.created) : undefined);
+
+    if (timestampHeader) {
+      const tsNum = Number(timestampHeader);
+      // Determine if seconds or ms
+      const timestampMs = tsNum < 1e11 ? tsNum * 1000 : tsNum;
+      const ageMs = Math.abs(Date.now() - timestampMs);
+      if (ageMs > 5 * 60 * 1000) {
+        res.status(401).json({ error: "Webhook timestamp expired (older than 5 minutes)" });
+        return;
+      }
+    }
+
     const rawPayload = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
     const isValid = verifyWebhookSignature(rawPayload, signature, webhookSecret);
     if (!isValid) {

@@ -18,19 +18,35 @@ export function computeLockoutHash(email: string, clientIp: string): string {
   return crypto.createHash("sha256").update(`${cleanEmail}:${cleanIp}`).digest("hex");
 }
 
+export function computeAccountLockoutHash(email: string): string {
+  const cleanEmail = email.toLowerCase().trim();
+  return crypto.createHash("sha256").update(`account:${cleanEmail}`).digest("hex");
+}
+
 export async function login(email: string, password: string, clientIp = "127.0.0.1") {
   const cleanEmail = email.toLowerCase().trim();
   const identifierHash = computeLockoutHash(cleanEmail, clientIp);
+  const accountLockoutHash = computeAccountLockoutHash(cleanEmail);
 
   // Check persistent DB login lockout keyed by Account + Client IP (Anti-DOS, Anti-Brute-Force)
+  // and independent per-account lockout (Anti-Distributed Guessing)
   try {
-    const lockout = await prisma.loginLockout.findUnique({
-      where: { identifierHash },
-    });
-    if (lockout && lockout.lockedUntil && lockout.lockedUntil.getTime() > Date.now()) {
-      const remainingMin = Math.ceil((lockout.lockedUntil.getTime() - Date.now()) / 60000);
+    const [ipLockout, accountLockout] = await Promise.all([
+      prisma.loginLockout.findUnique({ where: { identifierHash } }),
+      prisma.loginLockout.findUnique({ where: { identifierHash: accountLockoutHash } }),
+    ]);
+
+    if (ipLockout && ipLockout.lockedUntil && ipLockout.lockedUntil.getTime() > Date.now()) {
+      const remainingMin = Math.ceil((ipLockout.lockedUntil.getTime() - Date.now()) / 60000);
       throw ApiError.tooManyRequests(
         `Too many failed login attempts from this network. Please wait ${remainingMin} minute(s) or reset your password.`
+      );
+    }
+
+    if (accountLockout && accountLockout.lockedUntil && accountLockout.lockedUntil.getTime() > Date.now()) {
+      const remainingMin = Math.ceil((accountLockout.lockedUntil.getTime() - Date.now()) / 60000);
+      throw ApiError.tooManyRequests(
+        `Too many failed login attempts on this account. Please wait ${remainingMin} minute(s) or reset your password.`
       );
     }
   } catch (err) {
@@ -136,30 +152,46 @@ export async function login(email: string, password: string, clientIp = "127.0.0
 
   const recordFailedAttempt = async () => {
     try {
-      const existing = await prisma.loginLockout.findUnique({
-        where: { identifierHash },
-      });
-      const attempts = (existing?.failedAttempts || 0) + 1;
-      let lockedUntil: Date | null = null;
-      if (attempts >= 5) {
-        lockedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes lockout
-      }
-      await prisma.loginLockout.upsert({
-        where: { identifierHash },
-        create: {
-          identifierHash,
-          failedAttempts: attempts,
-          lockedUntil,
-        },
-        update: {
-          failedAttempts: attempts,
-          lockedUntil,
-        },
-      });
+      const [existingIp, existingAccount] = await Promise.all([
+        prisma.loginLockout.findUnique({ where: { identifierHash } }),
+        prisma.loginLockout.findUnique({ where: { identifierHash: accountLockoutHash } }),
+      ]);
 
-      if (attempts >= 5) {
+      const ipAttempts = (existingIp?.failedAttempts || 0) + 1;
+      const accountAttempts = (existingAccount?.failedAttempts || 0) + 1;
+
+      let ipLockedUntil: Date | null = null;
+      if (ipAttempts >= 5) {
+        ipLockedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes lockout
+      }
+
+      let accountLockedUntil: Date | null = null;
+      if (accountAttempts >= 10) {
+        accountLockedUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes account lockout
+      }
+
+      await Promise.all([
+        prisma.loginLockout.upsert({
+          where: { identifierHash },
+          create: { identifierHash, failedAttempts: ipAttempts, lockedUntil: ipLockedUntil },
+          update: { failedAttempts: ipAttempts, lockedUntil: ipLockedUntil },
+        }),
+        prisma.loginLockout.upsert({
+          where: { identifierHash: accountLockoutHash },
+          create: { identifierHash: accountLockoutHash, failedAttempts: accountAttempts, lockedUntil: accountLockedUntil },
+          update: { failedAttempts: accountAttempts, lockedUntil: accountLockedUntil },
+        }),
+      ]);
+
+      if (ipAttempts >= 5) {
         throw ApiError.tooManyRequests(
           "Too many failed login attempts from this network. Please wait 15 minutes or reset your password."
+        );
+      }
+
+      if (accountAttempts >= 10) {
+        throw ApiError.tooManyRequests(
+          "Too many failed login attempts on this account. Please wait 30 minutes or reset your password."
         );
       }
     } catch (err) {
@@ -182,7 +214,7 @@ export async function login(email: string, password: string, clientIp = "127.0.0
 
   // Clear failed attempts upon successful password verification
   await prisma.loginLockout.deleteMany({
-    where: { identifierHash },
+    where: { identifierHash: { in: [identifierHash, accountLockoutHash] } },
   }).catch(() => {});
 
   // T-105: If user has MFA enabled, return an MFA challenge instead of issuing a session.

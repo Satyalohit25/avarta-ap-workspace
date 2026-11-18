@@ -18,6 +18,7 @@ export interface InboundEmailInput {
   body?: string;
   attachments?: EmailAttachment[];
   organizationId?: string;
+  messageId?: string;
 }
 
 export interface InboundEmailResult {
@@ -26,6 +27,7 @@ export interface InboundEmailResult {
   invoiceNumber: string;
   organizationId: string;
   attachmentCount: number;
+  deduplicated?: boolean;
 }
 
 /**
@@ -69,7 +71,7 @@ async function resolveOrganizationId(to: string, from: string, explicitOrgId?: s
  * and starts automated capture and validation pipeline.
  */
 export async function processInboundEmail(input: InboundEmailInput): Promise<InboundEmailResult> {
-  const { from, to, subject, body: _body, attachments = [], organizationId: bodyOrgId } = input;
+  const { from, to, subject, body: _body, attachments = [], organizationId: bodyOrgId, messageId } = input;
 
   // Tenant isolation: organizationId from a request body is never authority.
   // In production the tenant is resolved from the signed recipient address or
@@ -78,6 +80,24 @@ export async function processInboundEmail(input: InboundEmailInput): Promise<Inb
   const explicitOrgId = process.env.NODE_ENV === "production" ? undefined : bodyOrgId;
 
   const organizationId = await resolveOrganizationId(to, from, explicitOrgId);
+
+  // Email webhook message-id idempotency (T-210) to prevent duplicate invoice creation on redelivery
+  if (messageId) {
+    const existingKey = await prisma.idempotencyKey.findFirst({
+      where: {
+        organizationId,
+        key: `email_webhook_${messageId}`,
+      },
+    });
+
+    if (existingKey && existingKey.responseBody) {
+      const cached = existingKey.responseBody as unknown as InboundEmailResult;
+      return {
+        ...cached,
+        deduplicated: true,
+      };
+    }
+  }
 
   // Match supplier if known
   const supplier = await prisma.supplier.findFirst({
@@ -163,11 +183,28 @@ export async function processInboundEmail(input: InboundEmailInput): Promise<Inb
     console.warn(`[EMAIL INTAKE] Async processInvoice error for ${invoice.id}:`, err);
   });
 
-  return {
+  const result: InboundEmailResult = {
     success: true,
     invoiceId: invoice.id,
     invoiceNumber,
     organizationId,
     attachmentCount: attachments.length,
   };
+
+  // Cache response under idempotency key if messageId was provided
+  if (messageId) {
+    await prisma.idempotencyKey.create({
+      data: {
+        organizationId,
+        key: `email_webhook_${messageId}`,
+        method: "POST",
+        path: "/api/public/invoices/email-webhook",
+        statusCode: 201,
+        responseBody: result as any,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+    }).catch(() => {});
+  }
+
+  return result;
 }

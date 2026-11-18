@@ -162,6 +162,25 @@ describe("P0 Security & Invariant Hardening Suite", () => {
       expect(result.user.email).toBe(testEmail);
       expect(result.accessToken).toBeDefined();
     }, 30000);
+
+    it("locks out account independently of IP after 10 failed attempts across different IPs (Anti-Distributed Guessing)", async () => {
+      // 10 failed attempts from 10 distinct IPs (1 attempt per IP so IP limit of 5 is not reached)
+      for (let i = 1; i <= 9; i++) {
+        await expect(login(testEmail, "GuessPassword!", `198.51.100.${i}`)).rejects.toThrow(
+          "Invalid email or password"
+        );
+      }
+
+      // 10th attempt across distributed IPs triggers account-level lockout
+      await expect(login(testEmail, "GuessPassword!", "198.51.100.10")).rejects.toThrow(
+        /Too many failed login attempts on this account/
+      );
+
+      // 11th attempt from a fresh new IP is also locked out due to account-level lockout
+      await expect(login(testEmail, "GuessPassword!", "198.51.100.99")).rejects.toThrow(
+        /Too many failed login attempts on this account/
+      );
+    }, 35000);
   });
 
   // ── 2. Refresh Token Rotation & DB Revocation (Item 1 & 3) ──
