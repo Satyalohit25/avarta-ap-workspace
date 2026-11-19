@@ -14,6 +14,7 @@ import {
   processHandler,
   transitionHandler,
   bulkApproveHandler,
+  archiveInvoiceHandler,
   erpSyncHandler,
   uploadDocumentHandler,
   extractDocumentHandler,
@@ -92,6 +93,12 @@ invoiceRoutes.post(
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "APPROVER", "FINANCE_EXECUTIVE"),
   requireScope("invoices:write"),
   transitionHandler
+);
+invoiceRoutes.post(
+  "/:invoiceId/archive",
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER"),
+  requireScope("invoices:write"),
+  archiveInvoiceHandler
 );
 invoiceRoutes.post(
   "/:invoiceId/erp-sync",

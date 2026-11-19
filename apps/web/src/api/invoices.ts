@@ -252,6 +252,15 @@ export async function transitionInvoice(
   return result;
 }
 
+export async function archiveInvoice(id: string, reason?: string) {
+  const result = await apiRequest<{ data: InvoiceListItem }>(`/invoices/${id}/archive`, {
+    method: "POST",
+    body: { reason },
+  });
+  notifyMutation("invoices");
+  return result;
+}
+
 export async function syncInvoiceToErp(id: string, targetErp: string, idempotencyKey?: string) {
   const key = idempotencyKey || `erp-sync-${id}-${Date.now()}`;
   const result = await apiRequest<{ data: InvoiceListItem }>(`/invoices/${id}/erp-sync`, {

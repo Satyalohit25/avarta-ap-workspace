@@ -9,6 +9,7 @@ export type WorkflowEvent =
   | "EXCEPTION_RESOLVED"
   | "MATCHING_SUCCESS"
   | "MATCHING_FAILURE"
+  | "APPROVAL_REQUEST"
   | "APPROVED"
   | "REJECTED"
   | "PAYMENT_RUN"
@@ -23,8 +24,7 @@ interface TransitionRule {
   to: WorkflowState;
 }
 
-// Doc 18 §18.3 — the corrected transition table, filling the gap left in
-// the original Doc 09 spec (Matching / Matching Failed rows were missing).
+// Doc 18 §18.3 & T-306 — canonical transition table with wired MATCHED state and ARCHIVE triggers.
 export const TRANSITIONS: TransitionRule[] = [
   { from: "RECEIVED", event: "CAPTURE_COMPLETE", to: "CAPTURED" },
   { from: "CAPTURED", event: "VALIDATION_START", to: "VALIDATING" },
@@ -32,9 +32,12 @@ export const TRANSITIONS: TransitionRule[] = [
   { from: "VALIDATING", event: "VALIDATION_FAILURE", to: "VALIDATION_FAILED" },
   { from: "VALIDATED", event: "MATCHING_START", to: "MATCHING" },
   { from: "VALIDATION_FAILED", event: "EXCEPTION_RESOLVED", to: "VALIDATED" },
-  { from: "MATCHING", event: "MATCHING_SUCCESS", to: "WAITING_APPROVAL" },
+  { from: "MATCHING", event: "MATCHING_SUCCESS", to: "MATCHED" },
   { from: "MATCHING", event: "MATCHING_FAILURE", to: "MATCHING_FAILED" },
   { from: "MATCHING_FAILED", event: "EXCEPTION_RESOLVED", to: "VALIDATED" },
+  { from: "MATCHED", event: "APPROVAL_REQUEST", to: "WAITING_APPROVAL" },
+  { from: "MATCHED", event: "MATCHING_SUCCESS", to: "WAITING_APPROVAL" },
+  { from: "MATCHED", event: "MATCHING_START", to: "MATCHING" },
   { from: "WAITING_APPROVAL", event: "APPROVED", to: "SCHEDULED" },
   { from: "WAITING_APPROVAL", event: "REJECTED", to: "VALIDATION_FAILED" },
   { from: "SCHEDULED", event: "PAYMENT_RUN", to: "PROCESSING_PAYMENT" },
@@ -45,6 +48,7 @@ export const TRANSITIONS: TransitionRule[] = [
   // where the failure is actually surfaced to the user.
   { from: "PROCESSING_PAYMENT", event: "PAYMENT_FAILURE", to: "SCHEDULED" },
   { from: "PAID", event: "ERP_SUCCESS", to: "ERP_SYNC" },
+  { from: "PAID", event: "ARCHIVE_COMPLETE", to: "ARCHIVED" },
   { from: "ERP_SYNC", event: "ARCHIVE_COMPLETE", to: "ARCHIVED" },
   // T-202: Documented permanent closure / archive path for rejected or terminal exception invoices
   { from: "VALIDATION_FAILED", event: "ARCHIVE_COMPLETE", to: "ARCHIVED" },

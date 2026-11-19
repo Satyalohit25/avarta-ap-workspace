@@ -829,6 +829,7 @@ export async function retryValidation(organizationId: string, invoiceId: string,
   await applyTransition({ invoiceId, organizationId, event: "EXCEPTION_RESOLVED", triggeredBy: userId });
   await applyTransition({ invoiceId, organizationId, event: "MATCHING_START", triggeredBy: userId });
   await applyTransition({ invoiceId, organizationId, event: "MATCHING_SUCCESS", triggeredBy: userId });
+  await applyTransition({ invoiceId, organizationId, event: "APPROVAL_REQUEST", triggeredBy: userId });
 
   await prisma.exception.updateMany({
     where: { invoiceId, organizationId, status: { in: ["OPEN", "ASSIGNED", "UNDER_REVIEW"] } },
@@ -847,7 +848,8 @@ export async function transitionInvoice(
     | "RETRY_VALIDATION"
     | "RUN_MATCHING"
     | "SUBMIT_APPROVAL"
-    | "HOLD_REQUEST_CORRECTION",
+    | "HOLD_REQUEST_CORRECTION"
+    | "ARCHIVE",
   userId?: string,
   comment?: string,
   userRole?: string,
@@ -862,6 +864,15 @@ export async function transitionInvoice(
 
   const invoice = await repo.findInvoiceById(organizationId, invoiceId);
   if (!invoice) throw ApiError.notFound("Invoice not found");
+
+  if (action === "ARCHIVE") {
+    if (userRole && !["ADMINISTRATOR", "FINANCE_MANAGER"].includes(userRole)) {
+      throw ApiError.forbidden(
+        `Role "${userRole}" is not authorized to archive invoices. Required roles: ADMINISTRATOR or FINANCE_MANAGER.`
+      );
+    }
+    return archiveInvoice(organizationId, invoiceId, userId, comment);
+  }
 
   if (action === "APPROVE" || action === "REJECT") {
     // AGENTS.md / Blueprint: Enforce approval authority on server
@@ -892,8 +903,13 @@ export async function transitionInvoice(
       reason: comment,
       closePermanently,
     });
-  } else if (action === "RUN_MATCHING" || action === "SUBMIT_APPROVAL") {
+  } else if (action === "RUN_MATCHING") {
     await runThreeWayMatching({ organizationId, invoiceId, userId });
+  } else if (action === "SUBMIT_APPROVAL") {
+    if (invoice.workflowState !== "MATCHED") {
+      await runThreeWayMatching({ organizationId, invoiceId, userId });
+    }
+    await applyTransition({ invoiceId, organizationId, event: "APPROVAL_REQUEST", triggeredBy: userId });
   } else if (action === "HOLD_REQUEST_CORRECTION") {
     await createException({
       organizationId,
@@ -949,6 +965,89 @@ export async function bulkApproveInvoices(
     succeeded,
     failed,
   };
+}
+
+export async function archiveInvoice(
+  organizationId: string,
+  invoiceId: string,
+  userId?: string,
+  reason?: string
+) {
+  const invoice = await repo.findInvoiceById(organizationId, invoiceId);
+  if (!invoice) throw ApiError.notFound("Invoice not found");
+
+  const allowedStates = ["ERP_SYNC", "PAID"];
+  if (!allowedStates.includes(invoice.workflowState)) {
+    throw ApiError.conflict(
+      `Invoice in state "${invoice.workflowState}" cannot be archived. Invoices must be in "ERP_SYNC" or "PAID" state before archiving.`
+    );
+  }
+
+  await applyTransition({
+    invoiceId,
+    organizationId,
+    event: "ARCHIVE_COMPLETE",
+    triggeredBy: userId,
+    reason: reason || "Archived to compliance vault",
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      organizationId,
+      userId: userId ?? null,
+      action: "INVOICE_ARCHIVED",
+      entityType: "invoice",
+      entityId: invoiceId,
+      beforeData: { workflowState: invoice.workflowState, status: invoice.status },
+      afterData: { workflowState: "ARCHIVED", status: "ARCHIVED", reason },
+    },
+  });
+
+  return getInvoice(organizationId, invoiceId);
+}
+
+export async function archiveEligibleInvoices(
+  organizationId?: string,
+  retentionDays: number = 30
+) {
+  const cutoffDate = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+  const whereClause: Prisma.InvoiceWhereInput = {
+    workflowState: { in: ["ERP_SYNC", "PAID"] },
+    updatedAt: { lte: cutoffDate },
+    ...(organizationId ? { organizationId } : {}),
+  };
+
+  const eligibleInvoices = await prisma.invoice.findMany({
+    where: whereClause,
+    select: { id: true, organizationId: true, workflowState: true },
+  });
+
+  const archivedIds: string[] = [];
+  for (const inv of eligibleInvoices) {
+    try {
+      await applyTransition({
+        invoiceId: inv.id,
+        organizationId: inv.organizationId,
+        event: "ARCHIVE_COMPLETE",
+        reason: `Automated scheduled archive (${retentionDays}+ days post settlement/sync)`,
+      });
+      await prisma.auditLog.create({
+        data: {
+          organizationId: inv.organizationId,
+          action: "INVOICE_ARCHIVED",
+          entityType: "invoice",
+          entityId: inv.id,
+          beforeData: { workflowState: inv.workflowState },
+          afterData: { workflowState: "ARCHIVED", status: "ARCHIVED", automated: true },
+        },
+      });
+      archivedIds.push(inv.id);
+    } catch {
+      // Continue with next invoice if one fails
+    }
+  }
+
+  return { archivedCount: archivedIds.length, invoiceIds: archivedIds };
 }
 
 export async function syncInvoiceToErp(

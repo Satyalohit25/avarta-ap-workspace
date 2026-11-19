@@ -9,7 +9,8 @@ describe("Workflow Engine Exhaustive State Matrix & Authority", () => {
       { from: "CAPTURED", event: "VALIDATION_START", expectedTo: "VALIDATING" },
       { from: "VALIDATING", event: "VALIDATION_SUCCESS", expectedTo: "VALIDATED" },
       { from: "VALIDATED", event: "MATCHING_START", expectedTo: "MATCHING" },
-      { from: "MATCHING", event: "MATCHING_SUCCESS", expectedTo: "WAITING_APPROVAL" },
+      { from: "MATCHING", event: "MATCHING_SUCCESS", expectedTo: "MATCHED" },
+      { from: "MATCHED", event: "APPROVAL_REQUEST", expectedTo: "WAITING_APPROVAL" },
       { from: "WAITING_APPROVAL", event: "APPROVED", expectedTo: "SCHEDULED" },
       { from: "SCHEDULED", event: "PAYMENT_RUN", expectedTo: "PROCESSING_PAYMENT" },
       { from: "PROCESSING_PAYMENT", event: "PAYMENT_SUCCESS", expectedTo: "PAID" },
@@ -22,6 +23,14 @@ describe("Workflow Engine Exhaustive State Matrix & Authority", () => {
       expect(rule, `Expected transition rule for ${step.from} + ${step.event}`).toBeDefined();
       expect(rule?.to).toBe(step.expectedTo);
     }
+
+    // Direct archive from settled PAID state
+    const paidArchive = findTransition("PAID", "ARCHIVE_COMPLETE");
+    expect(paidArchive?.to).toBe("ARCHIVED");
+
+    // Re-matching from MATCHED
+    const rematch = findTransition("MATCHED", "MATCHING_START");
+    expect(rematch?.to).toBe("MATCHING");
   });
 
   it("verifies exception branch & rejoin transitions", () => {

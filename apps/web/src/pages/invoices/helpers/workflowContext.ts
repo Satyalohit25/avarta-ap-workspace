@@ -388,6 +388,11 @@ export function getInvoiceWorkflowContext(invoice: RawInvoiceData): InvoiceWorkf
         variant: "primary",
         description: "Export general ledger entries to accounting software",
       };
+      secondaryActions.push({
+        label: "Archive Record",
+        actionKey: "ARCHIVE",
+        variant: "outline",
+      });
       bannerTitle = "Payment Executed & Settled";
       bannerDescription = "Disbursement confirmed. Ready for general ledger handoff and ERP synchronization.";
       bannerType = "success";
@@ -395,12 +400,17 @@ export function getInvoiceWorkflowContext(invoice: RawInvoiceData): InvoiceWorkf
       break;
 
     case "SYNCED":
-      primaryAction = null;
+      primaryAction = {
+        label: "Archive Invoice",
+        actionKey: "ARCHIVE",
+        variant: "primary",
+        description: "Seal and move reconciled invoice into compliance archive vault",
+      };
       bannerTitle = "ERP Synchronized & Reconciled";
-      bannerDescription = "Invoice record and GL vouchers successfully synced to enterprise ERP.";
+      bannerDescription = "Invoice record and GL vouchers successfully synced to enterprise ERP. Ready for compliance archive.";
       bannerType = "success";
-      nextStepPrompt = "Workflow complete. All ledger entries are synchronized.";
-      isComplete = true;
+      nextStepPrompt = "Workflow complete. Click 'Archive Invoice' to seal into compliance vault.";
+      isComplete = false;
       break;
 
     case "REJECTED":

@@ -32,6 +32,18 @@ describe("Workflow Transitions Engine State Machine", () => {
     const events = availableEvents("WAITING_APPROVAL");
     expect(events).toContain("APPROVED");
     expect(events).toContain("REJECTED");
+
+    const matchedEvents = availableEvents("MATCHED");
+    expect(matchedEvents).toContain("APPROVAL_REQUEST");
+    expect(matchedEvents).toContain("MATCHING_START");
+  });
+
+  it("handles archive transitions from ERP_SYNC and PAID", () => {
+    const fromErp = findTransition("ERP_SYNC", "ARCHIVE_COMPLETE");
+    expect(fromErp?.to).toBe("ARCHIVED");
+
+    const fromPaid = findTransition("PAID", "ARCHIVE_COMPLETE");
+    expect(fromPaid?.to).toBe("ARCHIVED");
   });
 
   it("returns undefined for illegal state transitions", () => {

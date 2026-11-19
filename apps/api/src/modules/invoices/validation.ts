@@ -71,6 +71,7 @@ export const transitionSchema = z
       "RUN_MATCHING",
       "SUBMIT_APPROVAL",
       "HOLD_REQUEST_CORRECTION",
+      "ARCHIVE",
     ]),
     comment: z.string().optional(),
     overrideSoloAdmin: z.boolean().optional(),

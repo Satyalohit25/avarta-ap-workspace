@@ -944,6 +944,11 @@ export default function InvoiceDetailPage() {
           "Invoice Approved",
           `Invoice ${invoice?.invoiceNumber} approved and queued for payment scheduling.`,
         );
+      } else if (confirmDialog.action === "ARCHIVE") {
+        toast.success(
+          "Invoice Archived",
+          `Invoice ${invoice?.invoiceNumber} sealed and stored in compliance archive.`,
+        );
       } else if (confirmDialog.action === "HOLD_REQUEST_CORRECTION") {
         toast.warning(
           "Invoice On Hold",
@@ -963,28 +968,34 @@ export default function InvoiceDetailPage() {
           action:
             confirmDialog.action === "APPROVE"
               ? "Invoice Approved for Payment"
-              : confirmDialog.action === "HOLD_REQUEST_CORRECTION"
-                ? "Invoice Placed On Hold"
-                : "Invoice Rejected",
+              : confirmDialog.action === "ARCHIVE"
+                ? "Invoice Archived to Compliance Vault"
+                : confirmDialog.action === "HOLD_REQUEST_CORRECTION"
+                  ? "Invoice Placed On Hold"
+                  : "Invoice Rejected",
           details: confirmDialog.comment || "Action signed off from workspace",
-          type: confirmDialog.action === "APPROVE" ? "success" : "error",
+          type: confirmDialog.action === "APPROVE" || confirmDialog.action === "ARCHIVE" ? "success" : "error",
         },
         ...prev,
       ]);
       setActionBanner({
-        type: confirmDialog.action === "APPROVE" ? "success" : "warning",
+        type: confirmDialog.action === "APPROVE" || confirmDialog.action === "ARCHIVE" ? "success" : "warning",
         title:
           confirmDialog.action === "APPROVE"
             ? "Invoice Approved"
-            : confirmDialog.action === "HOLD_REQUEST_CORRECTION"
-              ? "Invoice On Hold"
-              : "Invoice Rejected",
+            : confirmDialog.action === "ARCHIVE"
+              ? "Invoice Archived"
+              : confirmDialog.action === "HOLD_REQUEST_CORRECTION"
+                ? "Invoice On Hold"
+                : "Invoice Rejected",
         message:
           confirmDialog.action === "APPROVE"
             ? `Invoice ${invoice?.invoiceNumber} has been approved and moved to Waiting for Scheduling.`
-            : confirmDialog.action === "HOLD_REQUEST_CORRECTION"
-              ? `Invoice ${invoice?.invoiceNumber} is on hold awaiting vendor response.`
-              : `Invoice ${invoice?.invoiceNumber} has been rejected and marked in workflow engine.`,
+            : confirmDialog.action === "ARCHIVE"
+              ? `Invoice ${invoice?.invoiceNumber} has been sealed in the compliance vault.`
+              : confirmDialog.action === "HOLD_REQUEST_CORRECTION"
+                ? `Invoice ${invoice?.invoiceNumber} is on hold awaiting vendor response.`
+                : `Invoice ${invoice?.invoiceNumber} has been rejected and marked in workflow engine.`,
       });
       setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
       await load();
@@ -1075,6 +1086,15 @@ export default function InvoiceDetailPage() {
         break;
       case "SYNC_ERP":
         setShowErpModal(true);
+        break;
+      case "ARCHIVE":
+        setConfirmDialog({
+          isOpen: true,
+          title: "Archive Invoice to Compliance Vault",
+          description: `Archive ${invoice?.invoiceNumber} to immutable historical records? This invoice will be permanently sealed in compliance archive.`,
+          action: "ARCHIVE",
+          comment: "Archived to compliance vault",
+        });
         break;
       case "VIEW_AUDIT":
         setIsAuditDrawerOpen(true);

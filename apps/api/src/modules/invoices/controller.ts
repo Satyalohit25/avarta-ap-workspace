@@ -213,6 +213,24 @@ export async function bulkApproveHandler(req: Request, res: Response, next: Next
   }
 }
 
+export async function archiveInvoiceHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const invoice = await invoiceService.archiveInvoice(
+      orgId(req),
+      req.params.invoiceId,
+      req.auth?.userId,
+      req.body?.reason || req.body?.comment
+    );
+    res.json({ data: invoice });
+  } catch (err) {
+    next(err);
+  }
+}
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function erpSyncHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const invoice = await invoiceService.syncInvoiceToErp(
