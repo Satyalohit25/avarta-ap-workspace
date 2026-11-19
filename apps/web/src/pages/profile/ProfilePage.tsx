@@ -21,6 +21,7 @@ import { Alert } from "../../components/ui/Alert";
 import { PageHeader } from "../../components/layout/PageHeader";
 import { Dialog } from "../../components/ui/Dialog";
 import { useToast } from "../../components/ui/ToastContext";
+import { updateProfile } from "../../api/auth";
 import { MfaEnrollmentModal } from "./components/MfaEnrollmentModal";
 import { DisableMfaModal } from "./components/DisableMfaModal";
 
@@ -98,11 +99,29 @@ export default function ProfilePage() {
     toast.success("Display Picture Removed", "Reverted to standard account initials.");
   }
 
-  function handleSaveProfile(e: FormEvent) {
+  const [_savingProfile, setSavingProfile] = useState(false);
+
+  useEffect(() => {
+    if (user?.name) {
+      setFullName(user.name);
+    }
+  }, [user?.name]);
+
+  async function handleSaveProfile(e: FormEvent) {
     e.preventDefault();
-    setSaved(true);
-    toast.success("Profile Updated", "Your personal details have been saved.");
-    setTimeout(() => setSaved(false), 3000);
+    if (!fullName.trim()) return;
+    try {
+      setSavingProfile(true);
+      await updateProfile({ fullName: fullName.trim() });
+      await refreshUser();
+      setSaved(true);
+      toast.success("Profile Updated", "Your personal details have been saved.");
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err: any) {
+      toast.error("Update Failed", err?.message || "Could not save profile details.");
+    } finally {
+      setSavingProfile(false);
+    }
   }
 
   function handleCreateToken(e: FormEvent) {

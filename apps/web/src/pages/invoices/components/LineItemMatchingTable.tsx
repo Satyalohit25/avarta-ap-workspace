@@ -44,8 +44,11 @@ interface LineItemMatchingTableProps {
   currency: string;
   exceptions?: InvoiceExceptionItem[];
   lines?: unknown[];
+  priceTolerancePercent?: number;
   onAcceptOverride?: (line: LineItemData, reason: string) => void;
   onFlagException?: (line: LineItemData, reason: string) => void;
+  onChangeMatchStatus?: (line: LineItemData, matchStatus: string) => void;
+  onChangeTolerance?: (tolerance: number) => void;
   onLinkPO?: () => void;
 }
 
@@ -58,8 +61,11 @@ export function LineItemMatchingTable({
   currency,
   exceptions = [],
   lines: rawLines,
+  priceTolerancePercent = 5.0,
   onAcceptOverride,
   onFlagException,
+  onChangeMatchStatus,
+  onChangeTolerance,
   onLinkPO,
 }: LineItemMatchingTableProps) {
   const isPreCapture = status === "RECEIVED";
@@ -95,15 +101,17 @@ export function LineItemMatchingTable({
         let invQty = qty;
         let poUnitPrice = unitPrice;
         let invUnitPrice = unitPrice;
-        let lineStatus: "MATCHED" | "PRICE_VARIANCE" | "QTY_VARIANCE" =
-          "MATCHED";
+        let lineStatus: "MATCHED" | "PRICE_VARIANCE" | "QTY_VARIANCE" | "MANUAL_OVERRIDE" =
+          (l.matchStatus as any) || "MATCHED";
 
-        if (idx === 0 && hasPriceException) {
-          lineStatus = "PRICE_VARIANCE";
-          poUnitPrice = Math.round(unitPrice * 0.92);
-        } else if (idx === 0 && hasQtyException) {
-          lineStatus = "QTY_VARIANCE";
-          poQty = Math.max(1, qty - 1);
+        if (!l.matchStatus) {
+          if (idx === 0 && hasPriceException) {
+            lineStatus = "PRICE_VARIANCE";
+            poUnitPrice = Math.round(unitPrice * 0.92);
+          } else if (idx === 0 && hasQtyException) {
+            lineStatus = "QTY_VARIANCE";
+            poQty = Math.max(1, qty - 1);
+          }
         }
 
         const taxableAmount =
@@ -129,6 +137,9 @@ export function LineItemMatchingTable({
           lineAmount,
           currency,
           status: lineStatus,
+          overrideAccepted: Boolean(l.overrideAccepted),
+          overrideReason: (l.overrideReason as string) || undefined,
+          matchStatus: (l.matchStatus as string) || undefined,
         };
       });
     }
@@ -137,6 +148,11 @@ export function LineItemMatchingTable({
   }, [rawLines, supplierName, currency]);
 
   const [lines, setLines] = useState<LineItemData[]>(initialLines);
+  const [toleranceInput, setToleranceInput] = useState<string>(String(priceTolerancePercent));
+
+  useEffect(() => {
+    setToleranceInput(String(priceTolerancePercent));
+  }, [priceTolerancePercent]);
 
   // Sync lines if parent invoice changes
   useEffect(() => {
@@ -323,9 +339,26 @@ export function LineItemMatchingTable({
                   Discrepant {varianceLines.length === 1 ? "Line" : "Lines"})
                 </span>
               </span>
-              <span className="text-micro font-mono text-amber-700 dark:text-amber-300">
-                Org Tolerance Threshold: 5.0%
-              </span>
+              <div className="flex items-center gap-1.5 text-micro font-mono text-amber-700 dark:text-amber-300">
+                <span>Org Tolerance:</span>
+                <input
+                  aria-label="Org price tolerance percentage"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={toleranceInput}
+                  onChange={(e) => {
+                    setToleranceInput(e.target.value);
+                    const val = parseFloat(e.target.value);
+                    if (!isNaN(val) && onChangeTolerance) {
+                      onChangeTolerance(val);
+                    }
+                  }}
+                  className="w-14 h-6 px-1 text-center font-bold font-mono rounded border border-amber-300 dark:border-amber-700 bg-white dark:bg-zinc-800 text-neutral-900 dark:text-zinc-100"
+                />
+                <span>%</span>
+              </div>
             </div>
 
             {/* Dedicated Tri-Split 3-Way Match Strip */}
@@ -503,28 +536,25 @@ export function LineItemMatchingTable({
                         {formatCurrency(lineTotal, currency)}
                       </TableCell>
                       <TableCell>
-                        {purchaseOrderId ? (
-                          isVariance && !isAccepted ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-mono font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60">
-                              <AlertTriangle size={11} />
-                              <span>PRICE VARIANCE</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-mono font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
-                              <Check size={11} strokeWidth={2.5} />
-                              <span>PO MATCHED</span>
-                            </span>
-                          )
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-mono font-medium bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-700">
-                            <Check
-                              size={11}
-                              strokeWidth={2.5}
-                              className="text-neutral-500"
-                            />
-                            <span>STATUTORY PASS</span>
-                          </span>
-                        )}
+                        <select
+                          aria-label={`Match status for line ${l.lineNumber}`}
+                          value={l.status || "MATCHED"}
+                          onChange={(e) => {
+                            const newStatus = e.target.value as any;
+                            setLines((prev) =>
+                              prev.map((item) =>
+                                item.id === l.id ? { ...item, status: newStatus } : item
+                              )
+                            );
+                            onChangeMatchStatus?.(l, newStatus);
+                          }}
+                          className="h-7 text-micro font-mono font-medium rounded border border-neutral-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-neutral-800 dark:text-zinc-200 px-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        >
+                          <option value="MATCHED">MATCHED</option>
+                          <option value="PRICE_VARIANCE">PRICE_VARIANCE</option>
+                          <option value="QTY_VARIANCE">QTY_VARIANCE</option>
+                          <option value="MANUAL_OVERRIDE">MANUAL_OVERRIDE</option>
+                        </select>
                       </TableCell>
                       <TableCell className="text-right">
                         {isVariance && !isAccepted ? (

@@ -271,13 +271,13 @@ export async function executeInvoiceApproval({
 
     if (confirmations && Array.isArray(confirmations) && confirmations.length > 0) {
       await tx.approval.updateMany({
-        where: { invoiceId, status: "PENDING" },
+        where: { invoiceId, invoice: { organizationId }, status: "PENDING" },
         data: {
           confirmations: JSON.stringify(confirmations),
         },
       });
       await tx.invoice.update({
-        where: { id: invoiceId },
+        where: { id: invoiceId, organizationId },
         data: {
           decisionChecklist: JSON.stringify(confirmations),
         },
@@ -341,7 +341,7 @@ export async function executeInvoiceRejection({
     if (closePermanently) {
       // Reject and close directly archives the invoice
       await tx.approval.updateMany({
-        where: { invoiceId, status: "PENDING" },
+        where: { invoiceId, invoice: { organizationId }, status: "PENDING" },
         data: {
           status: "REJECTED",
           respondedAt: new Date(),

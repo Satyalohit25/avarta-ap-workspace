@@ -127,7 +127,7 @@ export async function updateMeHandler(req: Request, res: Response, next: NextFun
       req.auth.organizationId,
       { fullName }
     );
-    res.json(user);
+    res.json({ user });
   } catch (err) {
     next(err);
   }

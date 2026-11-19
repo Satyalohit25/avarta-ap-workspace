@@ -34,6 +34,10 @@ import {
   resolveException,
   updateInvoice,
   getInvoiceTracking,
+  overrideInvoiceLine,
+  updateInvoiceLineMatchStatus,
+  updateDecisionChecklist,
+  updateMatchingTolerance,
 } from "../../api/invoices";
 import { API_URL, getAccessToken } from "../../api/client";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -88,6 +92,7 @@ type InvoiceDetailData = InvoiceListItem & {
   invoiceDate?: string | null;
   purchaseOrderId?: string | null;
   organizationId?: string | null;
+  decisionChecklist?: string[] | null;
 };
 
 function buildInvoiceAuditTimeline(
@@ -493,6 +498,7 @@ export default function InvoiceDetailPage() {
     comment?: string;
     overrideSoloAdmin?: boolean;
     overrideReason?: string;
+    closePermanently?: boolean;
   }>({ isOpen: false, title: "", description: "", action: "" });
 
   const [dynamicAuditEvents, setDynamicAuditEvents] = useState<TimelineEvent[]>(
@@ -774,18 +780,68 @@ export default function InvoiceDetailPage() {
     }
   }
 
-  function handleAcceptVariance(line: LineItemData, reason: string) {
-    setDynamicAuditEvents((prev) => [
-      {
-        id: `audit-var-accept-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        actor: "Finance Manager",
-        action: `Variance Override Accepted (Line #${line.lineNumber})`,
-        details: `Item: "${line.description}" • Reason: "${reason}"`,
-        type: "success",
-      },
-      ...prev,
-    ]);
+  async function handleAcceptVariance(line: LineItemData, reason: string) {
+    if (!invoiceId) return;
+    try {
+      await overrideInvoiceLine(invoiceId, line.id, true, reason);
+      toast.success("Variance Override Persisted", `Line #${line.lineNumber} variance approved.`);
+      setDynamicAuditEvents((prev) => [
+        {
+          id: `audit-var-accept-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          actor: "Finance Manager",
+          action: `Variance Override Accepted (Line #${line.lineNumber})`,
+          details: `Item: "${line.description}" • Reason: "${reason}"`,
+          type: "success",
+        },
+        ...prev,
+      ]);
+      await load();
+    } catch (err: any) {
+      toast.error("Override Failed", err?.message || "Failed to persist line variance override.");
+    }
+  }
+
+  async function handleLineMatchStatusChange(line: LineItemData, matchStatus: string) {
+    if (!invoiceId) return;
+    try {
+      await updateInvoiceLineMatchStatus(invoiceId, line.id, matchStatus);
+      toast.success("Match Status Updated", `Line #${line.lineNumber} updated to ${matchStatus}.`);
+      setDynamicAuditEvents((prev) => [
+        {
+          id: `audit-match-status-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          actor: "Finance Executive",
+          action: `Match Status Updated (Line #${line.lineNumber})`,
+          details: `Status set to ${matchStatus}`,
+          type: "info",
+        },
+        ...prev,
+      ]);
+      await load();
+    } catch (err: any) {
+      toast.error("Update Failed", err?.message || "Failed to update match status.");
+    }
+  }
+
+  async function handleChangeTolerance(tolerance: number) {
+    try {
+      await updateMatchingTolerance(tolerance);
+      toast.success("Tolerance Updated", `Price variance tolerance set to ${tolerance}%.`);
+    } catch (err: any) {
+      toast.error("Update Failed", err?.message || "Failed to persist tolerance setting.");
+    }
+  }
+
+  async function handleChecklistChange(confirmations: string[]) {
+    if (!invoiceId) return;
+    try {
+      await updateDecisionChecklist(invoiceId, confirmations);
+      setInvoice((prev) => (prev ? { ...prev, decisionChecklist: confirmations } : prev));
+      toast.success("Checklist Persisted", "Decision Hub verification items updated.");
+    } catch (err: any) {
+      toast.error("Update Failed", err?.message || "Failed to save checklist confirmations.");
+    }
   }
 
   function handleFlagException(line: LineItemData, reason: string) {
@@ -879,6 +935,8 @@ export default function InvoiceDetailPage() {
         {
           overrideSoloAdmin: confirmDialog.overrideSoloAdmin,
           overrideReason: confirmDialog.overrideReason || confirmDialog.comment,
+          confirmations: confirmDialog.action === "APPROVE" ? (invoice?.decisionChecklist || []) : undefined,
+          closePermanently: confirmDialog.action === "REJECT" ? confirmDialog.closePermanently : undefined,
         },
       );
       if (confirmDialog.action === "APPROVE") {
@@ -1616,6 +1674,8 @@ export default function InvoiceDetailPage() {
         viewMode={viewMode}
         onChangeViewMode={setViewMode}
         isActionPending={actionPending}
+        decisionChecklist={invoice.decisionChecklist || []}
+        onChangeChecklist={handleChecklistChange}
       />
 
       {/* ─────────────────────────────────────────────────────────────
@@ -1693,6 +1753,8 @@ export default function InvoiceDetailPage() {
               lines={invoice.lines}
               onAcceptOverride={handleAcceptVariance}
               onFlagException={handleFlagException}
+              onChangeMatchStatus={handleLineMatchStatusChange}
+              onChangeTolerance={handleChangeTolerance}
               onLinkPO={() =>
                 setLinkModalState({ isOpen: true, type: "purchaseOrder" })
               }
@@ -1793,6 +1855,32 @@ export default function InvoiceDetailPage() {
             confirmDialog.overrideReason.trim().length < 10),
         )}
       >
+        {confirmDialog.action === "REJECT" && (
+          <div className="pt-3 border-t border-neutral-100 dark:border-zinc-800 space-y-3">
+            <label className="flex items-start gap-2.5 cursor-pointer text-body-sm text-neutral-800 dark:text-zinc-200">
+              <input
+                type="checkbox"
+                checked={confirmDialog.closePermanently || false}
+                onChange={(e) =>
+                  setConfirmDialog((prev) => ({
+                    ...prev,
+                    closePermanently: e.target.checked,
+                  }))
+                }
+                className="mt-0.5 rounded border-neutral-300 dark:border-zinc-700 text-rose-600 focus:ring-rose-500"
+              />
+              <div>
+                <span className="font-semibold block text-neutral-900 dark:text-zinc-100">
+                  Reject &amp; Close Permanently
+                </span>
+                <span className="text-caption text-neutral-500 dark:text-zinc-400 block">
+                  Archive this invoice permanently instead of returning it to the Exceptions queue for resolution.
+                </span>
+              </div>
+            </label>
+          </div>
+        )}
+
         {confirmDialog.action === "APPROVE" &&
           (user?.role?.toUpperCase() === "ADMINISTRATOR" ||
             user?.role === "Administrator") &&

@@ -1090,8 +1090,8 @@ export async function overrideLineVariance(params: {
     throw ApiError.notFound("Invoice line item not found");
   }
 
-  const updatedLine = await prisma.invoiceLine.update({
-    where: { id: lineId },
+  await prisma.invoiceLine.updateMany({
+    where: { id: lineId, invoice: { organizationId } },
     data: {
       overrideAccepted,
       overrideReason: cleanReason,
@@ -1099,6 +1099,10 @@ export async function overrideLineVariance(params: {
       overrideAt: new Date(),
     },
   });
+
+  const updatedLine = (await prisma.invoiceLine.findFirst({
+    where: { id: lineId, invoice: { organizationId } },
+  }))!;
 
   await prisma.auditLog.create({
     data: {
@@ -1151,10 +1155,14 @@ export async function updateLineMatchStatus(params: {
     throw ApiError.notFound("Invoice line item not found");
   }
 
-  const updatedLine = await prisma.invoiceLine.update({
-    where: { id: lineId },
+  await prisma.invoiceLine.updateMany({
+    where: { id: lineId, invoice: { organizationId } },
     data: { matchStatus },
   });
+
+  const updatedLine = (await prisma.invoiceLine.findFirst({
+    where: { id: lineId, invoice: { organizationId } },
+  }))!;
 
   await prisma.auditLog.create({
     data: {
@@ -1191,7 +1199,7 @@ export async function updateDecisionChecklist(params: {
   if (!invoice) throw ApiError.notFound("Invoice not found");
 
   const updatedInvoice = await prisma.invoice.update({
-    where: { id: invoiceId },
+    where: { id: invoiceId, organizationId },
     data: {
       decisionChecklist: JSON.stringify(confirmations),
     },
