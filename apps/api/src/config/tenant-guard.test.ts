@@ -78,6 +78,157 @@ describe("Tenant Guard and FSM Write Guard Middleware", () => {
       await middleware(params, next);
       expect(next).toHaveBeenCalledWith(params);
     });
+
+    it("throws when application updates invoice workflowState directly without engine bypass", async () => {
+      const next = vi.fn();
+      const params: Prisma.MiddlewareParams = {
+        model: "Invoice",
+        action: "updateMany",
+        args: {
+          where: { organizationId: "org-1" },
+          data: { workflowState: "SCHEDULED" as any },
+        },
+        dataPath: [],
+        runInTransaction: false,
+      };
+
+      await expect(middleware(params, next)).rejects.toThrow(
+        /AGENTS.md Rule 4: invoices.status and workflowState may only be written by the workflow engine/
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("throws when application writes invoice status or workflowState via upsert without engine bypass", async () => {
+      const next = vi.fn();
+      const paramsUpdate: Prisma.MiddlewareParams = {
+        model: "Invoice",
+        action: "upsert",
+        args: {
+          where: { id_organizationId: { id: "inv-1", organizationId: "org-1" } },
+          create: { organizationId: "org-1", invoiceNumber: "INV-1" },
+          update: { status: "PAID" as any },
+        },
+        dataPath: [],
+        runInTransaction: false,
+      };
+
+      await expect(middleware(paramsUpdate, next)).rejects.toThrow(
+        /AGENTS.md Rule 4: invoices.status and workflowState may only be written by the workflow engine/
+      );
+
+      const paramsCreate: Prisma.MiddlewareParams = {
+        model: "Invoice",
+        action: "upsert",
+        args: {
+          where: { id_organizationId: { id: "inv-1", organizationId: "org-1" } },
+          create: { organizationId: "org-1", invoiceNumber: "INV-1", workflowState: "PAID" as any },
+          update: { invoiceNumber: "INV-1-MOD" },
+        },
+        dataPath: [],
+        runInTransaction: false,
+      };
+
+      await expect(middleware(paramsCreate, next)).rejects.toThrow(
+        /AGENTS.md Rule 4: invoices.status and workflowState may only be written by the workflow engine/
+      );
+    });
+
+    it("throws when application writes invoice status or workflowState via createMany without engine bypass", async () => {
+      const next = vi.fn();
+      const params: Prisma.MiddlewareParams = {
+        model: "Invoice",
+        action: "createMany",
+        args: {
+          data: [
+            { organizationId: "org-1", invoiceNumber: "INV-1" },
+            { organizationId: "org-1", invoiceNumber: "INV-2", status: "PAID" as any },
+          ],
+        },
+        dataPath: [],
+        runInTransaction: false,
+      };
+
+      await expect(middleware(params, next)).rejects.toThrow(
+        /AGENTS.md Rule 4: invoices.status and workflowState may only be written by the workflow engine/
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("throws when application directly updates WorkflowInstance.currentState outside engine context", async () => {
+      const next = vi.fn();
+      const paramsUpdate: Prisma.MiddlewareParams = {
+        model: "WorkflowInstance",
+        action: "update",
+        args: {
+          where: { invoice: { organizationId: "org-1" } },
+          data: { currentState: "PAID" as any },
+        },
+        dataPath: [],
+        runInTransaction: false,
+      };
+
+      await expect(middleware(paramsUpdate, next)).rejects.toThrow(
+        /AGENTS.md Rule 4: WorkflowInstance.currentState may only be written by the workflow engine/
+      );
+      expect(next).not.toHaveBeenCalled();
+
+      const paramsUpdateMany: Prisma.MiddlewareParams = {
+        model: "WorkflowInstance",
+        action: "updateMany",
+        args: {
+          where: { invoice: { organizationId: "org-1" } },
+          data: { currentState: "SCHEDULED" as any },
+        },
+        dataPath: [],
+        runInTransaction: false,
+      };
+
+      await expect(middleware(paramsUpdateMany, next)).rejects.toThrow(
+        /AGENTS.md Rule 4: WorkflowInstance.currentState may only be written by the workflow engine/
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("throws when application upserts WorkflowInstance.currentState outside engine context", async () => {
+      const next = vi.fn();
+      const paramsUpsert: Prisma.MiddlewareParams = {
+        model: "WorkflowInstance",
+        action: "upsert",
+        args: {
+          where: { invoice: { organizationId: "org-1" } },
+          create: { currentState: "SCHEDULED" as any },
+          update: { currentState: "PAID" as any },
+        },
+        dataPath: [],
+        runInTransaction: false,
+      };
+
+      await expect(middleware(paramsUpsert, next)).rejects.toThrow(
+        /AGENTS.md Rule 4: WorkflowInstance.currentState may only be written by the workflow engine/
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("allows WorkflowInstance.currentState update within runWithEngineBypass", async () => {
+      const next = vi.fn().mockResolvedValue({ id: "wf-1", currentState: "SCHEDULED" });
+      const params: Prisma.MiddlewareParams = {
+        model: "WorkflowInstance",
+        action: "update",
+        args: {
+          where: { id: "wf-1" },
+          data: { currentState: "SCHEDULED" as any },
+        },
+        dataPath: [],
+        runInTransaction: false,
+      };
+
+      const result = await runWithEngineBypass(async () => {
+        return middleware(params, next);
+      });
+
+      expect(next).toHaveBeenCalledWith(params);
+      expect(result).toEqual({ id: "wf-1", currentState: "SCHEDULED" });
+    });
   });
 
   describe("Tenant Isolation Guard - All Actions (AGENTS.md Rule 7)", () => {

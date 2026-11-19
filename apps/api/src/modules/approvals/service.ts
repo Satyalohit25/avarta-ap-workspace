@@ -86,7 +86,7 @@ export async function verifyApprovalAuthority(
   // 1. Enforce amount approval thresholds by role
   if (userRole) {
     const amountNum = Number(totalAmount);
-    if (!canRoleApproveAmount(userRole as Role, amountNum)) {
+    if (!canRoleApproveAmount(userRole as Role, amountNum, currency || "INR")) {
       const tier = getTierForAmount(amountNum, currency || "INR");
       throw ApiError.forbidden(
         `Role "${userRole}" is not authorized to approve invoices of amount ${amountNum}. Required roles: ${tier.allowedRoles.join(", ")}`

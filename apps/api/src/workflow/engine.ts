@@ -93,7 +93,7 @@ export async function applyTransition({
       });
       if (!existingApproval) {
         const amount = Number(invoice.totalAmount);
-        const allowedRoles = getAllowedRolesForAmount(amount);
+        const allowedRoles = getAllowedRolesForAmount(amount, invoice.currency);
         const approver = await tx.user.findFirst({
           where: {
             organizationId,
