@@ -5,9 +5,16 @@ import {
   FileText,
   History,
   ShieldCheck,
+  CheckSquare,
 } from "lucide-react";
 
 export type WorkspaceViewMode = "split" | "threeway" | "audit";
+
+export interface DecisionChecklistItem {
+  id: string;
+  label: string;
+  checked: boolean;
+}
 
 export interface ExecutiveDecisionHubProps {
   invoiceId: string;
@@ -28,6 +35,8 @@ export interface ExecutiveDecisionHubProps {
   viewMode: WorkspaceViewMode;
   onChangeViewMode: (mode: WorkspaceViewMode) => void;
   isActionPending?: boolean;
+  decisionChecklist?: string[];
+  onChangeChecklist?: (confirmations: string[]) => void;
 }
 
 export function ExecutiveDecisionHub({
@@ -42,12 +51,62 @@ export function ExecutiveDecisionHub({
   viewMode,
   onChangeViewMode,
   isActionPending: _isActionPending = false,
+  decisionChecklist = [],
+  onChangeChecklist,
 }: ExecutiveDecisionHubProps) {
   const hasException = Boolean(openException);
   const isPostCapture = status !== "RECEIVED";
 
+  const checklistItems = [
+    { id: "supplier_verified", label: "Supplier identity & active GSTIN verified" },
+    { id: "po_reconciled", label: "PO & GRN 3-way quantities reconciled" },
+    { id: "pricing_approved", label: "Pricing & rates verified against approved contract" },
+  ];
+
   return (
     <div id="executive-decision-hub" className="space-y-3">
+      {/* ── Decision Hub Confirmations Checklist ── */}
+      {isPostCapture && (
+        <div className="rounded-lg border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 sm:p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-caption font-bold text-neutral-900 dark:text-zinc-100 flex items-center gap-1.5">
+              <CheckSquare size={14} className="text-indigo-600 dark:text-indigo-400" />
+              <span>Decision Hub Verification Checklist</span>
+            </span>
+            <span className="text-micro font-mono text-neutral-500">
+              {decisionChecklist.length} of {checklistItems.length} confirmed
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-1">
+            {checklistItems.map((item) => {
+              const isChecked = decisionChecklist.includes(item.id);
+              return (
+                <label
+                  key={item.id}
+                  className={`flex items-start gap-2 p-2 rounded border cursor-pointer text-caption transition-colors ${
+                    isChecked
+                      ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-800 text-neutral-900 dark:text-zinc-100"
+                      : "bg-neutral-50 dark:bg-zinc-800/40 border-neutral-200 dark:border-zinc-700 text-neutral-600 dark:text-zinc-300"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={(e) => {
+                      const next = e.target.checked
+                        ? [...decisionChecklist, item.id]
+                        : decisionChecklist.filter((id) => id !== item.id);
+                      onChangeChecklist?.(next);
+                    }}
+                    className="mt-0.5 rounded border-neutral-300 dark:border-zinc-600 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="font-medium text-micro sm:text-caption leading-snug">{item.label}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {/* ── 1. Exception Banner (only when real exception data exists) ── */}
       {hasException && isPostCapture ? (
         <div className="rounded-lg border border-amber-300 dark:border-amber-800/80 bg-amber-50/60 dark:bg-amber-950/30 p-4 sm:p-5">

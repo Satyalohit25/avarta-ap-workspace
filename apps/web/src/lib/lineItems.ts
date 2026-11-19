@@ -18,7 +18,8 @@ export interface LineItemData {
   taxAmount: number; // Line tax amount (18% of taxable)
   lineAmount: number; // Line total incl. GST
   currency: string;
-  status: "MATCHED" | "PRICE_VARIANCE" | "QTY_VARIANCE";
+  status: "MATCHED" | "PRICE_VARIANCE" | "QTY_VARIANCE" | "MANUAL_OVERRIDE";
   overrideAccepted?: boolean;
   overrideReason?: string;
+  matchStatus?: string;
 }

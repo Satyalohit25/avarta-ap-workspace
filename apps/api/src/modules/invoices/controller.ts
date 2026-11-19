@@ -187,7 +187,9 @@ export async function transitionHandler(req: Request, res: Response, next: NextF
       body.comment,
       req.auth?.role,
       body.overrideSoloAdmin,
-      body.overrideReason
+      body.overrideReason,
+      body.confirmations,
+      body.closePermanently
     );
     res.json({ data: invoice });
   } catch (err) {
@@ -249,5 +251,59 @@ export async function regenerateTrackingHandler(req: Request, res: Response, nex
     next(err);
   }
 }
+
+export async function overrideLineVarianceHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.auth) throw ApiError.unauthorized();
+    const { overrideAccepted, reason } = req.body;
+    const result = await invoiceService.overrideLineVariance({
+      organizationId: orgId(req),
+      invoiceId: req.params.invoiceId,
+      lineId: req.params.lineId,
+      userId: req.auth.userId,
+      userRole: req.auth.role,
+      overrideAccepted: Boolean(overrideAccepted),
+      reason,
+    });
+    res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateLineMatchStatusHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.auth) throw ApiError.unauthorized();
+    const { matchStatus } = req.body;
+    const result = await invoiceService.updateLineMatchStatus({
+      organizationId: orgId(req),
+      invoiceId: req.params.invoiceId,
+      lineId: req.params.lineId,
+      userId: req.auth.userId,
+      userRole: req.auth.role,
+      matchStatus,
+    });
+    res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateDecisionChecklistHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.auth) throw ApiError.unauthorized();
+    const { confirmations } = req.body;
+    const result = await invoiceService.updateDecisionChecklist({
+      organizationId: orgId(req),
+      invoiceId: req.params.invoiceId,
+      userId: req.auth.userId,
+      confirmations: Array.isArray(confirmations) ? confirmations : [],
+    });
+    res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
 
 

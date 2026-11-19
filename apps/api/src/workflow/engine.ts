@@ -146,6 +146,19 @@ export async function applyTransition({
           comment: reason ?? "Rejected by reviewer",
         },
       });
+
+      // T-202: Create APPROVAL_REJECTED exception with rejection reason
+      await tx.exception.create({
+        data: {
+          organizationId,
+          invoiceId,
+          type: "APPROVAL_REJECTED",
+          severity: "HIGH",
+          title: `Approval Rejected: ${reason ?? "Rejected by reviewer"}`,
+          description: reason ?? "Invoice approval was rejected by reviewer.",
+          status: "OPEN",
+        },
+      });
     }
 
     // Relational Side Effect: Automated Payment Creation / Scheduling

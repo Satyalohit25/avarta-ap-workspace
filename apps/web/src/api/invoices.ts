@@ -220,7 +220,12 @@ export function transitionInvoice(
   action: string,
   comment?: string,
   idempotencyKey?: string,
-  options?: { overrideSoloAdmin?: boolean; overrideReason?: string }
+  options?: {
+    overrideSoloAdmin?: boolean;
+    overrideReason?: string;
+    confirmations?: string[];
+    closePermanently?: boolean;
+  }
 ) {
   const key = idempotencyKey || `idemp-trans-${id}-${action.toLowerCase()}-${Date.now()}`;
   return apiRequest<{ data: InvoiceListItem }>(`/invoices/${id}/transitions`, {
@@ -231,6 +236,8 @@ export function transitionInvoice(
       comment,
       overrideSoloAdmin: options?.overrideSoloAdmin,
       overrideReason: options?.overrideReason,
+      confirmations: options?.confirmations,
+      closePermanently: options?.closePermanently,
     },
   });
 }
@@ -313,5 +320,50 @@ export function resolveException(exceptionId: string, resolution: string) {
     body: { resolution },
   });
 }
+
+export function overrideInvoiceLine(
+  invoiceId: string,
+  lineId: string,
+  overrideAccepted: boolean,
+  reason: string
+) {
+  return apiRequest<{ data: unknown }>(`/invoices/${invoiceId}/lines/${lineId}/override`, {
+    method: "PATCH",
+    body: { overrideAccepted, reason },
+  });
+}
+
+export function updateInvoiceLineMatchStatus(
+  invoiceId: string,
+  lineId: string,
+  matchStatus: string
+) {
+  return apiRequest<{ data: unknown }>(`/invoices/${invoiceId}/lines/${lineId}/match-status`, {
+    method: "PATCH",
+    body: { matchStatus },
+  });
+}
+
+export function updateDecisionChecklist(
+  invoiceId: string,
+  confirmations: string[]
+) {
+  return apiRequest<{ data: unknown }>(`/invoices/${invoiceId}/decision-hub`, {
+    method: "PATCH",
+    body: { confirmations },
+  });
+}
+
+export function updateMatchingTolerance(priceTolerancePercent: number) {
+  return apiRequest<{ data: unknown }>(`/organization/settings`, {
+    method: "PATCH",
+    body: {
+      settings: {
+        priceTolerancePercent,
+      },
+    },
+  });
+}
+
 
 

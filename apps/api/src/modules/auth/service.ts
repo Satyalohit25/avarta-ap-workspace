@@ -480,6 +480,58 @@ export async function getCurrentUser(userId: string) {
   };
 }
 
+export async function updateCurrentUser(
+  userId: string,
+  organizationId: string,
+  input: { fullName: string }
+) {
+  const cleanName = input.fullName.trim();
+  if (!cleanName) {
+    throw ApiError.badRequest("Full name is required");
+  }
+
+  const existing = await prisma.user.findUnique({ where: { id: userId } });
+  if (!existing || existing.status !== "ACTIVE") {
+    throw ApiError.unauthorized("User account not found or inactive");
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { fullName: cleanName },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      organizationId,
+      userId,
+      action: "USER_PROFILE_UPDATED",
+      entityType: "USER",
+      entityId: userId,
+      beforeData: { fullName: existing.fullName },
+      afterData: { fullName: updated.fullName },
+    },
+  });
+
+  const activeAdminCount = await prisma.user.count({
+    where: {
+      organizationId: updated.organizationId,
+      role: "ADMINISTRATOR",
+      status: "ACTIVE",
+    },
+  });
+
+  return {
+    id: updated.id,
+    name: updated.fullName,
+    email: updated.email,
+    organizationId: updated.organizationId,
+    role: updated.role,
+    activeAdminCount,
+    isSoloAdmin: updated.role === "ADMINISTRATOR" && activeAdminCount === 1,
+    mfaEnabled: Boolean(updated.mfaEnabled),
+  };
+}
+
 export async function listTeamMembers(organizationId: string) {
   const users = await prisma.user.findMany({
     where: { organizationId },

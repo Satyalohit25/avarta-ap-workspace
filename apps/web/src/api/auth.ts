@@ -231,3 +231,12 @@ export async function inviteTeamMember(payload: {
 export async function deactivateTeamMember(userId: string): Promise<void> {
   await apiRequest(`/auth/team/${userId}/deactivate`, { method: "POST" });
 }
+
+export async function updateProfile(payload: { fullName: string }): Promise<CurrentUser> {
+  const res = await apiRequest<{ user: CurrentUser }>("/auth/me", {
+    method: "PATCH",
+    body: payload,
+  });
+  return res.user;
+}
+

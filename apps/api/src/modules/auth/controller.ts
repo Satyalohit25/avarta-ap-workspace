@@ -115,6 +115,24 @@ export async function meHandler(req: Request, res: Response, next: NextFunction)
   }
 }
 
+export async function updateMeHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.auth) throw ApiError.unauthorized();
+    const { fullName } = req.body;
+    if (!fullName || typeof fullName !== "string") {
+      throw ApiError.badRequest("Full name is required");
+    }
+    const user = await authService.updateCurrentUser(
+      req.auth.userId,
+      req.auth.organizationId,
+      { fullName }
+    );
+    res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function listTeamHandler(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.auth) throw ApiError.unauthorized();

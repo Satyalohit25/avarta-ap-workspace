@@ -72,6 +72,7 @@ enum ExceptionType {
   MISSING_REQUIRED_FIELD
   FRAUD_RISK
   MANUAL_REVIEW
+  APPROVAL_REJECTED
   MISSING_TAX_DATA
 }
 
@@ -291,6 +292,8 @@ model Invoice {
   trackingTokenEncrypted String?
   trackingTokenExpiresAt DateTime?
 
+  decisionChecklist Json?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -321,6 +324,12 @@ model InvoiceLine {
   unitPrice   Decimal @default(0) @db.Decimal(18, 4)
   taxAmount   Decimal @default(0) @db.Decimal(18, 2)
   lineAmount  Decimal @default(0) @db.Decimal(18, 2)
+
+  matchStatus      String?   // MATCHED | PRICE_VARIANCE | QTY_VARIANCE | MANUAL_OVERRIDE
+  overrideAccepted Boolean   @default(false)
+  overrideReason   String?
+  overrideUserId   String?
+  overrideAt       DateTime?
 }
 
 model Document {
@@ -387,6 +396,7 @@ model Approval {
   sequenceNumber Int      @default(1)
   status         ApprovalStatus @default(PENDING)
   comment        String?
+  confirmations  Json?
   requestedAt    DateTime @default(now())
   respondedAt    DateTime?
 }

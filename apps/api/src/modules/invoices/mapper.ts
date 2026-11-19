@@ -71,11 +71,21 @@ export function toInvoiceDetail(invoice: InvoiceDetailPayload) {
     lines: invoice.lines ?? [],
     validations: invoice.validations ?? [],
     exceptions: invoice.exceptions,
+    decisionChecklist: invoice.decisionChecklist
+      ? typeof invoice.decisionChecklist === "string"
+        ? JSON.parse(invoice.decisionChecklist)
+        : invoice.decisionChecklist
+      : null,
     approvals: invoice.approvals?.map((a) => ({
       id: a.id,
       sequenceNumber: a.sequenceNumber,
       status: a.status,
       comment: a.comment,
+      confirmations: a.confirmations
+        ? typeof a.confirmations === "string"
+          ? JSON.parse(a.confirmations)
+          : a.confirmations
+        : null,
       requestedAt: a.requestedAt,
       respondedAt: a.respondedAt,
       user: a.approver ? { name: a.approver.fullName, role: a.approver.role } : null,
