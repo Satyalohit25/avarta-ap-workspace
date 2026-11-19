@@ -96,6 +96,8 @@ export function APFinancialHorizonStrip({
 
   const due7DaysAmount = data?.dueIn7Days?.totalAmount || 0;
   const due7DaysCount = data?.dueIn7Days?.count || 0;
+  // Calculate dynamic eligible cash discount: 2% on invoices maturing this week when qualifying dues exist
+  const estimatedDiscount = due7DaysAmount > 0 ? Math.round(due7DaysAmount * 0.02) : 0;
 
   const rawAwaitingAmount = data?.pendingApprovalAmount || 0;
   const awaitingCount = Math.max(
@@ -168,12 +170,17 @@ export function APFinancialHorizonStrip({
             label: "No upcoming dues",
             tooltip: "No invoices maturing within 7 days",
           }
-        : {
-            direction: "neutral",
-            label: "Save ₹17,750 discount",
-            tooltip:
-              "Early payment discount available if settled before due date (2% on qualifying invoices)",
-          },
+        : estimatedDiscount > 0
+          ? {
+              direction: "positive",
+              label: `Save ${formatCurrency(estimatedDiscount, currency)} early`,
+              tooltip: `Dynamic 2% early settlement discount on ${formatCurrency(due7DaysAmount, currency)} qualifying dues`,
+            }
+          : {
+              direction: "neutral",
+              label: `${due7DaysCount} due this week`,
+              tooltip: "Invoices maturing within next 7 days",
+            },
       path: "/payments",
       sparkPoints: hasZeroData
         ? [0, 0, 0, 0, 0, 0, 0]

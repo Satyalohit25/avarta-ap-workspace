@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../config/database";
 import { ApiError } from "../lib/errors";
 import { findTransition, WorkflowEvent } from "./transitions";
+import { calculateTrackingExpiry } from "../modules/invoices/tracking";
 import { STATE_TO_INVOICE_STATUS, WorkflowState } from "./states";
 import { runWithEngineBypass } from "../config/tenant-guard";
 import { getAllowedRolesForAmount } from "../modules/approvals/thresholds";
@@ -212,8 +213,8 @@ export async function applyTransition({
         },
       });
 
-      // Extend public tracking token expiration for vendor audit/remittance retention (+90 days)
-      const extendedExpiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+      // Extend public tracking token expiration for vendor audit/remittance retention (270 days for PAID status)
+      const extendedExpiresAt = calculateTrackingExpiry("PAID", finalSettlementDate);
       await tx.invoice.update({
         where: {
           id_organizationId: {

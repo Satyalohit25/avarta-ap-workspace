@@ -51,13 +51,14 @@ export default function InvoicesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const status = searchParams.get("status") ?? undefined;
   const initialSearch = searchParams.get("search") ?? "";
+  const initialFilter = (searchParams.get("filter") as "ALL" | "DUE_SOON" | "MISSING_PO" | "HIGH_VALUE" | "HIGH_CONFIDENCE") ?? "ALL";
   const [invoices, setInvoices] = useState<InvoiceListItem[]>([]);
   const [allInvoices, setAllInvoices] = useState<InvoiceListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [quickFilter, setQuickFilter] = useState<
     "ALL" | "DUE_SOON" | "MISSING_PO" | "HIGH_VALUE" | "HIGH_CONFIDENCE"
-  >("ALL");
+  >(["ALL", "DUE_SOON", "MISSING_PO", "HIGH_VALUE", "HIGH_CONFIDENCE"].includes(initialFilter) ? initialFilter : "ALL");
   const [sortField, setSortField] = useState<SortField>("dueDate");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
 
@@ -70,14 +71,31 @@ export default function InvoicesPage() {
   const [pageSize, setPageSize] = useState<number>(10);
   const [isBulkOperating, setIsBulkOperating] = useState<boolean>(false);
 
-  // Keep search query and page synced with URL search params
+  // Keep search query, filter, and page synced with URL search params
   useEffect(() => {
     const s = searchParams.get("search") ?? "";
     setSearchQuery((prev) => (prev !== s ? s : prev));
     const p = Number(searchParams.get("page"));
     const validPage = !isNaN(p) && p > 0 ? p : 1;
     setCurrentPage((prev) => (prev !== validPage ? validPage : prev));
+    const f = (searchParams.get("filter") as "ALL" | "DUE_SOON" | "MISSING_PO" | "HIGH_VALUE" | "HIGH_CONFIDENCE") ?? "ALL";
+    if (["ALL", "DUE_SOON", "MISSING_PO", "HIGH_VALUE", "HIGH_CONFIDENCE"].includes(f)) {
+      setQuickFilter((prev) => (prev !== f ? f : prev));
+    }
   }, [searchParams]);
+
+  const handleQuickFilterChange = useCallback((filter: "ALL" | "DUE_SOON" | "MISSING_PO" | "HIGH_VALUE" | "HIGH_CONFIDENCE") => {
+    setQuickFilter(filter);
+    setCurrentPage(1);
+    const nextParams = new URLSearchParams(searchParams);
+    if (filter && filter !== "ALL") {
+      nextParams.set("filter", filter);
+    } else {
+      nextParams.delete("filter");
+    }
+    nextParams.delete("page");
+    setSearchParams(nextParams);
+  }, [searchParams, setSearchParams]);
 
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
@@ -475,16 +493,16 @@ export default function InvoicesPage() {
         id: "filter-horizon",
         category: "Horizon",
         label: labels[quickFilter],
-        onRemove: () => setQuickFilter("ALL"),
+        onRemove: () => handleQuickFilterChange("ALL"),
       });
     }
     return tokens;
-  }, [status, searchQuery, quickFilter, tabs, handleTabChange, handleSearchChange]);
+  }, [status, searchQuery, quickFilter, tabs, handleTabChange, handleSearchChange, handleQuickFilterChange]);
 
   const handleClearAllFilters = () => {
     handleTabChange("");
     handleSearchChange("");
-    setQuickFilter("ALL");
+    handleQuickFilterChange("ALL");
   };
 
   return (
@@ -561,7 +579,7 @@ export default function InvoicesPage() {
         </span>
         <button
           type="button"
-          onClick={() => setQuickFilter("ALL")}
+          onClick={() => handleQuickFilterChange("ALL")}
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-colors duration-100 ${
             quickFilter === "ALL"
               ? "bg-neutral-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
@@ -572,7 +590,7 @@ export default function InvoicesPage() {
         </button>
         <button
           type="button"
-          onClick={() => setQuickFilter(quickFilter === "DUE_SOON" ? "ALL" : "DUE_SOON")}
+          onClick={() => handleQuickFilterChange(quickFilter === "DUE_SOON" ? "ALL" : "DUE_SOON")}
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-colors duration-100 ${
             quickFilter === "DUE_SOON"
               ? "bg-amber-600 text-white"
@@ -593,7 +611,7 @@ export default function InvoicesPage() {
         </button>
         <button
           type="button"
-          onClick={() => setQuickFilter(quickFilter === "MISSING_PO" ? "ALL" : "MISSING_PO")}
+          onClick={() => handleQuickFilterChange(quickFilter === "MISSING_PO" ? "ALL" : "MISSING_PO")}
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-colors duration-100 ${
             quickFilter === "MISSING_PO"
               ? "bg-rose-600 text-white"
@@ -614,7 +632,7 @@ export default function InvoicesPage() {
         </button>
         <button
           type="button"
-          onClick={() => setQuickFilter(quickFilter === "HIGH_VALUE" ? "ALL" : "HIGH_VALUE")}
+          onClick={() => handleQuickFilterChange(quickFilter === "HIGH_VALUE" ? "ALL" : "HIGH_VALUE")}
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-colors duration-100 ${
             quickFilter === "HIGH_VALUE"
               ? "bg-indigo-600 text-white"
@@ -636,7 +654,7 @@ export default function InvoicesPage() {
         <button
           type="button"
           onClick={() =>
-            setQuickFilter(quickFilter === "HIGH_CONFIDENCE" ? "ALL" : "HIGH_CONFIDENCE")
+            handleQuickFilterChange(quickFilter === "HIGH_CONFIDENCE" ? "ALL" : "HIGH_CONFIDENCE")
           }
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium transition-colors duration-100 ${
             quickFilter === "HIGH_CONFIDENCE"

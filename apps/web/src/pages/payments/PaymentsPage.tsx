@@ -1,6 +1,6 @@
 import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useEffect, useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { listPayments, executePayment, retryPayment, PaymentRow } from "../../api/payments";
 import { API_URL, getAccessToken } from "../../api/client";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -29,15 +29,65 @@ import { DisbursementModal } from "./components/DisbursementModal";
 export default function PaymentsPage() {
   useDocumentTitle("Payments & Disbursements", "Schedule, batch, and execute vendor disbursements and payment orders.");
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [rows, setRows] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [batchExecuting, setBatchExecuting] = useState(false);
-  const [currentPage, setCurrentPage] = useState<number>(1);
+  const initialStatus = searchParams.get("status") || "ALL";
+  const initialSearch = searchParams.get("search") || "";
+  const initialPage = Number(searchParams.get("page")) || 1;
+  const [currentPage, setCurrentPage] = useState<number>(initialPage);
   const [pageSize, setPageSize] = useState<number>(10);
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+
+  useEffect(() => {
+    const s = searchParams.get("status") || "ALL";
+    setStatusFilter((prev) => (prev !== s ? s : prev));
+    const q = searchParams.get("search") || "";
+    setSearchQuery((prev) => (prev !== q ? q : prev));
+    const p = Number(searchParams.get("page")) || 1;
+    setCurrentPage((prev) => (prev !== p ? p : prev));
+  }, [searchParams]);
+
+  function handleStatusChange(tabId: string) {
+    setStatusFilter(tabId);
+    setCurrentPage(1);
+    const nextParams = new URLSearchParams(searchParams);
+    if (tabId && tabId !== "ALL") {
+      nextParams.set("status", tabId);
+    } else {
+      nextParams.delete("status");
+    }
+    nextParams.delete("page");
+    setSearchParams(nextParams);
+  }
+
+  function handleSearchChange(q: string) {
+    setSearchQuery(q);
+    setCurrentPage(1);
+    const nextParams = new URLSearchParams(searchParams);
+    if (q.trim()) {
+      nextParams.set("search", q.trim());
+    } else {
+      nextParams.delete("search");
+    }
+    nextParams.delete("page");
+    setSearchParams(nextParams, { replace: true });
+  }
+
+  function handlePageChange(page: number) {
+    setCurrentPage(page);
+    const nextParams = new URLSearchParams(searchParams);
+    if (page > 1) {
+      nextParams.set("page", String(page));
+    } else {
+      nextParams.delete("page");
+    }
+    setSearchParams(nextParams);
+  }
   const [paymentBanner, setPaymentBanner] = useState<{
     type: "success" | "error";
     title: string;
@@ -371,10 +421,7 @@ export default function PaymentsPage() {
           ]}
           defaultTabId={statusFilter}
           variant="pill"
-          onChange={(tabId) => {
-            setStatusFilter(tabId);
-            setCurrentPage(1);
-          }}
+          onChange={handleStatusChange}
         />
 
         <div className="relative w-full sm:w-72">
@@ -384,20 +431,14 @@ export default function PaymentsPage() {
             autoComplete="off"
             aria-label="Filter payments by invoice number, vendor, or UTR"
             value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Filter payments by #, vendor, UTR..."
             leftIcon={<Search size={14} className="text-neutral-400" />}
             rightIcon={
               searchQuery ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setCurrentPage(1);
-                  }}
+                  onClick={() => handleSearchChange("")}
                   className="text-neutral-400 hover:text-neutral-600 dark:hover:text-zinc-200"
                   aria-label="Clear search"
                 >
@@ -433,9 +474,8 @@ export default function PaymentsPage() {
                 ? {
                     label: "Clear Filters",
                     onClick: () => {
-                      setSearchQuery("");
-                      setStatusFilter("ALL");
-                      setCurrentPage(1);
+                      handleSearchChange("");
+                      handleStatusChange("ALL");
                     },
                   }
                 : {
@@ -587,8 +627,11 @@ export default function PaymentsPage() {
               totalItems={totalItems}
               pageSize={pageSize}
               pageSizeOptions={[10, 25, 50]}
-              onPageChange={setCurrentPage}
-              onPageSizeChange={setPageSize}
+              onPageChange={handlePageChange}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                handlePageChange(1);
+              }}
             />
           </div>
         )}

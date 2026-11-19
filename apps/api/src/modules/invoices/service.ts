@@ -13,6 +13,11 @@ import { toInvoiceDetail, toInvoiceListItem } from "./mapper";
 import { executeInvoiceApproval, executeInvoiceRejection } from "../approvals/service";
 import { createException } from "../exceptions/service";
 import { generateTrackingToken, hashTrackingToken, encryptTrackingToken, decryptTrackingToken } from "../../lib/crypto";
+import {
+  calculateTrackingExpiry,
+  TRACKING_TOKEN_ACTIVE_LIFESPAN_DAYS,
+  TRACKING_TOKEN_PAID_LIFESPAN_DAYS,
+} from "./tracking";
 import { env } from "../../config/env";
 
 interface ListParams {
@@ -1021,8 +1026,10 @@ export async function regenerateInvoiceTrackingToken(
   const rawToken = generateTrackingToken();
   const tokenHash = hashTrackingToken(rawToken);
   const encryptedToken = encryptTrackingToken(rawToken, "v1");
-  const days = invoice.status === "PAID" ? 270 : 90;
-  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  const expiresAt = calculateTrackingExpiry(invoice.status || "RECEIVED");
+  const validityDays = invoice.status === "PAID"
+    ? TRACKING_TOKEN_PAID_LIFESPAN_DAYS
+    : TRACKING_TOKEN_ACTIVE_LIFESPAN_DAYS;
 
   await prisma.invoice.update({
     where: {
@@ -1047,13 +1054,14 @@ export async function regenerateInvoiceTrackingToken(
       entityId: invoiceId,
       afterData: {
         expiresAt: expiresAt.toISOString(),
-        validityDays: days,
+        validityDays,
       },
       result: "SUCCESS",
     },
   });
 
   return {
+    token: rawToken,
     trackingToken: rawToken,
     trackingUrl: `${env.webOrigin}/track/${rawToken}`,
     expiresAt,

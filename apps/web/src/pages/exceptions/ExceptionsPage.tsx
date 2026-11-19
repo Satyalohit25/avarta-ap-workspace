@@ -1,6 +1,6 @@
 import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useEffect, useState, FormEvent, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   AlertOctagon,
   AlertTriangle,
@@ -58,11 +58,16 @@ const RESOLUTION_PRESETS = [
 export default function ExceptionsPage() {
   useDocumentTitle("Exceptions Queue", "Investigate and resolve 2-way and 3-way matching discrepancies, duplicate detection, and price variances.");
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSeverity = searchParams.get("severity") ?? "ALL";
+  const initialSearch = searchParams.get("search") ?? "";
+  const initialPage = Number(searchParams.get("page")) || 1;
+
   const [rows, setRows] = useState<ExceptionRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [severityFilter, setSeverityFilter] = useState("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [severityFilter, setSeverityFilter] = useState(initialSeverity);
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [currentPage, setCurrentPage] = useState(initialPage);
   const [pageSize, setPageSize] = useState(10);
   const [selectedException, setSelectedException] = useState<ExceptionRow | null>(null);
   const [resolutionNote, setResolutionNote] = useState("");
@@ -72,6 +77,15 @@ export default function ExceptionsPage() {
     title: string;
     message: string;
   } | null>(null);
+
+  useEffect(() => {
+    const s = searchParams.get("severity") ?? "ALL";
+    setSeverityFilter((prev) => (prev !== s ? s : prev));
+    const q = searchParams.get("search") ?? "";
+    setSearchQuery((prev) => (prev !== q ? q : prev));
+    const p = Number(searchParams.get("page")) || 1;
+    setCurrentPage((prev) => (prev !== p ? p : prev));
+  }, [searchParams]);
 
   function load() {
     setLoading(true);
@@ -118,11 +132,38 @@ export default function ExceptionsPage() {
   function handleTabChange(tabId: string) {
     setSeverityFilter(tabId);
     setCurrentPage(1);
+    const nextParams = new URLSearchParams(searchParams);
+    if (tabId && tabId !== "ALL") {
+      nextParams.set("severity", tabId);
+    } else {
+      nextParams.delete("severity");
+    }
+    nextParams.delete("page");
+    setSearchParams(nextParams);
   }
 
   function handleSearchChange(q: string) {
     setSearchQuery(q);
     setCurrentPage(1);
+    const nextParams = new URLSearchParams(searchParams);
+    if (q.trim()) {
+      nextParams.set("search", q.trim());
+    } else {
+      nextParams.delete("search");
+    }
+    nextParams.delete("page");
+    setSearchParams(nextParams, { replace: true });
+  }
+
+  function handlePageChange(page: number) {
+    setCurrentPage(page);
+    const nextParams = new URLSearchParams(searchParams);
+    if (page > 1) {
+      nextParams.set("page", String(page));
+    } else {
+      nextParams.delete("page");
+    }
+    setSearchParams(nextParams);
   }
 
   async function handleResolve(e: FormEvent) {
@@ -420,7 +461,7 @@ export default function ExceptionsPage() {
               totalItems={totalItems}
               pageSize={pageSize}
               pageSizeOptions={[10, 25, 50]}
-              onPageChange={setCurrentPage}
+              onPageChange={handlePageChange}
               onPageSizeChange={setPageSize}
             />
           </div>

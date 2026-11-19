@@ -1,6 +1,7 @@
 import { prisma } from "../../config/database";
 import { generateTrackingToken, hashTrackingToken, encryptTrackingToken } from "../../lib/crypto";
 import { runWithAdminBackfillBypass } from "../../config/tenant-guard";
+import { calculateTrackingExpiry } from "./tracking";
 
 export interface BackfillTrackingResult {
   created: number;
@@ -40,8 +41,7 @@ export async function backfillInvoiceTrackingTokens(
       const encryptedToken = encryptTrackingToken(rawToken, "v1");
 
       // Standard retention: 90 days from invoice creation, or 270 days if already PAID
-      const days = inv.status === "PAID" ? 270 : 90;
-      const expiresAt = new Date(inv.createdAt.getTime() + days * 24 * 60 * 60 * 1000);
+      const expiresAt = calculateTrackingExpiry(inv.status, inv.createdAt);
 
       await client.invoice.update({
         where: {
@@ -77,11 +77,9 @@ export async function backfillInvoiceTrackingTokens(
     let recomputedCount = 0;
 
     for (const inv of existingInvoices) {
-      const isPaid = inv.status === "PAID";
-      const targetDays = isPaid ? 270 : 90;
-
       const currentExpiryTime = inv.trackingTokenExpiresAt ? inv.trackingTokenExpiresAt.getTime() : 0;
-      const expectedExpiryTime = inv.createdAt.getTime() + targetDays * 24 * 60 * 60 * 1000;
+      const expectedExpiry = calculateTrackingExpiry(inv.status, inv.createdAt);
+      const expectedExpiryTime = expectedExpiry.getTime();
 
       // Tolerance buffer of 1 day to prevent re-updating on idempotent runs
       if (Math.abs(currentExpiryTime - expectedExpiryTime) > 24 * 60 * 60 * 1000) {

@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../config/database";
 import { generateTrackingToken, hashTrackingToken, encryptTrackingToken } from "../../lib/crypto";
+import { calculateTrackingExpiry } from "./tracking";
 
 const listInclude = {
   supplier: true,
@@ -92,11 +93,10 @@ export async function createInvoice(
   let trackingFields = {};
   if (!data.trackingTokenHash) {
     const rawToken = generateTrackingToken();
-    const days = data.status === "PAID" ? 270 : 90;
     trackingFields = {
       trackingTokenHash: hashTrackingToken(rawToken),
       trackingTokenEncrypted: encryptTrackingToken(rawToken, "v1"),
-      trackingTokenExpiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000),
+      trackingTokenExpiresAt: calculateTrackingExpiry(data.status || "RECEIVED"),
     };
   }
 

@@ -1,5 +1,5 @@
 import { useDocumentTitle } from "../../lib/useDocumentTitle";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../app/AuthContext";
 import {
@@ -25,6 +25,7 @@ import { Sheet } from "../../components/ui/Sheet";
 import { Button } from "../../components/ui/Button";
 import { Tabs } from "../../components/ui/Tabs";
 import { Input } from "../../components/ui/Input";
+import { Pagination } from "../../components/ui/Pagination";
 import { Alert } from "../../components/ui/Alert";
 import { PropertyInspector } from "../../components/ui/PropertyInspector";
 import { formatCurrency, formatDate } from "../../lib/formatters";
@@ -101,7 +102,7 @@ export default function ApprovalsPage() {
     "Review and approve pending invoice vouchers within your designated signing authority threshold.",
   );
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const targetInvoiceId = searchParams.get("invoiceId");
   const { user } = useAuth();
   const canApprove =
@@ -223,8 +224,59 @@ export default function ApprovalsPage() {
     }
   }
 
-  const [filterTab, setFilterTab] = useState("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
+  const initialTab = searchParams.get("tab") || "ALL";
+  const initialSearch = searchParams.get("search") || "";
+  const initialPage = Number(searchParams.get("page")) || 1;
+  const [filterTab, setFilterTab] = useState(initialTab);
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [currentPage, setCurrentPage] = useState<number>(initialPage);
+  const [pageSize, setPageSize] = useState<number>(10);
+
+  useEffect(() => {
+    const t = searchParams.get("tab") || "ALL";
+    setFilterTab((prev) => (prev !== t ? t : prev));
+    const q = searchParams.get("search") || "";
+    setSearchQuery((prev) => (prev !== q ? q : prev));
+    const p = Number(searchParams.get("page")) || 1;
+    setCurrentPage((prev) => (prev !== p ? p : prev));
+  }, [searchParams]);
+
+  function handleTabChange(tabId: string) {
+    setFilterTab(tabId);
+    setCurrentPage(1);
+    const nextParams = new URLSearchParams(searchParams);
+    if (tabId && tabId !== "ALL") {
+      nextParams.set("tab", tabId);
+    } else {
+      nextParams.delete("tab");
+    }
+    nextParams.delete("page");
+    setSearchParams(nextParams);
+  }
+
+  function handleSearchChange(q: string) {
+    setSearchQuery(q);
+    setCurrentPage(1);
+    const nextParams = new URLSearchParams(searchParams);
+    if (q.trim()) {
+      nextParams.set("search", q.trim());
+    } else {
+      nextParams.delete("search");
+    }
+    nextParams.delete("page");
+    setSearchParams(nextParams, { replace: true });
+  }
+
+  function handlePageChange(page: number) {
+    setCurrentPage(page);
+    const nextParams = new URLSearchParams(searchParams);
+    if (page > 1) {
+      nextParams.set("page", String(page));
+    } else {
+      nextParams.delete("page");
+    }
+    setSearchParams(nextParams);
+  }
 
   const atRiskCount = rows.filter(
     (r) => computeSlaBadge(r).urgency !== "routine",
@@ -248,6 +300,14 @@ export default function ApprovalsPage() {
     return true;
   });
 
+  const totalItems = displayedRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedRows = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return displayedRows.slice(start, start + pageSize);
+  }, [displayedRows, safePage, pageSize]);
+
   // Power-user keyboard navigation (J/K to move, Enter to review, Escape to close)
   const [focusedRowIndex, setFocusedRowIndex] = useState<number>(-1);
 
@@ -267,19 +327,19 @@ export default function ApprovalsPage() {
       if (e.key === "j" || e.key === "J" || e.key === "ArrowDown") {
         e.preventDefault();
         setFocusedRowIndex((prev) => {
-          if (displayedRows.length === 0) return -1;
-          return prev < displayedRows.length - 1 ? prev + 1 : prev;
+          if (paginatedRows.length === 0) return -1;
+          return prev < paginatedRows.length - 1 ? prev + 1 : prev;
         });
       } else if (e.key === "k" || e.key === "K" || e.key === "ArrowUp") {
         e.preventDefault();
         setFocusedRowIndex((prev) => {
-          if (displayedRows.length === 0) return -1;
+          if (paginatedRows.length === 0) return -1;
           return prev > 0 ? prev - 1 : 0;
         });
       } else if (e.key === "Enter") {
-        if (focusedRowIndex >= 0 && focusedRowIndex < displayedRows.length) {
+        if (focusedRowIndex >= 0 && focusedRowIndex < paginatedRows.length) {
           e.preventDefault();
-          setSelectedApproval(displayedRows[focusedRowIndex]);
+          setSelectedApproval(paginatedRows[focusedRowIndex]);
           setShowRejectForm(false);
         }
       } else if (e.key === "Escape") {
@@ -290,11 +350,11 @@ export default function ApprovalsPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [displayedRows, focusedRowIndex]);
+  }, [paginatedRows, focusedRowIndex]);
 
   useEffect(() => {
     setFocusedRowIndex(-1);
-  }, [filterTab, searchQuery]);
+  }, [filterTab, searchQuery, currentPage]);
 
   return (
     <div className="space-y-5">
@@ -361,7 +421,7 @@ export default function ApprovalsPage() {
           ]}
           defaultTabId={filterTab}
           variant="pill"
-          onChange={setFilterTab}
+          onChange={handleTabChange}
         />
 
         <div className="relative w-full sm:w-72">
@@ -371,14 +431,14 @@ export default function ApprovalsPage() {
             autoComplete="off"
             aria-label="Filter approvals by invoice number or vendor"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Filter approvals by # or vendor..."
             leftIcon={<Search size={14} className="text-neutral-400" />}
             rightIcon={
               searchQuery ? (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery("")}
+                  onClick={() => handleSearchChange("")}
                   className="text-neutral-400 hover:text-neutral-600 dark:hover:text-zinc-200"
                   aria-label="Clear search"
                 >
@@ -411,78 +471,91 @@ export default function ApprovalsPage() {
               searchQuery
                 ? {
                     label: "Clear Search",
-                    onClick: () => setSearchQuery(""),
+                    onClick: () => handleSearchChange(""),
                   }
                 : undefined
             }
           />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice #</TableHead>
-                <TableHead>Vendor</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Approval SLA</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {displayedRows.map((r, idx) => {
-                const sla = computeSlaBadge(r);
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Invoice #</TableHead>
+                  <TableHead>Vendor</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Approval SLA</TableHead>
+                  <TableHead>Due Date</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedRows.map((r, idx) => {
+                  const sla = computeSlaBadge(r);
 
-                const isRowFocused = focusedRowIndex === idx;
+                  const isRowFocused = focusedRowIndex === idx;
 
-                return (
-                  <TableRow
-                    key={r.id}
-                    onClick={() => {
-                      setSelectedApproval(r);
-                      setShowRejectForm(false);
-                    }}
-                    className={cn(
-                      "cursor-pointer hover:bg-neutral-50/80 dark:hover:bg-zinc-900/60 transition-colors",
-                      isRowFocused &&
-                        "bg-indigo-50/70 dark:bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/30",
-                    )}
-                  >
-                    <TableCell className="font-mono font-medium text-neutral-900 dark:text-zinc-100">
-                      <span className="text-indigo-600 dark:text-indigo-400 hover:underline">
-                        {r.invoiceNumber}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-neutral-800 dark:text-zinc-200 font-medium">
-                      {r.vendor}
-                    </TableCell>
-                    <TableCell className="text-right font-mono tabular-nums text-neutral-900 dark:text-zinc-100 font-semibold">
-                      {formatCurrency(r.amount, r.currency ?? "INR")}
-                    </TableCell>
-                    <TableCell>
-                      <UrgencyBadge urgency={sla.urgency} label={sla.label} />
-                    </TableCell>
-                    <TableCell className="text-neutral-500 dark:text-zinc-400 font-mono text-micro">
-                      {formatDate(r.dueDate)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedApproval(r);
-                          setShowRejectForm(false);
-                        }}
-                        className="h-7 text-caption font-medium"
-                      >
-                        Quick Review
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                  return (
+                    <TableRow
+                      key={r.id}
+                      onClick={() => {
+                        setSelectedApproval(r);
+                        setShowRejectForm(false);
+                      }}
+                      className={cn(
+                        "cursor-pointer hover:bg-neutral-50/80 dark:hover:bg-zinc-900/60 transition-colors",
+                        isRowFocused &&
+                          "bg-indigo-50/70 dark:bg-indigo-950/40 ring-1 ring-inset ring-indigo-500/30",
+                      )}
+                    >
+                      <TableCell className="font-mono font-medium text-neutral-900 dark:text-zinc-100">
+                        <span className="text-indigo-600 dark:text-indigo-400 hover:underline">
+                          {r.invoiceNumber}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-neutral-800 dark:text-zinc-200 font-medium">
+                        {r.vendor}
+                      </TableCell>
+                      <TableCell className="text-right font-mono tabular-nums text-neutral-900 dark:text-zinc-100 font-semibold">
+                        {formatCurrency(r.amount, r.currency ?? "INR")}
+                      </TableCell>
+                      <TableCell>
+                        <UrgencyBadge urgency={sla.urgency} label={sla.label} />
+                      </TableCell>
+                      <TableCell className="text-neutral-500 dark:text-zinc-400 font-mono text-micro">
+                        {formatDate(r.dueDate)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedApproval(r);
+                            setShowRejectForm(false);
+                          }}
+                          className="h-7 text-caption font-medium"
+                        >
+                          Quick Review
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            <Pagination
+              currentPage={safePage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={handlePageChange}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                handlePageChange(1);
+              }}
+            />
+          </>
         )}
       </Card>
 
