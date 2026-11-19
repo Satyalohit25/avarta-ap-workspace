@@ -1,4 +1,8 @@
 import { prisma } from "../../config/database";
+import {
+  getStartOfDayInTimezone,
+  getStartOfTodayInTimezone,
+} from "../../lib/date-utils";
 
 export interface AgingBucket {
   label: string;
@@ -44,6 +48,12 @@ export interface CashForecastReport {
 }
 
 export async function getApAgingReport(organizationId: string): Promise<ApAgingReport> {
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: { timezone: true },
+  });
+  const timezone = org?.timezone || "Asia/Kolkata";
+
   const invoices = await prisma.invoice.findMany({
     where: {
       organizationId,
@@ -53,6 +63,7 @@ export async function getApAgingReport(organizationId: string): Promise<ApAgingR
   });
 
   const now = new Date();
+  const startOfToday = getStartOfTodayInTimezone(now, timezone);
   let current = 0;
   let days31_60 = 0;
   let days61_90 = 0;
@@ -68,7 +79,8 @@ export async function getApAgingReport(organizationId: string): Promise<ApAgingR
   for (const inv of invoices) {
     const amount = Number(inv.totalAmount);
     const dueDate = inv.dueDate ? new Date(inv.dueDate) : new Date(inv.invoiceDate || now);
-    const diffDays = Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+    const startOfDueDate = getStartOfDayInTimezone(dueDate, timezone);
+    const diffDays = Math.floor((startOfToday.getTime() - startOfDueDate.getTime()) / (1000 * 60 * 60 * 24));
 
     const vendorId = inv.supplierId || "unknown";
     const vendorName = inv.supplier?.displayName || inv.supplier?.legalName || "Direct / Unassigned";

@@ -20,7 +20,7 @@ export async function listHandler(req: Request, res: Response, next: NextFunctio
 export async function createHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const body = createBankAccountSchema.parse(req.body);
-    res.status(201).json(await bankAccountService.createBankAccount(orgId(req), body));
+    res.status(201).json(await bankAccountService.createBankAccount(orgId(req), body, req.auth?.userId));
   } catch (err) {
     next(err);
   }
@@ -28,7 +28,7 @@ export async function createHandler(req: Request, res: Response, next: NextFunct
 
 export async function verifyHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    res.json(await bankAccountService.verifyBankAccount(orgId(req), req.params.accountId));
+    res.json(await bankAccountService.verifyBankAccount(orgId(req), req.params.accountId, req.auth?.userId));
   } catch (err) {
     next(err);
   }
@@ -36,7 +36,7 @@ export async function verifyHandler(req: Request, res: Response, next: NextFunct
 
 export async function setPrimaryHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    res.json(await bankAccountService.setPrimaryBankAccount(orgId(req), req.params.accountId));
+    res.json(await bankAccountService.setPrimaryBankAccount(orgId(req), req.params.accountId, req.auth?.userId));
   } catch (err) {
     next(err);
   }

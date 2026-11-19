@@ -1,6 +1,11 @@
 import { NextFunction, Request, Response } from "express";
 import { prisma } from "../../config/database";
 import { ApiError } from "../../lib/errors";
+import {
+  getEndOfTodayInTimezone,
+  getStartOfMonthInTimezone,
+  getStartOfTodayInTimezone,
+} from "../../lib/date-utils";
 
 // Doc 14 §14.25 shape, Doc 06.1 rule: operational counts & macro AP metrics.
 export async function overviewHandler(req: Request, res: Response, next: NextFunction) {
@@ -8,12 +13,18 @@ export async function overviewHandler(req: Request, res: Response, next: NextFun
     if (!req.auth) throw ApiError.unauthorized();
     const organizationId = req.auth.organizationId;
 
+    const org = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { timezone: true },
+    });
+    const timezone = org?.timezone || "Asia/Kolkata";
+
     const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const startOfToday = getStartOfTodayInTimezone(now, timezone);
+    const endOfToday = getEndOfTodayInTimezone(now, timezone);
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfMonth = getStartOfMonthInTimezone(now, timezone);
 
     const [
       scheduledPayments,
@@ -89,7 +100,7 @@ export async function overviewHandler(req: Request, res: Response, next: NextFun
         where: {
           organizationId,
           status: { notIn: ["PAID", "SYNCED", "ARCHIVED", "REJECTED"] },
-          dueDate: { lt: now },
+          dueDate: { lt: startOfToday },
         },
         _count: true,
         _sum: { totalAmount: true },

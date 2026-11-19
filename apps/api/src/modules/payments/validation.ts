@@ -25,4 +25,6 @@ export const executePaymentSchema = z.object({
     })
     .optional(),
   clearingDocumentNumber: z.string().max(100).optional(),
+  overrideSoloAdmin: z.boolean().optional(),
+  overrideReason: z.string().max(1000).optional(),
 });

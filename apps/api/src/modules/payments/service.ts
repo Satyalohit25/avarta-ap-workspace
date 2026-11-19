@@ -123,12 +123,13 @@ export async function schedulePayment(organizationId: string, input: {
   });
 }
 
-export function calculateIndianFiscalYear(date: Date = new Date()): string {
-  const month = date.getMonth(); // 0 = Jan, 3 = Apr
-  const year = date.getFullYear();
-  const startYear = month >= 3 ? year : year - 1;
-  const endYearShort = String((startYear + 1) % 100).padStart(2, "0");
-  return `FY${startYear}-${endYearShort}`;
+import { calculateIndianFiscalYear as calcFiscalYear } from "../../lib/date-utils";
+
+export function calculateIndianFiscalYear(
+  date: Date = new Date(),
+  timezone: string = "Asia/Kolkata"
+): string {
+  return calcFiscalYear(date, timezone);
 }
 
 // Doc 14 §14.18 execute — runs the SCHEDULED -> PROCESSING_PAYMENT ->
@@ -137,7 +138,13 @@ export async function executePayment(
   organizationId: string,
   paymentId: string,
   userId?: string,
-  details?: { utrNumber?: string; settlementDate?: string | Date; clearingDocumentNumber?: string }
+  details?: {
+    utrNumber?: string;
+    settlementDate?: string | Date;
+    clearingDocumentNumber?: string;
+    overrideSoloAdmin?: boolean;
+    overrideReason?: string;
+  }
 ) {
   // Claim the payment under a row lock before touching the gateway. Without
   // this, two concurrent requests can both read SCHEDULED and both pay out.
@@ -165,23 +172,124 @@ export async function executePayment(
       throw ApiError.conflict(`Payment cannot be executed from status "${current.status}"`);
     }
 
-    // Doc 24 C8-7 / Doc 06 §4.2: Segregation of Duties (SoD)
-    // The person who edited a supplier's bank details cannot release that supplier's payment.
+    // Doc 24 C8-7 / Doc 06 §4.2: Segregation of Duties (SoD) (RULE-PERM-004 / T-203)
+    // The person who edited a supplier's bank details cannot release that supplier's payment
+    // within the configured recent window (default 30 days).
     if (userId && current.invoice?.supplierId) {
+      const supplierId = current.invoice.supplierId;
+
+      // 1. Determine configurable recent window (default 30 days) from organization settings
+      const org = tx.organization?.findUnique
+        ? await tx.organization.findUnique({
+            where: { id: organizationId },
+            select: { settings: true, timezone: true },
+          })
+        : prisma.organization?.findUnique
+        ? await prisma.organization.findUnique({
+            where: { id: organizationId },
+            select: { settings: true, timezone: true },
+          })
+        : null;
+      const orgSettings = (org?.settings as Record<string, unknown>) || {};
+      const sodWindowDays =
+        typeof orgSettings.bankEditSodWindowDays === "number" && orgSettings.bankEditSodWindowDays >= 0
+          ? orgSettings.bankEditSodWindowDays
+          : 30;
+      const cutoffDate = new Date(Date.now() - sodWindowDays * 24 * 60 * 60 * 1000);
+
+      // 2. Collect target entity IDs: the supplier ID and any bank account IDs owned by this supplier
+      const supplierBankAccounts = tx.bankAccount?.findMany
+        ? await tx.bankAccount.findMany({
+            where: { organizationId, supplierId },
+            select: { id: true },
+          })
+        : prisma.bankAccount?.findMany
+        ? await prisma.bankAccount.findMany({
+            where: { organizationId, supplierId },
+            select: { id: true },
+          })
+        : [];
+      const targetEntityIds = [supplierId, ...supplierBankAccounts.map((b) => b.id)];
+
+      // 3. Find any recent bank details change audit log by this user for this supplier
       const bankChangeAudit = await tx.auditLog.findFirst({
         where: {
           organizationId,
           userId,
           entityType: { in: ["SUPPLIER", "BANK_ACCOUNT", "SUPPLIER_BANK_ACCOUNT"] },
-          action: { in: ["UPDATE_BANK_ACCOUNT", "CHANGE_BANK_DETAILS", "SUPPLIER_BANK_EDITED"] },
-          entityId: current.invoice.supplierId,
+          action: {
+            in: [
+              "UPDATE_BANK_ACCOUNT",
+              "CHANGE_BANK_DETAILS",
+              "SUPPLIER_BANK_EDITED",
+              "CREATE_BANK_ACCOUNT",
+              "UPDATE_SUPPLIER",
+            ],
+          },
+          entityId: { in: targetEntityIds },
+          createdAt: { gte: cutoffDate },
         },
       });
 
       if (bankChangeAudit) {
-        throw ApiError.forbidden(
-          "Segregation of Duties (SoD) violation: The user who edited this supplier's bank details cannot release payment to this supplier (Doc 24 C8-7)."
-        );
+        if (details?.overrideSoloAdmin) {
+          const currentUser = await tx.user.findFirst({
+            where: { id: userId, organizationId },
+            select: { role: true, status: true },
+          });
+
+          if (currentUser?.role !== "ADMINISTRATOR") {
+            throw ApiError.forbidden("Only an Administrator can override Segregation of Duties.");
+          }
+
+          if (!details.overrideReason || details.overrideReason.trim().length < 10) {
+            throw ApiError.badRequest(
+              "A justification reason of at least 10 characters is required to override Segregation of Duties."
+            );
+          }
+
+          const activeAdminCount = await tx.user.count({
+            where: {
+              organizationId,
+              role: "ADMINISTRATOR",
+              status: "ACTIVE",
+            },
+          });
+
+          if (activeAdminCount > 1) {
+            throw ApiError.forbidden(
+              `Segregation of Duties override is only permitted for single-administrator organizations (organization has ${activeAdminCount} active administrators).`
+            );
+          }
+
+          // Documented solo-admin override: write audit log in the same transaction
+          await tx.auditLog.create({
+            data: {
+              organizationId,
+              userId,
+              action: "SOD_OVERRIDE_PAYMENT_RELEASE",
+              entityType: "PAYMENT",
+              entityId: paymentId,
+              beforeData: {
+                sodEnforced: true,
+                bankEditAuditId: bankChangeAudit.id,
+                supplierId,
+                targetEntityIds,
+              },
+              afterData: {
+                sodOverridden: true,
+                overrideReason: details.overrideReason.trim(),
+                activeAdminCount,
+                role: currentUser.role,
+              },
+              result: "SUCCESS",
+            },
+          });
+        } else {
+          throw ApiError.forbidden(
+            "Segregation of Duties (SoD) violation: The user who edited this supplier's bank details cannot release payment to this supplier (Doc 24 C8-7)."
+          );
+        }
       }
     }
 
@@ -270,7 +378,20 @@ export async function executePayment(
       tx,
     });
 
-    // Stamp invoice with clearing document and legitimate Indian fiscal year (F4)
+    const org = tx.organization?.findUnique
+      ? await tx.organization.findUnique({
+          where: { id: organizationId },
+          select: { timezone: true },
+        })
+      : prisma.organization?.findUnique
+      ? await prisma.organization.findUnique({
+          where: { id: organizationId },
+          select: { timezone: true },
+        })
+      : null;
+    const orgTimezone = org?.timezone || "Asia/Kolkata";
+
+    // Stamp invoice with clearing document and legitimate Indian fiscal year (F4 / T-206)
     await tx.invoice.update({
       where: {
         id_organizationId: {
@@ -280,7 +401,7 @@ export async function executePayment(
       },
       data: {
         erpClearingNumber: finalClearingDoc,
-        fiscalYear: calculateIndianFiscalYear(settlementDate),
+        fiscalYear: calculateIndianFiscalYear(settlementDate, orgTimezone),
       },
     });
 

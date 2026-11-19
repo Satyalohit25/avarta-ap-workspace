@@ -149,6 +149,7 @@ interface SettingsFormState {
   orgName: string;
   gstin: string;
   currency: string;
+  timezone: string;
   tolerancePercent: string;
   toleranceCap: string;
   idempotencyHours: string;
@@ -159,6 +160,7 @@ const EMPTY_FORM: SettingsFormState = {
   orgName: "",
   gstin: "",
   currency: "INR",
+  timezone: "Asia/Kolkata",
   tolerancePercent: "0.5",
   toleranceCap: "100",
   idempotencyHours: "24",
@@ -214,6 +216,7 @@ export default function SettingsPage() {
           orgName: profile.name,
           gstin: profile.gstin || "",
           currency: profile.defaultCurrency,
+          timezone: profile.timezone || "Asia/Kolkata",
           tolerancePercent: String(profile.settings.priceTolerancePercent),
           toleranceCap: String(profile.settings.priceToleranceCap),
           idempotencyHours: String(profile.settings.idempotencyExpiryHours),
@@ -269,6 +272,7 @@ export default function SettingsPage() {
         name: formData.orgName.trim(),
         gstin: formData.gstin.trim() ? formData.gstin.trim().toUpperCase() : null,
         defaultCurrency: formData.currency,
+        timezone: formData.timezone,
         settings: {
           priceTolerancePercent: Number(formData.tolerancePercent),
           priceToleranceCap: Number(formData.toleranceCap),
@@ -466,6 +470,22 @@ export default function SettingsPage() {
                             { value: "60", label: "60 Days" },
                             { value: "90", label: "90 Days (Recommended)" },
                             { value: "180", label: "180 Days" },
+                          ]}
+                        />
+                        <Select
+                          label="Organization Timezone (Fiscal Year & Dates)"
+                          value={formData.timezone}
+                          onChange={(e) =>
+                            setFormData({ ...formData, timezone: e.target.value })
+                          }
+                          disabled={!isAdmin}
+                          options={[
+                            { value: "Asia/Kolkata", label: "Asia/Kolkata (IST - UTC+05:30, Default)" },
+                            { value: "UTC", label: "UTC (Coordinated Universal Time - UTC+00:00)" },
+                            { value: "Asia/Dubai", label: "Asia/Dubai (GST - UTC+04:00)" },
+                            { value: "Asia/Singapore", label: "Asia/Singapore (SGT - UTC+08:00)" },
+                            { value: "Europe/London", label: "Europe/London (GMT/BST - UTC+00:00)" },
+                            { value: "America/New_York", label: "America/New_York (EST/EDT - UTC-05:00)" },
                           ]}
                         />
                       </div>
