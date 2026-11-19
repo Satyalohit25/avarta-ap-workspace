@@ -16,16 +16,27 @@ export interface ExportResult {
   truncated: boolean;
 }
 
-function csvCell(value: unknown): string {
+export const FORMULA_TRIGGER_REGEX = /^[=+\t\r@\-]/;
+export const IS_NUMERIC_REGEX = /^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
+
+export function isNumericValue(value: unknown, text: string): boolean {
+  if (typeof value === "number" && !Number.isNaN(value)) return true;
+  if (typeof value === "bigint") return true;
+  return IS_NUMERIC_REGEX.test(text);
+}
+
+export function csvCell(value: unknown): string {
   if (value === null || value === undefined) return "";
   let text: string;
   if (value instanceof Date) text = value.toISOString();
   else if (typeof value === "object" && "toString" in value) text = String(value);
   else text = String(value);
 
-  // Neutralise spreadsheet formula injection (=, +, -, @ leading) while
-  // still exporting readable values.
-  if (/^[=+\-@]/.test(text)) text = `'${text}`;
+  // Neutralise spreadsheet formula injection (=, +, -, @, \t, \r leading)
+  // without treating +-@ as a range, while leaving numeric negative numbers unaltered.
+  if (FORMULA_TRIGGER_REGEX.test(text) && !isNumericValue(value, text)) {
+    text = `'${text}`;
+  }
 
   if (/[",\r\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
   return text;

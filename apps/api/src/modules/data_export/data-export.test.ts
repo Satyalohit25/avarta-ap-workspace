@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "../../config/database";
-import { exportDataset } from "./service";
+import { exportDataset, csvCell } from "./service";
 
 const ORG_A = "org-export-test-a";
 const ORG_B = "org-export-test-b";
@@ -169,6 +169,55 @@ describe("Workspace data export", () => {
     const result = await exportDataset(ORG_A, USER_A, "invoices");
     expect(result.csv).toContain("'=HYPERLINK");
     expect(result.csv).not.toMatch(/\r\n=HYPERLINK/);
+  });
+
+  describe("T-207: CSV export sanitizer unit tests", () => {
+    it("neutralises formula triggers (=, +, @, \\t, \\r) while keeping negative numbers unquoted/unaltered", () => {
+      // Formula triggers must be neutralised with leading apostrophe
+      expect(csvCell("=HYPERLINK(A1)")).toBe("'=HYPERLINK(A1)");
+      expect(csvCell('=HYPERLINK("https://evil.example")')).toBe('"\'=HYPERLINK(""https://evil.example"")"');
+      expect(csvCell("+1+1")).toBe("'+1+1");
+      expect(csvCell("@SUM(A1)")).toBe("'@SUM(A1)");
+      expect(csvCell("\tcmd.exe")).toBe("'\tcmd.exe");
+      expect(csvCell("\rcmd.exe")).toBe('"\'\rcmd.exe"');
+      expect(csvCell("-1+1")).toBe("'-1+1");
+
+      // Plain numeric values (including negative numbers) must be unaltered
+      expect(csvCell("1234.50")).toBe("1234.50");
+      expect(csvCell(1234.5)).toBe("1234.5");
+      expect(csvCell("-1234.50")).toBe("-1234.50");
+      expect(csvCell(-1234.5)).toBe("-1234.5");
+      expect(csvCell("-100")).toBe("-100");
+      expect(csvCell(0)).toBe("0");
+
+      // Normal text strings should remain unaltered
+      expect(csvCell("INV-2026-001")).toBe("INV-2026-001");
+      expect(csvCell("Acme Supplies")).toBe("Acme Supplies");
+    });
+
+    it("satisfies RFC 4180 CSV escaping for commas, quotes, and newlines", () => {
+      expect(csvCell('Text with "quotes"')).toBe('"Text with ""quotes"""');
+      expect(csvCell("Text, with comma")).toBe('"Text, with comma"');
+      expect(csvCell("Line 1\r\nLine 2")).toBe('"Line 1\r\nLine 2"');
+      expect(csvCell('Complex: "A", B\nC')).toBe('"Complex: ""A"", B\nC"');
+    });
+
+    it("exports dataset with formula injection neutralised and negative/positive amounts preserved", async () => {
+      await prisma.invoice.updateMany({
+        where: { id: INVOICE_A, organizationId: ORG_A },
+        data: {
+          invoiceNumber: "+1+1",
+          totalAmount: "-1234.50",
+          subtotalAmount: "1234.50",
+        },
+      });
+
+      const result = await exportDataset(ORG_A, USER_A, "invoices");
+      expect(result.csv).toContain("'+1+1");
+      expect(result.csv).toContain("-1234.5");
+      expect(result.csv).toContain("1234.5");
+      expect(result.csv).not.toContain("'-1234.5");
+    });
   });
 
   it("returns an empty but valid CSV when the tenant has no records", async () => {

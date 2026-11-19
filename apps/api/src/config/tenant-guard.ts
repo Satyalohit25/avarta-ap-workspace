@@ -238,25 +238,77 @@ export function registerGuardMiddleware(prisma: {
 }) {
   prisma.$use(async (params, next) => {
     // ── 1. FSM Write Guard ────────────────────────────────────────────
-    // Block direct writes to invoices.status or workflowState unless
-    // the call originates from the workflow engine (bypass flag set).
-    if (
-      params.model === "Invoice" &&
-      (params.action === "update" || params.action === "updateMany")
-    ) {
-      const data = params.args?.data;
-      if (data && (data.status !== undefined || data.workflowState !== undefined)) {
-        const bypassed =
-          isEngineContext() ||
-          (params as unknown as Record<symbol, boolean>)[ENGINE_BYPASS] ||
-          (params.args as unknown as Record<symbol, boolean>)?.[ENGINE_BYPASS];
+    // AGENTS.md Rule 4 / T-211:
+    // Block direct writes to invoices.status, invoices.workflowState, and
+    // WorkflowInstance.currentState unless the call originates from the workflow
+    // engine (runWithEngineBypass or ENGINE_BYPASS symbol set).
+    const isEngineBypassed =
+      isEngineContext() ||
+      Boolean((params as unknown as Record<symbol, boolean>)[ENGINE_BYPASS]) ||
+      Boolean((params.args as unknown as Record<symbol, boolean>)?.[ENGINE_BYPASS]);
 
-        if (!bypassed) {
-          throw new Error(
-            "AGENTS.md Rule 4: invoices.status and workflowState may only be written by the workflow engine. " +
-            "Use applyTransition() from workflow/engine.ts instead."
-          );
+    if (params.model === "Invoice") {
+      let attemptsFsmWrite = false;
+
+      if (params.action === "update" || params.action === "updateMany") {
+        const data = params.args?.data;
+        if (data && (data.status !== undefined || data.workflowState !== undefined)) {
+          attemptsFsmWrite = true;
         }
+      } else if (params.action === "upsert") {
+        const updateData = params.args?.update;
+        const createData = params.args?.create;
+        if (
+          (updateData && (updateData.status !== undefined || updateData.workflowState !== undefined)) ||
+          (createData && (createData.status !== undefined || createData.workflowState !== undefined))
+        ) {
+          attemptsFsmWrite = true;
+        }
+      } else if (params.action === "createMany") {
+        const rows = params.args?.data;
+        if (Array.isArray(rows)) {
+          attemptsFsmWrite = rows.some(
+            (row) => row && (row.status !== undefined || row.workflowState !== undefined)
+          );
+        } else if (rows && typeof rows === "object") {
+          attemptsFsmWrite =
+            (rows as Record<string, unknown>).status !== undefined ||
+            (rows as Record<string, unknown>).workflowState !== undefined;
+        }
+      }
+
+      if (attemptsFsmWrite && !isEngineBypassed) {
+        throw new Error(
+          "AGENTS.md Rule 4: invoices.status and workflowState may only be written by the workflow engine. " +
+          "Use applyTransition() from workflow/engine.ts instead."
+        );
+      }
+    }
+
+    if (params.model === "WorkflowInstance") {
+      let attemptsWorkflowInstanceWrite = false;
+
+      if (params.action === "update" || params.action === "updateMany") {
+        const data = params.args?.data;
+        if (data && data.currentState !== undefined) {
+          attemptsWorkflowInstanceWrite = true;
+        }
+      } else if (params.action === "upsert") {
+        const updateData = params.args?.update;
+        const createData = params.args?.create;
+        if (
+          (updateData && updateData.currentState !== undefined) ||
+          (createData && createData.currentState !== undefined)
+        ) {
+          attemptsWorkflowInstanceWrite = true;
+        }
+      }
+
+      if (attemptsWorkflowInstanceWrite && !isEngineBypassed) {
+        throw new Error(
+          "AGENTS.md Rule 4: WorkflowInstance.currentState may only be written by the workflow engine. " +
+          "Use applyTransition() from workflow/engine.ts instead."
+        );
       }
     }
 
