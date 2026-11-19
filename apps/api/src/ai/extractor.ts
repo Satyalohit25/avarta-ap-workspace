@@ -2,14 +2,9 @@ import fs from "fs";
 import zlib from "zlib";
 import { OUTBOUND_TIMEOUTS } from "../config/timeouts";
 import type { IntegrationRecord } from "../modules/integrations/repository";
+import { classifyConfidence, ConfidenceBand } from "./confidence";
 
-export type ConfidenceBand = "HIGH" | "MEDIUM" | "LOW";
-
-export function classifyConfidence(score: number): ConfidenceBand {
-  if (score >= 95) return "HIGH";
-  if (score >= 80) return "MEDIUM";
-  return "LOW";
-}
+export { classifyConfidence, ConfidenceBand };
 
 export interface BoundingBox {
   pageNumber: number;

@@ -45,11 +45,32 @@ export interface TaxValidationResult {
   message: string;
 }
 
+import { toMinorUnits, toMajorUnits, SUPPORTED_CURRENCIES } from "../../lib/money";
+
+export interface TaxToleranceConfig {
+  currency?: string;
+  lineCount?: number;
+  toleranceMajor?: number; // Configured base tolerance for organization/currency
+  tolerancePerLine?: number; // Dynamic allowance per invoice line (default 0.01)
+  currencyOverrides?: Record<string, number>;
+}
+
+export function resolveTaxTolerance(config?: TaxToleranceConfig): number {
+  const currency = (config?.currency || "INR").toUpperCase();
+  const meta = SUPPORTED_CURRENCIES[currency];
+  const override = config?.currencyOverrides?.[currency];
+  const baseTolerance = override ?? config?.toleranceMajor ?? meta?.defaultTaxToleranceMajor ?? 0.5;
+  const lineCount = Math.max(1, config?.lineCount ?? 1);
+  const perLine = config?.tolerancePerLine ?? 0.01;
+  // Dynamic rounding allowance: baseTolerance + (lineCount - 1) * perLine
+  return baseTolerance + Math.max(0, lineCount - 1) * perLine;
+}
+
 export function validateTaxArithmetic(
   subtotal: number | null | undefined,
   tax: number | null | undefined,
   total: number,
-  tolerance = 1.0 // allow up to 1 currency unit rounding difference
+  toleranceOrConfig?: number | TaxToleranceConfig
 ): { isValid: boolean; difference: number; missingData?: boolean } {
   if (subtotal == null || tax == null || isNaN(Number(subtotal)) || isNaN(Number(tax))) {
     return {
@@ -59,12 +80,24 @@ export function validateTaxArithmetic(
     };
   }
 
-  const numSubtotal = Number(subtotal);
-  const numTax = Number(tax);
-  const expectedTotal = numSubtotal + numTax;
-  const difference = Math.abs(expectedTotal - total);
+  const currency = typeof toleranceOrConfig === "object" ? toleranceOrConfig.currency || "INR" : "INR";
+  const tolerance =
+    typeof toleranceOrConfig === "number"
+      ? toleranceOrConfig
+      : resolveTaxTolerance(toleranceOrConfig);
+
+  const subtotalMinor = toMinorUnits(subtotal, currency);
+  const taxMinor = toMinorUnits(tax, currency);
+  const totalMinor = toMinorUnits(total, currency);
+
+  const expectedTotalMinor = subtotalMinor + taxMinor;
+  const differenceMinor = Math.abs(expectedTotalMinor - totalMinor);
+  const difference = toMajorUnits(differenceMinor, currency);
+
+  const toleranceMinor = toMinorUnits(tolerance, currency);
+
   return {
-    isValid: difference <= tolerance,
+    isValid: differenceMinor <= toleranceMinor,
     difference,
     missingData: false,
   };

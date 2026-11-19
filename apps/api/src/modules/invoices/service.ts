@@ -8,6 +8,7 @@ import { applyTransition, startWorkflow } from "../../workflow/engine";
 import { runThreeWayMatching } from "../../workflow/matcher";
 import { validateGstinChecksum, validateTaxArithmetic } from "./tax-validator";
 import { extractInvoiceFromFile } from "../../ai/extractor";
+import { classifyConfidence, ConfidenceBand, normalizeConfidenceScore } from "../../ai/confidence";
 import * as repo from "./repository";
 import { toInvoiceDetail, toInvoiceListItem } from "./mapper";
 import { executeInvoiceApproval, executeInvoiceRejection } from "../approvals/service";
@@ -368,16 +369,6 @@ export async function createInvoice(input: CreateInvoiceInput) {
 }
 
 type ExtractedInvoice = Awaited<ReturnType<typeof extractInvoiceFromFile>>;
-type AiConfidenceBand = "HIGH" | "MEDIUM" | "LOW";
-
-// Doc 05 / AGENTS.md Rule 2: High (>=95) may pre-fill for one-click accept,
-// Medium (80–94) is a recommendation only, Low (<80) pre-fills nothing.
-function confidenceBand(confidence: number | null): AiConfidenceBand {
-  if (confidence === null) return "LOW";
-  if (confidence >= 95) return "HIGH";
-  if (confidence >= 80) return "MEDIUM";
-  return "LOW";
-}
 
 // Re-extraction updates existing lines in place and appends new ones. It never
 // deletes rows — AGENTS.md Rule 3 (nothing is ever deleted).
@@ -453,9 +444,9 @@ export async function processInvoice(organizationId: string, invoiceId: string, 
       const uploadsDir = path.join(process.cwd(), "uploads");
       const filePath = path.join(uploadsDir, document.storageKey);
       const extracted = await extractInvoiceFromFile(filePath, document.mimeType, document.fileName, organizationId);
-      confidence = Math.round(extracted.overallConfidence * 100) / 100;
+      confidence = normalizeConfidenceScore(extracted.overallConfidence);
 
-      const band = confidenceBand(confidence);
+      const band = classifyConfidence(confidence);
       const canPrefill = band === "HIGH";
 
       if (canPrefill) {
@@ -604,6 +595,7 @@ export async function runValidations(
     taxAmount?: number | string | unknown;
     currency?: string;
     purchaseOrderId?: string | null;
+    lines?: unknown[];
   },
   confidence: number | null
 ) {
@@ -637,13 +629,14 @@ export async function runValidations(
     });
   }
 
-  if (confidence === null || confidence < 80) {
+  const normalizedConfidence = confidence != null ? normalizeConfidenceScore(confidence) : null;
+  if (normalizedConfidence === null || normalizedConfidence < 80) {
     failures.push({
       ruleCode: "AI_CONFIDENCE",
       ruleName: "AI Confidence",
       message:
-        confidence !== null
-          ? `Extraction confidence (${confidence}%) is below the review threshold.`
+        normalizedConfidence !== null
+          ? `Extraction confidence (${normalizedConfidence}%) is below the review threshold.`
           : "No AI extraction confidence recorded. Requires manual human verification.",
       exceptionType: "LOW_AI_CONFIDENCE",
       severity: "MEDIUM",
@@ -683,7 +676,22 @@ export async function runValidations(
     const subtotal = Number(rawSubtotal);
     const tax = Number(rawTax);
     if (subtotal > 0 && total > 0) {
-      const taxCheck = validateTaxArithmetic(subtotal, tax, total);
+      // Fetch organization settings to resolve configurable tax tolerance per organization and currency (T-213)
+      const org = await prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { settings: true, defaultCurrency: true },
+      });
+      const orgSettings = (org?.settings && typeof org.settings === "object" ? org.settings : {}) as Record<string, any>;
+      const lineCount = invoice.lines?.length || 1;
+
+      const taxCheck = validateTaxArithmetic(subtotal, tax, total, {
+        currency: invoice.currency || org?.defaultCurrency || "INR",
+        lineCount,
+        toleranceMajor: orgSettings.taxToleranceMajor,
+        tolerancePerLine: orgSettings.taxTolerancePerLine,
+        currencyOverrides: orgSettings.taxToleranceCurrencyOverrides,
+      });
+
       if (!taxCheck.isValid) {
         failures.push({
           ruleCode: "TAX_CALCULATION",
@@ -884,7 +892,7 @@ export async function addDocumentToInvoice(
 
   if (extracted) {
     const confidence = Math.round(extracted.overallConfidence * 100) / 100;
-    const band = confidenceBand(confidence);
+    const band = classifyConfidence(confidence);
     const canPrefill = band === "HIGH";
 
     if (canPrefill) {

@@ -2,6 +2,29 @@ import { tokens } from "../design-system/tokens";
 
 export type ConfidenceBand = "HIGH" | "MEDIUM" | "LOW";
 
+export const CONFIDENCE_THRESHOLDS = {
+  HIGH_MIN: 95.0,
+  MEDIUM_MIN: 80.0,
+} as const;
+
+export function normalizeConfidenceScore(rawScore: number | null | undefined): number {
+  if (rawScore == null || isNaN(Number(rawScore))) return 0;
+  const num = Number(rawScore);
+  if (num <= 0) return 0;
+  if (num > 0 && num <= 1.0) {
+    return Math.min(100, Math.round(num * 10000) / 100);
+  }
+  return Math.min(100, Math.max(0, Math.round(num * 100) / 100));
+}
+
+export function classifyConfidenceBand(score: number | null | undefined): ConfidenceBand {
+  if (score == null) return "LOW";
+  const normalized = normalizeConfidenceScore(score);
+  if (normalized >= CONFIDENCE_THRESHOLDS.HIGH_MIN) return "HIGH";
+  if (normalized >= CONFIDENCE_THRESHOLDS.MEDIUM_MIN) return "MEDIUM";
+  return "LOW";
+}
+
 export interface GroundTruthBox {
   id: string;
   fieldKey: string;
@@ -15,12 +38,6 @@ export interface GroundTruthBox {
   confidence: number; // 0 - 100
   confidenceBand: ConfidenceBand;
   category: "header" | "vendor" | "po" | "line" | "totals";
-}
-
-export function classifyConfidenceBand(score: number): ConfidenceBand {
-  if (score >= 95) return "HIGH";
-  if (score >= 80) return "MEDIUM";
-  return "LOW";
 }
 
 export function getConfidenceColors(band: ConfidenceBand) {
@@ -85,6 +102,7 @@ export function generateGroundTruthBoxes(params: GenerateBoxesParams): GroundTru
     const boxes: GroundTruthBox[] = [];
     const map = params.rawBoxesMap;
 
+    const normalizedConf = normalizeConfidenceScore(baseConf);
     for (const [key, b] of Object.entries(map)) {
       if (!b) continue;
       boxes.push({
@@ -97,8 +115,8 @@ export function generateGroundTruthBoxes(params: GenerateBoxesParams): GroundTru
         y: b.y,
         width: b.width,
         height: b.height,
-        confidence: Math.round(baseConf),
-        confidenceBand: classifyConfidenceBand(Math.round(baseConf)),
+        confidence: normalizedConf,
+        confidenceBand: classifyConfidenceBand(normalizedConf),
         category: key.includes("supplier") || key.includes("vendor")
           ? "vendor"
           : key.includes("line")

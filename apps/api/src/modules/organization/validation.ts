@@ -5,6 +5,9 @@ const organizationSettingsSchema = z.object({
   priceToleranceCap: z.number().min(0).optional(),
   idempotencyExpiryHours: z.number().int().min(1).max(168).optional(),
   autoArchiveDays: z.number().int().min(1).max(3650).optional(),
+  taxToleranceMajor: z.number().min(0).max(100).optional(),
+  taxTolerancePerLine: z.number().min(0).max(10).optional(),
+  taxToleranceCurrencyOverrides: z.record(z.string(), z.number().min(0).max(100)).optional(),
 });
 
 export const updateOrganizationSchema = z

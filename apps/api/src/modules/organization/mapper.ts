@@ -38,6 +38,18 @@ function mergeSettings(raw: unknown): OrganizationSettings {
       typeof parsed.autoArchiveDays === "number"
         ? parsed.autoArchiveDays
         : DEFAULT_ORGANIZATION_SETTINGS.autoArchiveDays,
+    taxToleranceMajor:
+      typeof parsed.taxToleranceMajor === "number"
+        ? parsed.taxToleranceMajor
+        : DEFAULT_ORGANIZATION_SETTINGS.taxToleranceMajor,
+    taxTolerancePerLine:
+      typeof parsed.taxTolerancePerLine === "number"
+        ? parsed.taxTolerancePerLine
+        : DEFAULT_ORGANIZATION_SETTINGS.taxTolerancePerLine,
+    taxToleranceCurrencyOverrides:
+      parsed.taxToleranceCurrencyOverrides && typeof parsed.taxToleranceCurrencyOverrides === "object"
+        ? (parsed.taxToleranceCurrencyOverrides as Record<string, number>)
+        : DEFAULT_ORGANIZATION_SETTINGS.taxToleranceCurrencyOverrides,
   };
 }
 
