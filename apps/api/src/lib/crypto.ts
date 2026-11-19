@@ -114,8 +114,7 @@ export function hashTrackingToken(token: string): string {
  */
 export function encryptTrackingToken(plainToken: string, keyId: string = "v1"): string {
   if (!plainToken) return "";
-  const encrypted = encryptSecret(plainToken);
-  return `${keyId}:${encrypted}`;
+  return encryptSecret(plainToken, keyId);
 }
 
 /**
@@ -124,11 +123,6 @@ export function encryptTrackingToken(plainToken: string, keyId: string = "v1"): 
  */
 export function decryptTrackingToken(payload: string): string {
   if (!payload) return "";
-  const parts = payload.split(":");
-  if (parts.length === 4) {
-    const [_keyId, iv, authTag, ciphertext] = parts;
-    return decryptSecret(`${iv}:${authTag}:${ciphertext}`);
-  }
   return decryptSecret(payload);
 }
 
