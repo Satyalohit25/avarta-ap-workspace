@@ -43,6 +43,7 @@ export async function overviewHandler(req: Request, res: Response, next: NextFun
       openExceptions,
       topSuppliersRaw,
       recentInvoicesRaw,
+      paidPayments,
     ] = await Promise.all([
       prisma.payment.count({ where: { organizationId, status: "SCHEDULED" } }),
       prisma.invoice.aggregate({
@@ -169,6 +170,16 @@ export async function overviewHandler(req: Request, res: Response, next: NextFun
           supplier: { select: { displayName: true } },
         },
       }),
+      // Settled payments for AP cycle time calculation (receivedAt -> paidAt)
+      prisma.payment.findMany({
+        where: { organizationId, status: "PAID", settlementDate: { not: null } },
+        select: {
+          settlementDate: true,
+          processedAt: true,
+          invoice: { select: { createdAt: true } },
+        },
+        take: 50,
+      }),
     ]);
 
     const pendingApproval = approvalInvoices.length;
@@ -229,12 +240,28 @@ export async function overviewHandler(req: Request, res: Response, next: NextFun
       { key: "PAID", label: "Settled & Synced", count: (stageMap["PAID"]?.count || 0) + (stageMap["SYNCED"]?.count || 0), amount: (stageMap["PAID"]?.totalAmount || 0) + (stageMap["SYNCED"]?.totalAmount || 0), isBranch: false, path: "/invoices?status=PAID" },
     ];
 
-    // Straight-Through Processing (STP) rate:
+    // Straight-Through Processing (STP) rate / No-exception rate:
     const invoicesWithExceptionsCount = invoicesWithExceptionsGroup.length;
     const cleanInvoices = Math.max(0, totalInvoicesCount - invoicesWithExceptionsCount);
     const touchlessStpRate = totalInvoicesCount > 0
       ? Math.min(100, Math.round((cleanInvoices / totalInvoicesCount) * 100))
-      : 100;
+      : null;
+
+    // Cycle time calculation: receivedAt (invoice.createdAt) to paidAt (payment.settlementDate)
+    let totalCycleDays = 0;
+    let settledPaymentsCount = 0;
+    for (const p of paidPayments) {
+      if (p.settlementDate && p.invoice?.createdAt) {
+        const receivedAt = new Date(p.invoice.createdAt).getTime();
+        const paidAt = new Date(p.settlementDate).getTime();
+        const days = Math.max(0.01, (paidAt - receivedAt) / (1000 * 60 * 60 * 24));
+        totalCycleDays += days;
+        settledPaymentsCount++;
+      }
+    }
+    const computedCycleTimeDays = settledPaymentsCount > 0
+      ? Number((totalCycleDays / settledPaymentsCount).toFixed(1))
+      : null;
 
     // Build Live Blocker Groups for AP Action Hub
     const mappedApprovals = approvalInvoices.map((inv) => {
@@ -462,7 +489,7 @@ export async function overviewHandler(req: Request, res: Response, next: NextFun
         // Supplier Exposure & Benchmarks
         topSuppliers,
         benchmarks: {
-          cycleTimeDays: 2.4,
+          cycleTimeDays: computedCycleTimeDays,
           approvalHours: 14.2,
           exceptionRatePct: 18.2,
           stpRatePct: touchlessStpRate,

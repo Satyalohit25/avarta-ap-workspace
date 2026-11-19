@@ -14,6 +14,8 @@ import { apiRequest } from "../../../api/client";
 
 interface AgingSummary {
   totalOutstanding: number;
+  notYetDue?: number;
+  days1_30?: number;
   current: number;
   days31_60: number;
   days61_90: number;
@@ -23,6 +25,8 @@ interface AgingSummary {
 interface VendorAging {
   vendorId: string;
   vendorName: string;
+  notYetDue?: number;
+  days1_30?: number;
   current: number;
   days31_60: number;
   days61_90: number;
@@ -46,6 +50,8 @@ export function ApAgingCashForecastView() {
   }>({
     summary: {
       totalOutstanding: 0,
+      notYetDue: 0,
+      days1_30: 0,
       current: 0,
       days31_60: 0,
       days61_90: 0,
@@ -80,7 +86,10 @@ export function ApAgingCashForecastView() {
   }, []);
 
   const total = aging.summary.totalOutstanding || 1;
-  const currentPct = Math.round((aging.summary.current / total) * 100);
+  const notYetDueAmount = aging.summary.notYetDue ?? (aging.summary.current || 0);
+  const days1_30Amount = aging.summary.days1_30 ?? 0;
+  const notYetDuePct = Math.round((notYetDueAmount / total) * 100);
+  const overdue1_30Pct = Math.round((days1_30Amount / total) * 100);
   const overdue31_60Pct = Math.round((aging.summary.days31_60 / total) * 100);
   const overdue61_90Pct = Math.round((aging.summary.days61_90 / total) * 100);
   const overdue91PlusPct = Math.round((aging.summary.days91_plus / total) * 100);
@@ -92,7 +101,7 @@ export function ApAgingCashForecastView() {
       {/* ─────────────────────────────────────────────────────────────
        * 1. High-Level Liquidity & AP Aging Metrics
        * ───────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 items-stretch">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 items-stretch">
         <StatsCard
           title="Total Outstanding AP"
           value={formatCurrency(aging.summary.totalOutstanding, aging.currency)}
@@ -100,15 +109,23 @@ export function ApAgingCashForecastView() {
           icon={<Clock className="text-indigo-600 dark:text-indigo-400" size={20} />}
         />
         <StatsCard
-          title="Current (0–30 Days)"
-          value={formatCurrency(aging.summary.current, aging.currency)}
-          subtitle={`${currentPct}% within standard payment terms`}
-          change={`${currentPct}%`}
+          title="Not Yet Due"
+          value={formatCurrency(notYetDueAmount, aging.currency)}
+          subtitle={`${notYetDuePct}% within supplier payment terms`}
+          change={`${notYetDuePct}%`}
           changeType="positive"
           icon={<ShieldCheck className="text-emerald-600 dark:text-emerald-400" size={20} />}
         />
         <StatsCard
-          title="Critical Overdue (91+ Days)"
+          title="1–30 Days Overdue"
+          value={formatCurrency(days1_30Amount, aging.currency)}
+          subtitle={`${overdue1_30Pct}% recently overdue`}
+          change={`${overdue1_30Pct}%`}
+          changeType="negative"
+          icon={<AlertTriangle className="text-amber-500" size={20} />}
+        />
+        <StatsCard
+          title="Critical Overdue (91+ D)"
           value={formatCurrency(aging.summary.days91_plus, aging.currency)}
           subtitle={`${overdue91PlusPct}% severely aged liabilities`}
           change={`${overdue91PlusPct}%`}
@@ -145,9 +162,14 @@ export function ApAgingCashForecastView() {
             {/* Multi-segment progress bar */}
             <div className="h-4 w-full rounded-full bg-neutral-100 dark:bg-zinc-800 flex overflow-hidden">
               <div
-                style={{ width: `${currentPct}%` }}
+                style={{ width: `${notYetDuePct}%` }}
                 className="bg-emerald-500 hover:opacity-90 transition-colors duration-100"
-                title={`Current (0-30D): ${currentPct}%`}
+                title={`Not Yet Due: ${notYetDuePct}%`}
+              />
+              <div
+                style={{ width: `${overdue1_30Pct}%` }}
+                className="bg-teal-500 hover:opacity-90 transition-colors duration-100"
+                title={`1-30D Overdue: ${overdue1_30Pct}%`}
               />
               <div
                 style={{ width: `${overdue31_60Pct}%` }}
@@ -167,14 +189,24 @@ export function ApAgingCashForecastView() {
             </div>
 
             {/* Legend & Details */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
               <div className="p-3 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/50">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  <span className="text-micro font-medium text-neutral-600 dark:text-zinc-400">Current (0–30 Days)</span>
+                  <span className="text-micro font-medium text-neutral-600 dark:text-zinc-400">Not Yet Due</span>
                 </div>
                 <div className="text-body font-semibold text-neutral-900 dark:text-zinc-100 mt-1 font-mono">
-                  {formatCurrency(aging.summary.current, aging.currency)}
+                  {formatCurrency(notYetDueAmount, aging.currency)}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/50">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-teal-500" />
+                  <span className="text-micro font-medium text-neutral-600 dark:text-zinc-400">1–30D Overdue</span>
+                </div>
+                <div className="text-body font-semibold text-neutral-900 dark:text-zinc-100 mt-1 font-mono">
+                  {formatCurrency(days1_30Amount, aging.currency)}
                 </div>
               </div>
 
@@ -198,7 +230,7 @@ export function ApAgingCashForecastView() {
                 </div>
               </div>
 
-              <div className="p-3 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/50">
+              <div className="p-3 rounded-lg border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/50 col-span-2 sm:col-span-1">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
                   <span className="text-micro font-medium text-neutral-600 dark:text-zinc-400">91+ Days Critical</span>
@@ -232,11 +264,12 @@ export function ApAgingCashForecastView() {
               ) : (
                 forecast.weeks.map((week) => {
                   const heightPct = Math.round((week.projectedAmount / maxWeekly) * 100);
+                  const isOverdue = week.weekNumber === 0;
                   return (
                     <div key={week.weekNumber} className="space-y-1">
                       <div className="flex items-center justify-between text-caption font-medium">
-                        <span className="text-neutral-700 dark:text-zinc-300">
-                          Week {week.weekNumber} ({week.startDate} to {week.endDate})
+                        <span className={isOverdue ? "text-rose-600 dark:text-rose-400 font-semibold" : "text-neutral-700 dark:text-zinc-300"}>
+                          {isOverdue ? "Overdue Payables (Immediate Demand)" : `Week ${week.weekNumber} (${week.startDate} to ${week.endDate})`}
                         </span>
                         <span className="font-mono font-semibold text-neutral-900 dark:text-zinc-100">
                           {formatCurrency(week.projectedAmount, forecast.currency)}
@@ -245,7 +278,7 @@ export function ApAgingCashForecastView() {
                       <div className="h-2.5 w-full rounded-full bg-neutral-100 dark:bg-zinc-800 overflow-hidden">
                         <div
                           style={{ width: `${heightPct}%` }}
-                          className="h-full bg-indigo-600 rounded-full transition-colors duration-100"
+                          className={`h-full rounded-full transition-colors duration-100 ${isOverdue ? "bg-rose-500" : "bg-indigo-600"}`}
                         />
                       </div>
                     </div>
@@ -283,7 +316,8 @@ export function ApAgingCashForecastView() {
             <TableHeader>
               <TableRow>
                 <TableHead>Supplier</TableHead>
-                <TableHead className="text-right">Current (0–30D)</TableHead>
+                <TableHead className="text-right">Not Yet Due</TableHead>
+                <TableHead className="text-right">1–30 Days Overdue</TableHead>
                 <TableHead className="text-right">31–60 Days</TableHead>
                 <TableHead className="text-right">61–90 Days</TableHead>
                 <TableHead className="text-right">91+ Days</TableHead>
@@ -293,7 +327,7 @@ export function ApAgingCashForecastView() {
             <TableBody>
               {aging.byVendor.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-neutral-400 font-mono text-body-sm">
+                  <TableCell colSpan={7} className="text-center py-8 text-neutral-400 font-mono text-body-sm">
                     No outstanding aged payables detected across suppliers.
                   </TableCell>
                 </TableRow>
@@ -305,7 +339,10 @@ export function ApAgingCashForecastView() {
                       <span>{vendor.vendorName}</span>
                     </TableCell>
                     <TableCell className="text-right font-mono text-emerald-600 dark:text-emerald-400">
-                      {formatCurrency(vendor.current, aging.currency)}
+                      {formatCurrency(vendor.notYetDue ?? vendor.current, aging.currency)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-teal-600 dark:text-teal-400">
+                      {formatCurrency(vendor.days1_30 ?? 0, aging.currency)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-amber-600 dark:text-amber-400">
                       {formatCurrency(vendor.days31_60, aging.currency)}

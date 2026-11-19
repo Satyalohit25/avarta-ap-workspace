@@ -3,6 +3,15 @@ import { ApiError } from "../../lib/errors";
 import { parsePagination, paginationMeta } from "../../lib/pagination";
 import { applyTransition } from "../../workflow/engine";
 import type { PaymentGatewayProvider, PaymentGatewayConfig } from "./adapter";
+import {
+  validateIndianIfsc,
+  generateNachaFile,
+  generateBankCsv,
+  generateIndianNeftRtgsCsv,
+  generateHdfcBulkFile,
+  generateIciciBulkFile,
+  generateSbiBulkFile,
+} from "./bank-file-generator";
 
 export async function listPayments(params: {
   organizationId: string;
@@ -522,6 +531,15 @@ export async function generateBankExportFile(
       );
     }
 
+    const cleanFormat = format.toLowerCase().trim();
+    if (["neft", "rtgs", "hdfc", "icici", "sbi"].includes(cleanFormat)) {
+      if (!validateIndianIfsc(verifiedAccount.ifscSwift)) {
+        throw ApiError.badRequest(
+          `Cannot export Indian bank file: Supplier '${supplierName}' has invalid IFSC '${verifiedAccount.ifscSwift}'. Must be 11 characters (e.g. HDFC0001234).`
+        );
+      }
+    }
+
     let accountNumber: string;
     try {
       accountNumber = decryptSecret(verifiedAccount.encryptedAccountNumber);
@@ -543,9 +561,26 @@ export async function generateBankExportFile(
     };
   });
 
-  const { generateNachaFile, generateBankCsv } = await import("./bank-file-generator");
-  if (format === "nacha") {
+  const cleanFormat = format.toLowerCase().trim();
+  const senderAccount =
+    org?.debitAccountNumberLast4
+      ? `DEBIT-${org.debitAccountNumberLast4}`
+      : (org?.settings as any)?.debitAccountNumber || "CORP_CURRENT_01";
+
+  if (cleanFormat === "nacha") {
     return generateNachaFile(org?.name || "AVARTA WORKSPACE", org?.id || "ORG001", records);
+  }
+  if (cleanFormat === "hdfc" || cleanFormat === "hdfc-enet") {
+    return generateHdfcBulkFile(records, senderAccount);
+  }
+  if (cleanFormat === "icici" || cleanFormat === "icici-cib") {
+    return generateIciciBulkFile(records, senderAccount);
+  }
+  if (cleanFormat === "sbi" || cleanFormat === "sbi-cmp") {
+    return generateSbiBulkFile(records, senderAccount);
+  }
+  if (cleanFormat === "neft" || cleanFormat === "rtgs") {
+    return generateIndianNeftRtgsCsv(records, senderAccount);
   }
   return generateBankCsv(records);
 }

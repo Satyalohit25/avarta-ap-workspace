@@ -198,3 +198,192 @@ export function generateBankCsv(records: BankPaymentRecord[]): string {
 
   return [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");
 }
+
+/**
+ * Validates Indian Financial System Code (IFSC).
+ * Format: 4 alphabetic characters representing the bank, 5th character is '0' (reserved),
+ * followed by 6 alphanumeric characters representing the branch (e.g. HDFC0001234, ICIC0000001, SBIN0000300).
+ */
+export function validateIndianIfsc(ifsc: string): boolean {
+  if (!ifsc) return false;
+  return /^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc.trim().toUpperCase());
+}
+
+/**
+ * Generates universal Indian NEFT / RTGS bulk payment CSV.
+ * Categorization: Amount >= 200,000 INR -> RTGS, Amount < 200,000 INR -> NEFT.
+ */
+export function generateIndianNeftRtgsCsv(
+  records: BankPaymentRecord[],
+  senderAccount: string = "SENDER_ACCT"
+): string {
+  const headers = [
+    "TransactionType",
+    "BeneficiaryAccountNumber",
+    "BeneficiaryName",
+    "IFSC",
+    "Amount",
+    "DebitAccountNumber",
+    "PaymentReference",
+    "InvoiceNumber",
+    "Date",
+    "Remarks",
+  ];
+
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10);
+
+  const rows = records.map((r) => {
+    const cleanIfsc = (r.routingNumber || "").trim().toUpperCase();
+    const txType = r.amount >= 200000 ? "RTGS" : "NEFT";
+    return [
+      txType,
+      `"${r.accountNumber.trim()}"`,
+      `"${r.beneficiaryName.replace(/"/g, '""').trim()}"`,
+      `"${cleanIfsc}"`,
+      r.amount.toFixed(2),
+      `"${senderAccount.trim()}"`,
+      `"${r.paymentId}"`,
+      `"${r.invoiceNumber}"`,
+      `"${dateStr}"`,
+      `"Vendor Payment ${r.invoiceNumber}"`,
+    ];
+  });
+
+  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");
+}
+
+/**
+ * Generates HDFC Bank Corporate E-Net bulk upload CSV.
+ * Columns: Transaction Type, Beneficiary Account Number, Amount, Beneficiary Name, IFSC, Sender Account Number, Customer Reference Number, Narration
+ */
+export function generateHdfcBulkFile(
+  records: BankPaymentRecord[],
+  senderAccount: string = "SENDER_ACCT"
+): string {
+  const headers = [
+    "Transaction Type",
+    "Beneficiary Account Number",
+    "Amount",
+    "Beneficiary Name",
+    "IFSC",
+    "Sender Account Number",
+    "Customer Reference Number",
+    "Narration",
+  ];
+
+  const rows = records.map((r) => {
+    const cleanIfsc = (r.routingNumber || "").trim().toUpperCase();
+    let txType = "NEFT";
+    if (cleanIfsc.startsWith("HDFC")) {
+      txType = "IFT"; // Internal Fund Transfer
+    } else if (r.amount >= 200000) {
+      txType = "RTGS";
+    }
+
+    const cleanBeneficiary = r.beneficiaryName.replace(/[^A-Za-z0-9 ]/g, "").slice(0, 40).trim();
+
+    return [
+      txType,
+      `"${r.accountNumber.trim()}"`,
+      r.amount.toFixed(2),
+      `"${cleanBeneficiary}"`,
+      `"${cleanIfsc}"`,
+      `"${senderAccount.trim()}"`,
+      `"${r.paymentId}"`,
+      `"INV-${r.invoiceNumber}"`,
+    ];
+  });
+
+  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");
+}
+
+/**
+ * Generates ICICI Corporate Internet Banking (CIB) bulk upload CSV.
+ * Columns: PaymentMode, DebitAccountNumber, BeneficiaryAccountNumber, Amount, BeneficiaryName, BeneficiaryIFSC, UserReference, Remarks
+ */
+export function generateIciciBulkFile(
+  records: BankPaymentRecord[],
+  senderAccount: string = "SENDER_ACCT"
+): string {
+  const headers = [
+    "PaymentMode",
+    "DebitAccountNumber",
+    "BeneficiaryAccountNumber",
+    "Amount",
+    "BeneficiaryName",
+    "BeneficiaryIFSC",
+    "UserReference",
+    "Remarks",
+  ];
+
+  const rows = records.map((r) => {
+    const cleanIfsc = (r.routingNumber || "").trim().toUpperCase();
+    let paymentMode = "N"; // NEFT
+    if (cleanIfsc.startsWith("ICIC")) {
+      paymentMode = "I"; // Internal transfer
+    } else if (r.amount >= 200000) {
+      paymentMode = "R"; // RTGS
+    }
+
+    const cleanBeneficiary = r.beneficiaryName.replace(/[^A-Za-z0-9 ]/g, "").slice(0, 50).trim();
+
+    return [
+      paymentMode,
+      `"${senderAccount.trim()}"`,
+      `"${r.accountNumber.trim()}"`,
+      r.amount.toFixed(2),
+      `"${cleanBeneficiary}"`,
+      `"${cleanIfsc}"`,
+      `"${r.paymentId}"`,
+      `"INV-${r.invoiceNumber}"`,
+    ];
+  });
+
+  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");
+}
+
+/**
+ * Generates SBI Corporate Cash Management Portal (CMP) bulk upload CSV.
+ * Columns: PaymentType, DebitAccount, BeneficiaryAccount, BeneficiaryName, Amount, IFSC, PaymentReference, Remarks
+ */
+export function generateSbiBulkFile(
+  records: BankPaymentRecord[],
+  senderAccount: string = "SENDER_ACCT"
+): string {
+  const headers = [
+    "PaymentType",
+    "DebitAccount",
+    "BeneficiaryAccount",
+    "BeneficiaryName",
+    "Amount",
+    "IFSC",
+    "PaymentReference",
+    "Remarks",
+  ];
+
+  const rows = records.map((r) => {
+    const cleanIfsc = (r.routingNumber || "").trim().toUpperCase();
+    let paymentType = "NEFT";
+    if (cleanIfsc.startsWith("SBIN")) {
+      paymentType = "TRANSFER"; // Within SBI
+    } else if (r.amount >= 200000) {
+      paymentType = "RTGS";
+    }
+
+    const cleanBeneficiary = r.beneficiaryName.replace(/[^A-Za-z0-9 ]/g, "").slice(0, 50).trim();
+
+    return [
+      paymentType,
+      `"${senderAccount.trim()}"`,
+      `"${r.accountNumber.trim()}"`,
+      `"${cleanBeneficiary}"`,
+      r.amount.toFixed(2),
+      `"${cleanIfsc}"`,
+      `"${r.paymentId}"`,
+      `"INV-${r.invoiceNumber}"`,
+    ];
+  });
+
+  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");
+}

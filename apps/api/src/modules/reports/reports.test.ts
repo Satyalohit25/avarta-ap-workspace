@@ -49,10 +49,10 @@ describe("AP Aging & Cash Forecast Reports (Step 11)", () => {
     expect(report.summary.days91_plus).toBe(40000);
 
     expect(report.byVendor).toHaveLength(2);
-    expect(report.buckets).toHaveLength(4);
+    expect(report.buckets).toHaveLength(5);
   });
 
-  it("calculates rolling 4-week cash requirements forecast", async () => {
+  it("calculates rolling 4-week cash requirements forecast with overdue payables row", async () => {
     const now = new Date();
     const daysInFuture = (d: number) => new Date(now.getTime() + d * 24 * 60 * 60 * 1000);
 
@@ -73,9 +73,12 @@ describe("AP Aging & Cash Forecast Reports (Step 11)", () => {
 
     const forecast = await getCashForecastReport("org-1");
 
-    expect(forecast.weeks).toHaveLength(4);
-    expect(forecast.weeks[0].projectedAmount).toBe(15000);
-    expect(forecast.weeks[1].projectedAmount).toBe(25000);
+    expect(forecast.weeks).toHaveLength(5); // Week 0 (Overdue) + 4 forward weeks
+    expect(forecast.weeks[0].weekNumber).toBe(0);
+    expect(forecast.weeks[0].label).toBe("Overdue Payables");
+    expect(forecast.weeks[0].projectedAmount).toBe(0);
+    expect(forecast.weeks[1].projectedAmount).toBe(15000);
+    expect(forecast.weeks[2].projectedAmount).toBe(25000);
     expect(forecast.totalNext30Days).toBe(40000);
   });
 });

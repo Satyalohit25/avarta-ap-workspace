@@ -32,14 +32,14 @@ interface OperationalReportViewProps {
 const EMPTY_DATASET: OperationalReportDataset = {
   kpis: {
     straightThroughRate: {
-      title: "Straight-Through Processing (STP)",
-      value: "100.0%",
+      title: "No-exception Rate",
+      value: "No data",
       subtitle: "Calculated from live workspace invoices",
     },
     avgCycleTime: {
-      title: "Intake-to-Schedule Cycle Time",
-      value: "0.0 Hours",
-      subtitle: "Average intake to approval duration",
+      title: "Intake-to-Payment Cycle Time",
+      value: "No data",
+      subtitle: "Average intake to payment duration",
     },
     exceptionResolutionTime: {
       title: "Exception Resolution Velocity",

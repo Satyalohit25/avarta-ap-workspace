@@ -15,7 +15,7 @@ function computeSupplierMetrics(
   ).length;
 
   const disputeRateNum = total > 0 ? (exceptions / total) * 100 : 0;
-  const stpRateNum = total > 0 ? (touchless / total) * 100 : 100;
+  const stpRateNum = total > 0 ? (touchless / total) * 100 : null;
   const gstClean = gstNumber?.trim() || "";
   const panNumber = gstClean.length >= 12 ? gstClean.substring(2, 12).toUpperCase() : null;
 
@@ -34,7 +34,7 @@ function computeSupplierMetrics(
 
   return {
     panNumber,
-    stpMatchRate: `${stpRateNum.toFixed(1)}%`,
+    stpMatchRate: stpRateNum !== null ? `${stpRateNum.toFixed(1)}%` : "No data",
     disputeRate: `${disputeRateNum.toFixed(1)}%`,
     avgTurnaroundDays: avgDays,
     riskScore,
