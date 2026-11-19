@@ -226,10 +226,6 @@ export async function archiveInvoiceHandler(req: Request, res: Response, next: N
     next(err);
   }
 }
-  } catch (err) {
-    next(err);
-  }
-}
 
 export async function erpSyncHandler(req: Request, res: Response, next: NextFunction) {
   try {
