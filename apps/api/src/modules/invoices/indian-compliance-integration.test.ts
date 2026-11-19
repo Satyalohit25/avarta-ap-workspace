@@ -7,6 +7,7 @@ import { getInvoice } from "./service";
 
 describe("EPIC 5: Indian Compliance Integration (T-501 & T-502)", () => {
   const orgId = "org-test-indian-compliance";
+  let supplierId: string;
   let invoiceId: string;
 
   beforeEach(async () => {
@@ -117,6 +118,7 @@ describe("EPIC 5: Indian Compliance Integration (T-501 & T-502)", () => {
       const entries = tdsLedger.getEntries(orgId);
       expect(entries.length).toBe(1);
       expect(entries[0].invoiceId).toBe(invoiceId);
+      expect(entries[0].supplierId).toBe(supplierId);
       expect(entries[0].supplierPan).toBe("AAACG1234F");
       expect(entries[0].grossAmount).toBe(100000);
       expect(entries[0].tdsAmount).toBe(2000);
