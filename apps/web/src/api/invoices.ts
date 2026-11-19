@@ -60,7 +60,7 @@ export interface InvoicePaymentItem {
   paymentMethod: string;
   referenceNumber?: string | null;
   utrNumber?: string | null;
-  clearingDate?: string | null;
+  settlementDate?: string | null;
   clearingDocumentNumber?: string | null;
   scheduledDate?: string | null;
   processedAt?: string | null;

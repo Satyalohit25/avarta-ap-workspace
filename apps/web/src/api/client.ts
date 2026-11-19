@@ -1,3 +1,5 @@
+import { isPublicPath } from "../app/publicRoutes";
+
 export const API_URL = import.meta.env.VITE_API_URL ?? "/api/v1";
 
 // Access tokens live in memory only. The refresh token is an httpOnly cookie
@@ -130,8 +132,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     setAccessToken(null);
     if (
       typeof window !== "undefined" &&
-      !window.location.pathname.startsWith("/login") &&
-      !window.location.pathname.startsWith("/track")
+      !isPublicPath(window.location.pathname)
     ) {
       window.location.href = "/login";
     }

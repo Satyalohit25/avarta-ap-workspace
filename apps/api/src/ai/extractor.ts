@@ -55,8 +55,8 @@ export interface ExtractedInvoiceData {
   };
   purchaseOrderNumber?: string;
   lines: ExtractedLineItem[];
-  subtotal: number;
-  taxAmount: number;
+  subtotal: number | null;
+  taxAmount: number | null;
   totalAmount: number;
   fieldConfidence: Record<string, number>;
   fieldBoundingBoxes: Record<string, BoundingBox | null>;
@@ -364,7 +364,7 @@ async function extractWithOpenAI(
  * Reads actual file contents and accurately extracts text fields, dates, amounts,
  * line items, and pixel-accurate bounding box coordinates for invoice layouts.
  */
-function extractWithHeuristics(
+export function extractWithHeuristics(
   filePath: string,
   mimeType: string,
   originalName: string,
@@ -825,11 +825,16 @@ function extractWithHeuristics(
     detectedInvoiceNum = invMatch[1].toUpperCase();
   }
 
-  // Try extracting amount
+  // Try extracting amount (prefer explicit total amount patterns over generic amount)
   let detectedAmount = 0;
-  const amtMatch = combinedSearch.match(
-    /(?:total(?:\s+invoice\s+value)?|amount(?:\s+due)?|balance)[\s:A-Z$€£₹]*([\d,]+\.\d{2})/i,
+  const specificTotalMatch = combinedSearch.match(
+    /\b(?:total\s+amount|grand\s+total|invoice\s+total|total(?:\s+invoice\s+value)?|amount\s+due|balance\s+due)\b[\s:A-Z$€£₹]*([\d,]+\.\d{2})/i,
   );
+  const amtMatch =
+    specificTotalMatch ||
+    combinedSearch.match(
+      /\b(?:total|balance|amount)\b[\s:A-Z$€£₹]*([\d,]+\.\d{2})/i,
+    );
   if (amtMatch && amtMatch[1]) {
     const parsedAmt = parseFloat(amtMatch[1].replace(/,/g, ""));
     if (!isNaN(parsedAmt) && parsedAmt > 0) {
@@ -837,8 +842,34 @@ function extractWithHeuristics(
     }
   }
 
-  const subtotal = Math.round(detectedAmount * 0.85 * 100) / 100;
-  const taxAmount = Math.round((detectedAmount - subtotal) * 100) / 100;
+  // Try extracting subtotal from text
+  let detectedSubtotal: number | null = null;
+  const subtotalMatch = combinedSearch.match(
+    /(?:subtotal|sub-total|taxable\s+amount|taxable\s+value)[\s:A-Z$€£₹]*([\d,]+\.\d{2})/i,
+  );
+  if (subtotalMatch && subtotalMatch[1]) {
+    const parsedSub = parseFloat(subtotalMatch[1].replace(/,/g, ""));
+    if (!isNaN(parsedSub) && parsedSub >= 0) {
+      detectedSubtotal = parsedSub;
+    }
+  }
+
+  // Try extracting tax from text
+  let detectedTax: number | null = null;
+  const taxMatch = combinedSearch.match(
+    /(?:tax(?:\s+amount)?|gst|vat|statutory\s+tax)[\s:A-Z$€£₹]*([\d,]+\.\d{2})/i,
+  );
+  if (taxMatch && taxMatch[1]) {
+    const parsedTax = parseFloat(taxMatch[1].replace(/,/g, ""));
+    if (!isNaN(parsedTax) && parsedTax >= 0) {
+      detectedTax = parsedTax;
+    }
+  }
+
+  // T-107: Never fabricate subtotal or tax with 85% fallback!
+  // Missing subtotal or tax must be stored as null.
+  const subtotal = detectedSubtotal;
+  const taxAmount = detectedTax;
 
   const hasInvoiceNum = Boolean(detectedInvoiceNum);
   const hasAmount = detectedAmount > 0;
@@ -871,9 +902,9 @@ function extractWithHeuristics(
             description:
               "Commercial Supply Items & Services (Verified Extracted)",
             quantity: 1,
-            unitPrice: subtotal,
-            lineAmount: subtotal,
-            taxRate: 15,
+            unitPrice: subtotal ?? detectedAmount,
+            lineAmount: subtotal ?? detectedAmount,
+            taxRate: subtotal && taxAmount ? Math.round((taxAmount / subtotal) * 100) : undefined,
           },
         ]
       : [],

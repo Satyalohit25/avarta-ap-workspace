@@ -144,7 +144,7 @@ export async function findInvoiceByPublicTrackingHash(hash: string) {
             scheduledDate: true,
             processedAt: true,
             utrNumber: true,
-            clearingDate: true,
+            settlementDate: true,
             clearingDocumentNumber: true,
           },
         },

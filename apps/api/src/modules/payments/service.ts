@@ -39,7 +39,7 @@ export async function listPayments(params: {
       status: p.status,
       method: p.paymentMethod,
       utrNumber: (p as unknown as { utrNumber?: string | null }).utrNumber ?? null,
-      clearingDate: (p as unknown as { clearingDate?: Date | null }).clearingDate ?? null,
+      settlementDate: (p as unknown as { settlementDate?: Date | null }).settlementDate ?? null,
       clearingDocumentNumber: (p as unknown as { clearingDocumentNumber?: string | null }).clearingDocumentNumber ?? null,
     })),
     meta: paginationMeta(page, pageSize, total),
@@ -47,15 +47,15 @@ export async function listPayments(params: {
 }
 
 // Doc 14 §14.18 — creates a payment record in AWAITING_SCHEDULE, moved to
-// SCHEDULED once a date is confirmed. Simplified here into one call.
+// SCHEDULED once a date is confirmed.
+// If an active payment already exists (AWAITING_SCHEDULE, SCHEDULED, or PROCESSING),
+// updating the schedule date is allowed, while a duplicate create is prevented (returning 409).
 export async function schedulePayment(organizationId: string, input: {
   invoiceId: string;
   amount: string | number;
   scheduledDate: string;
   paymentMethod?: string;
 }) {
-  // Serialize scheduling per invoice and return any existing active payment
-  // instead of creating a duplicate on double-submit / retry.
   return prisma.$transaction(async (tx) => {
     const lockedRows = await tx.$queryRaw<Array<{ id: string }>>`
       SELECT "id" FROM "Invoice"
@@ -81,8 +81,32 @@ export async function schedulePayment(organizationId: string, input: {
         status: { in: ["AWAITING_SCHEDULE", "SCHEDULED", "PROCESSING"] },
       },
     });
+
     if (existingPayment) {
-      return existingPayment;
+      // If payment is already in SCHEDULED or AWAITING_SCHEDULE, update the scheduledDate
+      if (existingPayment.status === "SCHEDULED" || existingPayment.status === "AWAITING_SCHEDULE") {
+        return tx.payment.update({
+          where: { id_organizationId: { id: existingPayment.id, organizationId } },
+          data: {
+            scheduledDate: new Date(input.scheduledDate),
+            paymentMethod: input.paymentMethod ?? existingPayment.paymentMethod,
+            status: "SCHEDULED",
+          },
+        });
+      }
+      throw ApiError.conflict("An active payment already exists for this invoice.");
+    }
+
+    // Check if there is already a PAID payment
+    const paidPayment = await tx.payment.findFirst({
+      where: {
+        organizationId,
+        invoiceId: input.invoiceId,
+        status: "PAID",
+      },
+    });
+    if (paidPayment) {
+      throw ApiError.conflict("Invoice has already been paid.");
     }
 
     return tx.payment.create({
@@ -113,7 +137,7 @@ export async function executePayment(
   organizationId: string,
   paymentId: string,
   userId?: string,
-  details?: { utrNumber?: string; clearingDocumentNumber?: string }
+  details?: { utrNumber?: string; settlementDate?: string | Date; clearingDocumentNumber?: string }
 ) {
   // Claim the payment under a row lock before touching the gateway. Without
   // this, two concurrent requests can both read SCHEDULED and both pay out.
@@ -136,7 +160,8 @@ export async function executePayment(
     if (current.status === "PAID") {
       throw ApiError.conflict("Payment has already been executed and is marked as PAID.");
     }
-    if (current.status !== "SCHEDULED" && current.status !== "AWAITING_SCHEDULE") {
+    // Allow retrying FAILED payments alongside SCHEDULED and AWAITING_SCHEDULE
+    if (current.status !== "SCHEDULED" && current.status !== "AWAITING_SCHEDULE" && current.status !== "FAILED") {
       throw ApiError.conflict(`Payment cannot be executed from status "${current.status}"`);
     }
 
@@ -210,12 +235,12 @@ export async function executePayment(
 
   if (!payoutResult.success) {
     await applyTransition({ invoiceId: payment.invoiceId, organizationId, event: "PAYMENT_FAILURE", triggeredBy: userId });
-    // Return the row to SCHEDULED so it stays retry-eligible, matching the
-    // engine's PROCESSING_PAYMENT -> SCHEDULED failure transition.
+    // Keep row in FAILED status with failureReason so it is distinguishable,
+    // and can be retried either directly or via retryPayment.
     await prisma.payment.update({
       where: { id_organizationId: { id: paymentId, organizationId } },
       data: {
-        status: "SCHEDULED",
+        status: "FAILED",
         failureReason: payoutResult.errorMessage || "Gateway rejected transaction",
       },
     });
@@ -231,7 +256,7 @@ export async function executePayment(
     );
   }
   const finalClearingDoc = details?.clearingDocumentNumber?.trim() || payoutResult.clearingDocumentNumber?.trim() || null;
-  const clearingDate = payoutResult.executedAt || new Date();
+  const settlementDate = details?.settlementDate ? new Date(details.settlementDate) : (payoutResult.executedAt || new Date());
 
   return prisma.$transaction(async (tx) => {
     // Payment confirmed by Gateway Adapter / recorded UTR — execute state advance atomically in this transaction (F5)
@@ -240,6 +265,8 @@ export async function executePayment(
       organizationId,
       event: "PAYMENT_SUCCESS",
       triggeredBy: userId,
+      utrNumber: finalUtr,
+      settlementDate,
       tx,
     });
 
@@ -253,7 +280,7 @@ export async function executePayment(
       },
       data: {
         erpClearingNumber: finalClearingDoc,
-        fiscalYear: calculateIndianFiscalYear(clearingDate),
+        fiscalYear: calculateIndianFiscalYear(settlementDate),
       },
     });
 
@@ -266,12 +293,53 @@ export async function executePayment(
       },
       data: {
         status: "PAID",
-        processedAt: clearingDate,
+        processedAt: settlementDate,
         utrNumber: finalUtr,
-        clearingDate,
+        settlementDate,
         clearingDocumentNumber: finalClearingDoc,
       },
     });
+  });
+}
+
+// Allows retrying a FAILED payment by resetting it to SCHEDULED with an audit log entry
+export async function retryPayment(
+  organizationId: string,
+  paymentId: string,
+  userId?: string
+) {
+  return prisma.$transaction(async (tx) => {
+    const payment = await tx.payment.findFirst({
+      where: { id: paymentId, organizationId },
+    });
+    if (!payment) {
+      throw ApiError.notFound("Payment not found");
+    }
+    if (payment.status !== "FAILED") {
+      throw ApiError.badRequest(`Only FAILED payments can be retried. Current status is ${payment.status}.`);
+    }
+
+    const updated = await tx.payment.update({
+      where: { id_organizationId: { id: paymentId, organizationId } },
+      data: {
+        status: "SCHEDULED",
+        failureReason: null,
+      },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        organizationId,
+        userId: userId ?? null,
+        action: "PAYMENT_RETRY_SCHEDULED",
+        entityType: "payment",
+        entityId: paymentId,
+        beforeData: { status: "FAILED", failureReason: payment.failureReason },
+        afterData: { status: "SCHEDULED" },
+      },
+    });
+
+    return updated;
   });
 }
 

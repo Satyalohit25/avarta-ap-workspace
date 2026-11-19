@@ -15,9 +15,9 @@ function getMasterKey(): Buffer {
 
 /**
  * Encrypts a sensitive string (API key, connection URL, secret) using AES-256-GCM.
- * Output format: <iv_hex>:<authTag_hex>:<ciphertext_hex>
+ * Output format: <keyId>:<iv_hex>:<authTag_hex>:<ciphertext_hex> (default keyId: "v1")
  */
-export function encryptSecret(plainText: string): string {
+export function encryptSecret(plainText: string, keyId: string = "v1"): string {
   if (!plainText) return "";
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGORITHM, getMasterKey(), iv);
@@ -26,21 +26,35 @@ export function encryptSecret(plainText: string): string {
   encrypted += cipher.final("hex");
   const authTag = cipher.getAuthTag();
 
-  return `${iv.toString("hex")}:${authTag.toString("hex")}:${encrypted}`;
+  return `${keyId}:${iv.toString("hex")}:${authTag.toString("hex")}:${encrypted}`;
 }
 
 /**
  * Decrypts an AES-256-GCM encrypted string.
+ * Supports both modern versioned envelopes (<keyId>:<iv>:<tag>:<ciphertext>)
+ * and legacy unversioned payloads (<iv>:<tag>:<ciphertext>).
  * Throws an error if authentication tag verification fails (tampering/bad key).
  */
 export function decryptSecret(cipherPayload: string): string {
   if (!cipherPayload) return "";
   const parts = cipherPayload.split(":");
-  if (parts.length !== 3) {
-    throw new Error("Invalid encrypted payload format. Expected iv:authTag:ciphertext.");
+  let ivHex: string;
+  let authTagHex: string;
+  let encryptedHex: string;
+
+  if (parts.length === 4) {
+    // Versioned envelope: [keyId, iv, authTag, ciphertext]
+    const [_keyId, iv, authTag, ciphertext] = parts;
+    ivHex = iv;
+    authTagHex = authTag;
+    encryptedHex = ciphertext;
+  } else if (parts.length === 3) {
+    // Legacy unversioned envelope: [iv, authTag, ciphertext]
+    [ivHex, authTagHex, encryptedHex] = parts;
+  } else {
+    throw new Error("Invalid encrypted payload format. Expected [keyId:]iv:authTag:ciphertext.");
   }
 
-  const [ivHex, authTagHex, encryptedHex] = parts;
   const iv = Buffer.from(ivHex, "hex");
   const authTag = Buffer.from(authTagHex, "hex");
 
@@ -59,6 +73,14 @@ export function decryptSecret(cipherPayload: string): string {
   decrypted += decipher.final("utf8");
 
   return decrypted;
+}
+
+/**
+ * Re-encrypts a payload with the latest key ID (e.g. for key rotation procedures).
+ */
+export function reEncryptSecret(cipherPayload: string, newKeyId: string = "v1"): string {
+  const plainText = decryptSecret(cipherPayload);
+  return encryptSecret(plainText, newKeyId);
 }
 
 /**
@@ -92,8 +114,7 @@ export function hashTrackingToken(token: string): string {
  */
 export function encryptTrackingToken(plainToken: string, keyId: string = "v1"): string {
   if (!plainToken) return "";
-  const encrypted = encryptSecret(plainToken);
-  return `${keyId}:${encrypted}`;
+  return encryptSecret(plainToken, keyId);
 }
 
 /**
@@ -102,11 +123,6 @@ export function encryptTrackingToken(plainToken: string, keyId: string = "v1"): 
  */
 export function decryptTrackingToken(payload: string): string {
   if (!payload) return "";
-  const parts = payload.split(":");
-  if (parts.length === 4) {
-    const [_keyId, iv, authTag, ciphertext] = parts;
-    return decryptSecret(`${iv}:${authTag}:${ciphertext}`);
-  }
   return decryptSecret(payload);
 }
 

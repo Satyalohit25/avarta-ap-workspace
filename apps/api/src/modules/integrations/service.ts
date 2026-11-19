@@ -349,16 +349,16 @@ export class IntegrationsService {
     const adapter = getErpAdapter(provider);
     const testResult = await adapter.testConnection(config);
 
-    if (save) {
+    if (testResult.success && save) {
       const encrypted = encryptSecret(JSON.stringify(config));
       await IntegrationRepository.upsert({
         organizationId,
         type: "ERP",
         provider: provider.toUpperCase(),
         encryptedConfig: encrypted,
-        status: testResult.success ? "CONNECTED" : "ERROR",
+        status: "CONNECTED",
         lastTestedAt: new Date(),
-        errorMessage: testResult.success ? null : testResult.message,
+        errorMessage: null,
         settings: { config },
       });
     }

@@ -215,13 +215,15 @@ export async function createInvoice(input: CreateInvoiceInput) {
     ? extracted.totalAmount
     : input.totalAmount;
 
-  const subtotalAmount = extracted?.subtotal != null
-    ? extracted.subtotal
-    : (input.subtotalAmount ?? Number(totalAmount) * 0.85);
+  // T-107: Stop fabricating subtotal and tax with 85% fallback!
+  // Missing subtotal or tax must be stored as null, requiring explicit human entry.
+  const subtotalAmount = input.subtotalAmount !== undefined && input.subtotalAmount !== null
+    ? input.subtotalAmount
+    : (extracted?.subtotal != null ? extracted.subtotal : null);
 
-  const taxAmount = extracted?.taxAmount != null
-    ? extracted.taxAmount
-    : (input.taxAmount ?? Math.max(0, Number(totalAmount) - Number(subtotalAmount)));
+  const taxAmount = input.taxAmount !== undefined && input.taxAmount !== null
+    ? input.taxAmount
+    : (extracted?.taxAmount != null ? extracted.taxAmount : null);
 
   const invoiceDate = extracted?.invoiceDate
     ? new Date(extracted.invoiceDate)
@@ -578,7 +580,7 @@ export async function processInvoice(organizationId: string, invoiceId: string, 
   return getInvoice(organizationId, invoiceId);
 }
 
-interface ValidationFailure {
+export interface ValidationFailure {
   ruleCode: string;
   ruleName: string;
   message: string;
@@ -586,7 +588,7 @@ interface ValidationFailure {
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 }
 
-async function runValidations(
+export async function runValidations(
   organizationId: string,
   invoice: Record<string, unknown> & {
     id: string;
@@ -659,20 +661,33 @@ async function runValidations(
     }
   }
 
-  // Statutory Tax Arithmetic Verification (Step 10)
-  const subtotal = Number(invoice.subtotalAmount || 0);
-  const tax = Number(invoice.taxAmount || 0);
+  // Statutory Tax Arithmetic Verification (Step 10 / T-107)
+  const rawSubtotal = invoice.subtotalAmount;
+  const rawTax = invoice.taxAmount;
   const total = Number(invoice.totalAmount || 0);
-  if (subtotal > 0 && total > 0) {
-    const taxCheck = validateTaxArithmetic(subtotal, tax, total);
-    if (!taxCheck.isValid) {
-      failures.push({
-        ruleCode: "TAX_CALCULATION",
-        ruleName: "Tax Arithmetic Balance",
-        message: `Subtotal (${subtotal}) + Tax (${tax}) does not equal Total (${total}). Discrepancy: ${taxCheck.difference.toFixed(2)}.`,
-        exceptionType: "TAX_DIFFERENCE",
-        severity: "HIGH",
-      });
+
+  if (rawSubtotal === null || rawSubtotal === undefined || rawTax === null || rawTax === undefined) {
+    failures.push({
+      ruleCode: "TAX_CALCULATION",
+      ruleName: "Tax Data Completeness",
+      message: "Invoice is missing statutory subtotal or tax amount. Subtotal and tax must be explicitly entered or verified before financial approval.",
+      exceptionType: "MISSING_TAX_DATA",
+      severity: "HIGH",
+    });
+  } else {
+    const subtotal = Number(rawSubtotal);
+    const tax = Number(rawTax);
+    if (subtotal > 0 && total > 0) {
+      const taxCheck = validateTaxArithmetic(subtotal, tax, total);
+      if (!taxCheck.isValid) {
+        failures.push({
+          ruleCode: "TAX_CALCULATION",
+          ruleName: "Tax Arithmetic Balance",
+          message: `Subtotal (${subtotal}) + Tax (${tax}) does not equal Total (${total}). Discrepancy: ${taxCheck.difference.toFixed(2)}.`,
+          exceptionType: "TAX_DIFFERENCE",
+          severity: "HIGH",
+        });
+      }
     }
   }
 

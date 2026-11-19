@@ -7,6 +7,7 @@ import {
   executeHandler,
   exportBankFileHandler,
   listHandler,
+  retryHandler,
   scheduleHandler,
 } from "./controller";
 
@@ -36,5 +37,11 @@ paymentRoutes.post(
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER"),
   idempotent,
   executeHandler
+);
+paymentRoutes.post(
+  "/:paymentId/retry",
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER"),
+  idempotent,
+  retryHandler
 );
 

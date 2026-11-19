@@ -41,20 +41,31 @@ export function validateGstinChecksum(gstin: string): boolean {
 
 export interface TaxValidationResult {
   isValid: boolean;
-  ruleCode: "INVALID_GST" | "TAX_DIFFERENCE";
+  ruleCode: "INVALID_GST" | "TAX_DIFFERENCE" | "MISSING_TAX_DATA";
   message: string;
 }
 
 export function validateTaxArithmetic(
-  subtotal: number,
-  tax: number,
+  subtotal: number | null | undefined,
+  tax: number | null | undefined,
   total: number,
   tolerance = 1.0 // allow up to 1 currency unit rounding difference
-): { isValid: boolean; difference: number } {
-  const expectedTotal = subtotal + tax;
+): { isValid: boolean; difference: number; missingData?: boolean } {
+  if (subtotal == null || tax == null || isNaN(Number(subtotal)) || isNaN(Number(tax))) {
+    return {
+      isValid: false,
+      difference: Math.abs(total),
+      missingData: true,
+    };
+  }
+
+  const numSubtotal = Number(subtotal);
+  const numTax = Number(tax);
+  const expectedTotal = numSubtotal + numTax;
   const difference = Math.abs(expectedTotal - total);
   return {
     isValid: difference <= tolerance,
     difference,
+    missingData: false,
   };
 }

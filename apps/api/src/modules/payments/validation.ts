@@ -18,5 +18,11 @@ export const schedulePaymentSchema = z.object({
 
 export const executePaymentSchema = z.object({
   utrNumber: z.string().max(100).optional(),
+  settlementDate: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)), {
+      message: "Settlement date must be a valid date string",
+    })
+    .optional(),
   clearingDocumentNumber: z.string().max(100).optional(),
 });
