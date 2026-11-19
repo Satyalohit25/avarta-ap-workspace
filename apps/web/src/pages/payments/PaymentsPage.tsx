@@ -25,12 +25,16 @@ import { useToast } from "../../components/ui/ToastContext";
 import { formatCurrency, formatDate } from "../../lib/formatters";
 import { Wallet, CheckCircle2, ArrowRight, Search, X, Download } from "lucide-react";
 import { DisbursementModal } from "./components/DisbursementModal";
+import { useAuth } from "../../app/AuthContext";
+import { canExecutePayments } from "../../lib/permissions";
 
 export default function PaymentsPage() {
   useDocumentTitle("Payments & Disbursements", "Schedule, batch, and execute vendor disbursements and payment orders.");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const canDisburse = canExecutePayments(user?.role);
   const [rows, setRows] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -128,18 +132,27 @@ export default function PaymentsPage() {
     );
   }
 
-  const scheduledCount = rows.filter((r) => r.status === "SCHEDULED" || r.status === "AWAITING_SCHEDULE").length;
+  const awaitingScheduleCount = rows.filter((r) => r.status === "AWAITING_SCHEDULE").length;
+  const scheduledCount = rows.filter((r) => r.status === "SCHEDULED").length;
+  const processingCount = rows.filter((r) => r.status === "PROCESSING").length;
   const paidCount = rows.filter((r) => r.status === "PAID").length;
   const failedCount = rows.filter((r) => r.status === "FAILED").length;
+  const onHoldCount = rows.filter((r) => r.status === "ON_HOLD").length;
 
   const filteredRows = useMemo(() => {
     let list = rows;
-    if (statusFilter === "SCHEDULED") {
-      list = list.filter((r) => r.status === "SCHEDULED" || r.status === "AWAITING_SCHEDULE");
+    if (statusFilter === "AWAITING_SCHEDULE") {
+      list = list.filter((r) => r.status === "AWAITING_SCHEDULE");
+    } else if (statusFilter === "SCHEDULED") {
+      list = list.filter((r) => r.status === "SCHEDULED");
+    } else if (statusFilter === "PROCESSING") {
+      list = list.filter((r) => r.status === "PROCESSING");
     } else if (statusFilter === "PAID") {
       list = list.filter((r) => r.status === "PAID");
     } else if (statusFilter === "FAILED") {
       list = list.filter((r) => r.status === "FAILED");
+    } else if (statusFilter === "ON_HOLD") {
+      list = list.filter((r) => r.status === "ON_HOLD");
     }
 
     if (searchQuery.trim()) {
@@ -422,9 +435,12 @@ export default function PaymentsPage() {
         <Tabs
           tabs={[
             { id: "ALL", label: `All Payments (${rows.length})`, content: null },
+            { id: "AWAITING_SCHEDULE", label: `Awaiting Schedule (${awaitingScheduleCount})`, content: null },
             { id: "SCHEDULED", label: `Scheduled (${scheduledCount})`, content: null },
+            { id: "PROCESSING", label: `Processing (${processingCount})`, content: null },
             { id: "PAID", label: `Paid / Cleared (${paidCount})`, content: null },
             { id: "FAILED", label: `Failed (${failedCount})`, content: null },
+            { id: "ON_HOLD", label: `On Hold (${onHoldCount})`, content: null },
           ]}
           defaultTabId={statusFilter}
           variant="pill"
@@ -589,7 +605,8 @@ export default function PaymentsPage() {
                                 batchSessionKey: `sess-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
                               })
                             }
-                            disabled={batchExecuting}
+                            disabled={batchExecuting || !canDisburse}
+                            title={!canDisburse ? "Requires Administrator or Finance Manager role" : undefined}
                             className="h-7 text-caption shadow-xs"
                           >
                             Execute
@@ -680,7 +697,8 @@ export default function PaymentsPage() {
               size="sm"
               variant="outline"
               onClick={() => handleExportBankFile("CSV")}
-              disabled={exportingFormat !== null}
+              disabled={exportingFormat !== null || !canDisburse}
+              title={!canDisburse ? "Requires Administrator or Finance Manager role" : undefined}
               isLoading={exportingFormat === "CSV"}
               className="border-neutral-600 bg-neutral-800 hover:bg-neutral-700 text-white gap-1.5"
             >
@@ -689,6 +707,8 @@ export default function PaymentsPage() {
             </Button>
             <Button
               size="sm"
+              disabled={!canDisburse}
+              title={!canDisburse ? "Requires Administrator or Finance Manager role" : undefined}
               onClick={() =>
                 setDisbursementModalState({
                   isOpen: true,

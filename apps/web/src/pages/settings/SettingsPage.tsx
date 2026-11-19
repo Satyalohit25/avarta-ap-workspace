@@ -19,6 +19,11 @@ import { PageHeader } from "../../components/layout/PageHeader";
 import { useToast } from "../../components/ui/ToastContext";
 import { useAuth } from "../../app/AuthContext";
 import {
+  isAdmin as checkIsAdmin,
+  canManageBilling as checkCanManageBilling,
+  canViewAudit as checkCanViewAudit,
+} from "../../lib/permissions";
+import {
   ShieldCheck,
   ArrowRight,
   Building2,
@@ -165,9 +170,9 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const role = user?.role?.toUpperCase();
-  const isAdmin = role === "ADMINISTRATOR";
-  const canManageBilling = isAdmin || role === "FINANCE_MANAGER";
-  const canViewAudit = isAdmin || role === "FINANCE_MANAGER";
+  const isAdmin = checkIsAdmin(role);
+  const canManageBilling = checkCanManageBilling(role);
+  const canViewAudit = checkCanViewAudit(role);
 
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");

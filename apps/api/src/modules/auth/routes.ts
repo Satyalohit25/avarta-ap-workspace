@@ -33,7 +33,12 @@ authRoutes.post("/login", authRateLimiter, loginHandler);
 authRoutes.post("/refresh", refreshRateLimiter, refreshHandler);
 authRoutes.post("/logout", requireAuth, logoutHandler);
 authRoutes.get("/me", requireAuth, meHandler);
-authRoutes.patch("/me", requireAuth, updateMeHandler);
+authRoutes.patch(
+  "/me",
+  requireAuth,
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE", "APPROVER"),
+  updateMeHandler
+);
 
 // Team management endpoints
 authRoutes.get("/team", requireAuth, listTeamHandler);
@@ -59,10 +64,30 @@ authRoutes.post("/forgot-password", authRateLimiter, forgotPasswordHandler);
 authRoutes.post("/reset-password", authRateLimiter, resetPasswordHandler);
 
 // T-105: Multi-Factor Authentication (MFA / TOTP)
-authRoutes.post("/mfa/enroll", requireAuth, mfaEnrollHandler);
-authRoutes.post("/mfa/enable", requireAuth, mfaEnableHandler);
-authRoutes.post("/mfa/disable", requireAuth, mfaDisableHandler);
-authRoutes.post("/mfa/recovery-codes", requireAuth, mfaRegenerateRecoveryCodesHandler);
+authRoutes.post(
+  "/mfa/enroll",
+  requireAuth,
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE", "APPROVER"),
+  mfaEnrollHandler
+);
+authRoutes.post(
+  "/mfa/enable",
+  requireAuth,
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE", "APPROVER"),
+  mfaEnableHandler
+);
+authRoutes.post(
+  "/mfa/disable",
+  requireAuth,
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE", "APPROVER"),
+  mfaDisableHandler
+);
+authRoutes.post(
+  "/mfa/recovery-codes",
+  requireAuth,
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE", "APPROVER"),
+  mfaRegenerateRecoveryCodesHandler
+);
 authRoutes.post("/mfa/challenge", authRateLimiter, mfaChallengeHandler);
 
 

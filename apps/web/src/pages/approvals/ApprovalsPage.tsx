@@ -2,6 +2,7 @@ import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../app/AuthContext";
+import { canApprove as canApproveRole } from "../../lib/permissions";
 import {
   listApprovals,
   approveApproval,
@@ -105,10 +106,7 @@ export default function ApprovalsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const targetInvoiceId = searchParams.get("invoiceId");
   const { user } = useAuth();
-  const canApprove =
-    user?.role === "ADMINISTRATOR" ||
-    user?.role === "FINANCE_MANAGER" ||
-    user?.role === "APPROVER";
+  const canApprove = canApproveRole(user?.role);
 
   const [rows, setRows] = useState<ApprovalRow[]>([]);
   const [loading, setLoading] = useState(true);

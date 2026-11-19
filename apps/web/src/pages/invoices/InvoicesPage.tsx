@@ -196,11 +196,14 @@ export default function InvoicesPage() {
   const counts = useMemo(() => {
     return {
       all: allInvoices.length,
-      processing: allInvoices.filter((i) => i.status === "PROCESSING" || i.status === "RECEIVED").length,
+      received: allInvoices.filter((i) => i.status === "RECEIVED").length,
+      processing: allInvoices.filter((i) => i.status === "PROCESSING").length,
       exception: allInvoices.filter((i) => i.status === "EXCEPTION" || i.openExceptionCount > 0).length,
       pending_approval: allInvoices.filter((i) => i.status === "PENDING_APPROVAL" || i.status === "WAITING_APPROVAL").length,
-      scheduled: allInvoices.filter((i) => i.status === "SCHEDULED" || i.status === "APPROVED").length,
-      paid: allInvoices.filter((i) => i.status === "PAID" || i.status === "SYNCED").length,
+      scheduled: allInvoices.filter((i) => i.status === "SCHEDULED").length,
+      paid: allInvoices.filter((i) => i.status === "PAID").length,
+      synced: allInvoices.filter((i) => i.status === "SYNCED").length,
+      archived: allInvoices.filter((i) => i.status === "ARCHIVED").length,
     };
   }, [allInvoices]);
 
@@ -495,11 +498,14 @@ export default function InvoicesPage() {
   const tabs = useMemo(
     () => [
       { id: "", label: `All Invoices (${counts.all || allInvoices.length})`, content: null },
+      { id: "RECEIVED", label: `Received (${counts.received})`, content: null },
       { id: "PROCESSING", label: `Processing (${counts.processing})`, content: null },
       { id: "EXCEPTION", label: `Exceptions (${counts.exception})`, content: null },
       { id: "PENDING_APPROVAL", label: `Waiting Approval (${counts.pending_approval})`, content: null },
       { id: "SCHEDULED", label: `Scheduled (${counts.scheduled})`, content: null },
       { id: "PAID", label: `Paid (${counts.paid})`, content: null },
+      { id: "SYNCED", label: `Synced (${counts.synced})`, content: null },
+      { id: "ARCHIVED", label: `Archived (${counts.archived})`, content: null },
     ],
     [counts, allInvoices.length],
   );

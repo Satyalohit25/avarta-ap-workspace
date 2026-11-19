@@ -1,5 +1,6 @@
 import { ApiError } from "../../lib/errors";
 import { parsePagination, paginationMeta } from "../../lib/pagination";
+import { isPoClosedForReceiving } from "../../workflow/status-vocabulary";
 import * as repo from "./repository";
 
 export async function listPurchaseOrders(params: {
@@ -31,7 +32,7 @@ export async function listPurchaseOrders(params: {
       utilizedAmount: po.utilizedAmount.toString(),
       remainingAmount: po.remainingAmount.toString(),
       status: po.status,
-      closedForReceiving: (po as unknown as { closedForReceiving?: boolean }).closedForReceiving ?? false,
+      closedForReceiving: isPoClosedForReceiving(po),
       matchingStatus: po.matchingStatus,
       issueDate: po.issueDate,
       createdAt: po.createdAt,
@@ -56,7 +57,7 @@ export async function getPurchaseOrder(organizationId: string, id: string) {
     utilizedAmount: po.utilizedAmount.toString(),
     remainingAmount: po.remainingAmount.toString(),
     status: po.status,
-    closedForReceiving: (po as unknown as { closedForReceiving?: boolean }).closedForReceiving ?? false,
+    closedForReceiving: isPoClosedForReceiving(po),
     matchingStatus: po.matchingStatus,
     issueDate: po.issueDate,
     createdAt: po.createdAt,

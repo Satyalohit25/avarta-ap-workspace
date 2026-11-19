@@ -16,8 +16,16 @@ export const notificationRoutes = Router();
 notificationRoutes.use(requireAuth);
 
 notificationRoutes.get("/", listHandler);
-notificationRoutes.post("/read-all", markAllReadHandler);
-notificationRoutes.post("/:notificationId/read", markReadHandler);
+notificationRoutes.post(
+  "/read-all",
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE", "APPROVER"),
+  markAllReadHandler
+);
+notificationRoutes.post(
+  "/:notificationId/read",
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE", "APPROVER"),
+  markReadHandler
+);
 
 notificationRoutes.get("/preferences", getPreferencesHandler);
 notificationRoutes.patch(

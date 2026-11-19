@@ -100,6 +100,18 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
 
   try {
     req.auth = await verifyAccessTokenAsync(token);
+
+    // T-403 Invariant: READ_ONLY role can never call a mutating endpoint
+    if (req.auth.role === "READ_ONLY") {
+      const method = req.method.toUpperCase();
+      if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+        const rawPath = (req.baseUrl || "") + (req.path || "");
+        if (!rawPath.endsWith("/auth/logout") && !rawPath.endsWith("/logout")) {
+          return next(ApiError.forbidden("READ_ONLY role cannot execute mutating operations."));
+        }
+      }
+    }
+
     next();
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Invalid or expired token";

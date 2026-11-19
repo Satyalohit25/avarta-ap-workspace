@@ -1,5 +1,6 @@
 import { prisma } from "../config/database";
 import { applyTransition } from "./engine";
+import { isPoClosedForReceiving } from "./status-vocabulary";
 
 export interface GrnLineContext {
   lineNumber: number;
@@ -102,7 +103,7 @@ export function evaluateThreeWayMatch(
   const maxAllowableRemaining = po.remainingAmount * (1 + amountTolerance / 100);
   const maxAllowableTotal = po.totalAuthorizedAmount * (1 + amountTolerance / 100);
 
-  if (po.closedForReceiving || normalizedStatus === "CLOSED_FOR_RECEIVING") {
+  if (isPoClosedForReceiving(po)) {
     if (invoicedAmount > po.remainingAmount) {
       return {
         passed: false,
@@ -297,7 +298,7 @@ export async function runThreeWayMatching(params: {
   const poContext: PurchaseOrderMatchContext = {
     poNumber: po.poNumber,
     status: po.status,
-    closedForReceiving: po.closedForReceiving,
+    closedForReceiving: isPoClosedForReceiving(po),
     totalAuthorizedAmount: Number(po.totalAmount),
     remainingAmount: Number(po.remainingAmount),
     goodsReceiptLines: grnLines,
