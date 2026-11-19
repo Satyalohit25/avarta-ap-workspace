@@ -39,6 +39,15 @@ export default function OverviewPage() {
 
   useEffect(() => {
     fetchDashboard();
+    const handleMutation = () => {
+      fetchDashboard(true);
+    };
+    window.addEventListener("avarta:mutation", handleMutation);
+    window.addEventListener("avarta-update-counts", handleMutation);
+    return () => {
+      window.removeEventListener("avarta:mutation", handleMutation);
+      window.removeEventListener("avarta-update-counts", handleMutation);
+    };
   }, [fetchDashboard]);
 
   const timeFormatted = lastRefreshed.toLocaleString("en-IN", {

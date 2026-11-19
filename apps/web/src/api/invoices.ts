@@ -1,4 +1,5 @@
 import { apiRequest } from "./client";
+import { notifyMutation } from "../lib/events";
 
 export interface DocumentItem {
   id: string;
@@ -121,7 +122,7 @@ export function getInvoice(id: string) {
   }>(`/invoices/${id}`);
 }
 
-export function createInvoice(input: {
+export async function createInvoice(input: {
   supplierId?: string;
   invoiceNumber?: string;
   invoiceDate?: string;
@@ -141,6 +142,7 @@ export function createInvoice(input: {
   }>;
   file?: File | null;
 }) {
+  let result: { data: InvoiceListItem };
   if (input.file) {
     const formData = new FormData();
     if (input.supplierId) formData.append("supplierId", input.supplierId);
@@ -157,30 +159,32 @@ export function createInvoice(input: {
     }
     formData.append("file", input.file);
 
-    return apiRequest<{ data: InvoiceListItem }>("/invoices", {
+    result = await apiRequest<{ data: InvoiceListItem }>("/invoices", {
       method: "POST",
       body: formData,
     });
+  } else {
+    result = await apiRequest<{ data: InvoiceListItem }>("/invoices", {
+      method: "POST",
+      body: {
+        supplierId: input.supplierId || undefined,
+        invoiceNumber: input.invoiceNumber,
+        invoiceDate: input.invoiceDate || undefined,
+        dueDate: input.dueDate || undefined,
+        currency: input.currency,
+        subtotalAmount: input.subtotalAmount,
+        taxAmount: input.taxAmount,
+        totalAmount: input.totalAmount,
+        purchaseOrderId: input.purchaseOrderId || undefined,
+        lines: input.lines,
+      },
+    });
   }
-
-  return apiRequest<{ data: InvoiceListItem }>("/invoices", {
-    method: "POST",
-    body: {
-      supplierId: input.supplierId || undefined,
-      invoiceNumber: input.invoiceNumber,
-      invoiceDate: input.invoiceDate || undefined,
-      dueDate: input.dueDate || undefined,
-      currency: input.currency,
-      subtotalAmount: input.subtotalAmount,
-      taxAmount: input.taxAmount,
-      totalAmount: input.totalAmount,
-      purchaseOrderId: input.purchaseOrderId || undefined,
-      lines: input.lines,
-    },
-  });
+  notifyMutation("invoices");
+  return result;
 }
 
-export function updateInvoice(
+export async function updateInvoice(
   id: string,
   input: {
     supplierId?: string;
@@ -202,20 +206,24 @@ export function updateInvoice(
     }>;
   }
 ) {
-  return apiRequest<{ data: InvoiceListItem }>(`/invoices/${id}`, {
+  const result = await apiRequest<{ data: InvoiceListItem }>(`/invoices/${id}`, {
     method: "PUT",
     body: input,
   });
+  notifyMutation("invoices");
+  return result;
 }
 
-export function processInvoice(id: string, idempotencyKey?: string) {
-  return apiRequest<{ data: InvoiceListItem }>(`/invoices/${id}/process`, {
+export async function processInvoice(id: string, idempotencyKey?: string) {
+  const result = await apiRequest<{ data: InvoiceListItem }>(`/invoices/${id}/process`, {
     method: "POST",
     headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
   });
+  notifyMutation("invoices");
+  return result;
 }
 
-export function transitionInvoice(
+export async function transitionInvoice(
   id: string,
   action: string,
   comment?: string,
@@ -228,7 +236,7 @@ export function transitionInvoice(
   }
 ) {
   const key = idempotencyKey || `idemp-trans-${id}-${action.toLowerCase()}-${Date.now()}`;
-  return apiRequest<{ data: InvoiceListItem }>(`/invoices/${id}/transitions`, {
+  const result = await apiRequest<{ data: InvoiceListItem }>(`/invoices/${id}/transitions`, {
     method: "POST",
     headers: { "Idempotency-Key": key },
     body: {
@@ -240,15 +248,19 @@ export function transitionInvoice(
       closePermanently: options?.closePermanently,
     },
   });
+  notifyMutation("invoices");
+  return result;
 }
 
-export function syncInvoiceToErp(id: string, targetErp: string, idempotencyKey?: string) {
+export async function syncInvoiceToErp(id: string, targetErp: string, idempotencyKey?: string) {
   const key = idempotencyKey || `erp-sync-${id}-${Date.now()}`;
-  return apiRequest<{ data: InvoiceListItem }>(`/invoices/${id}/erp-sync`, {
+  const result = await apiRequest<{ data: InvoiceListItem }>(`/invoices/${id}/erp-sync`, {
     method: "POST",
     headers: { "Idempotency-Key": key },
     body: { targetErp },
   });
+  notifyMutation("invoices");
+  return result;
 }
 
 export interface ExtractedDocumentData {
@@ -283,13 +295,15 @@ export function extractInvoiceDocument(file: File) {
   });
 }
 
-export function uploadInvoiceDocument(id: string, file: File) {
+export async function uploadInvoiceDocument(id: string, file: File) {
   const formData = new FormData();
   formData.append("file", file);
-  return apiRequest<{ data: DocumentItem; invoice?: InvoiceListItem }>(`/invoices/${id}/documents`, {
+  const result = await apiRequest<{ data: DocumentItem; invoice?: InvoiceListItem }>(`/invoices/${id}/documents`, {
     method: "POST",
     body: formData,
   });
+  notifyMutation("invoices");
+  return result;
 }
 
 export function getInvoiceTracking(id: string) {
@@ -314,11 +328,29 @@ export function regenerateInvoiceTracking(id: string) {
   });
 }
 
-export function resolveException(exceptionId: string, resolution: string) {
-  return apiRequest<{ data: unknown }>(`/exceptions/${exceptionId}/resolve`, {
+export async function resolveException(exceptionId: string, resolution: string) {
+  const result = await apiRequest<{ data: unknown }>(`/exceptions/${exceptionId}/resolve`, {
     method: "POST",
     body: { resolution },
   });
+  notifyMutation("exceptions");
+  return result;
+}
+
+export interface BulkApproveInvoicesResult {
+  processed: number;
+  succeeded: string[];
+  failed: Array<{ invoiceId: string; reason: string }>;
+}
+
+export async function bulkApproveInvoices(invoiceIds: string[], notes?: string, idempotencyKey?: string) {
+  const result = await apiRequest<{ data: BulkApproveInvoicesResult }>("/invoices/bulk-approve", {
+    method: "POST",
+    headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+    body: { invoiceIds, notes },
+  });
+  notifyMutation("invoices");
+  return result;
 }
 
 export function overrideInvoiceLine(

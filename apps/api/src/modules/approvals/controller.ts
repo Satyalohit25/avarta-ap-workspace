@@ -31,6 +31,25 @@ export async function approveHandler(req: Request, res: Response, next: NextFunc
   }
 }
 
+export async function bulkApproveHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.auth) throw ApiError.unauthorized();
+    const { bulkApproveSchema } = await import("../invoices/validation");
+    const { bulkApproveInvoices } = await import("../invoices/service");
+    const body = bulkApproveSchema.parse(req.body);
+    const result = await bulkApproveInvoices(
+      req.auth.organizationId,
+      body.invoiceIds,
+      req.auth.userId,
+      req.auth.role,
+      body.notes
+    );
+    res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function rejectHandler(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.auth) throw ApiError.unauthorized();

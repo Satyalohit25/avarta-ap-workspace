@@ -13,6 +13,7 @@ import {
   updateHandler,
   processHandler,
   transitionHandler,
+  bulkApproveHandler,
   erpSyncHandler,
   uploadDocumentHandler,
   extractDocumentHandler,
@@ -48,6 +49,14 @@ invoiceRoutes.post(
   upload.single("file"),
   createHandler
 );
+invoiceRoutes.post(
+  "/bulk-approve",
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "APPROVER"),
+  requireScope("invoices:write"),
+  requireIdempotencyKey,
+  bulkApproveHandler
+);
+
 invoiceRoutes.get("/:invoiceId", requireScope("invoices:read"), getHandler);
 invoiceRoutes.put(
   "/:invoiceId",

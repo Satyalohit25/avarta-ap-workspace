@@ -122,9 +122,11 @@ export function Sidebar({
     loadCounts();
     const handleUpdate = () => loadCounts();
     window.addEventListener("avarta-update-counts", handleUpdate);
+    window.addEventListener("avarta:mutation", handleUpdate);
     const interval = setInterval(loadCounts, 30_000);
     return () => {
       window.removeEventListener("avarta-update-counts", handleUpdate);
+      window.removeEventListener("avarta:mutation", handleUpdate);
       clearInterval(interval);
     };
   }, [loadCounts]);

@@ -3,7 +3,7 @@ import path from "path";
 import { NextFunction, Request, Response } from "express";
 import { prisma } from "../../config/database";
 import { ApiError } from "../../lib/errors";
-import { createInvoiceSchema, updateInvoiceSchema, listInvoicesQuerySchema, transitionSchema } from "./validation";
+import { createInvoiceSchema, updateInvoiceSchema, listInvoicesQuerySchema, transitionSchema, bulkApproveSchema } from "./validation";
 import * as invoiceService from "./service";
 import { generateInvoicePdfBuffer } from "./pdfGenerator";
 
@@ -192,6 +192,22 @@ export async function transitionHandler(req: Request, res: Response, next: NextF
       body.closePermanently
     );
     res.json({ data: invoice });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function bulkApproveHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const body = bulkApproveSchema.parse(req.body);
+    const result = await invoiceService.bulkApproveInvoices(
+      orgId(req),
+      body.invoiceIds,
+      req.auth?.userId,
+      req.auth?.role,
+      body.notes
+    );
+    res.json({ data: result });
   } catch (err) {
     next(err);
   }

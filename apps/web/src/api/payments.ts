@@ -1,4 +1,5 @@
 import { apiRequest } from "./client";
+import { notifyMutation } from "../lib/events";
 
 export interface PaymentRow {
   id: string;
@@ -19,35 +20,41 @@ export function listPayments() {
   return apiRequest<{ data: PaymentRow[] }>("/payments");
 }
 
-export function executePayment(
+export async function executePayment(
   paymentId: string,
   details?: { utrNumber?: string; settlementDate?: string; clearingDocumentNumber?: string },
   idempotencyKey?: string
 ) {
   const key = idempotencyKey || `pay-${paymentId}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  return apiRequest<{ data: PaymentRow }>(`/payments/${paymentId}/execute`, {
+  const result = await apiRequest<{ data: PaymentRow }>(`/payments/${paymentId}/execute`, {
     method: "POST",
     body: details,
     headers: { "Idempotency-Key": key },
   });
+  notifyMutation("payments");
+  return result;
 }
 
-export function retryPayment(paymentId: string, idempotencyKey?: string) {
+export async function retryPayment(paymentId: string, idempotencyKey?: string) {
   const key = idempotencyKey || `retry-pay-${paymentId}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  return apiRequest<{ data: PaymentRow }>(`/payments/${paymentId}/retry`, {
+  const result = await apiRequest<{ data: PaymentRow }>(`/payments/${paymentId}/retry`, {
     method: "POST",
     headers: { "Idempotency-Key": key },
   });
+  notifyMutation("payments");
+  return result;
 }
 
-export function runBatchPayments(
+export async function runBatchPayments(
   body?: { paymentIds?: string[]; cutoffDate?: string },
   idempotencyKey?: string
 ) {
   const key = idempotencyKey || `batch-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  return apiRequest<{ data: { totalProcessed: number; succeeded: number; failed: number } }>("/payments/batch/run", {
+  const result = await apiRequest<{ data: { totalProcessed: number; succeeded: number; failed: number } }>("/payments/batch/run", {
     method: "POST",
     body,
     headers: { "Idempotency-Key": key },
   });
+  notifyMutation("payments");
+  return result;
 }

@@ -87,3 +87,8 @@ export const transitionSchema = z
       });
     }
   });
+
+export const bulkApproveSchema = z.object({
+  invoiceIds: z.array(z.string().uuid()).min(1).max(100),
+  notes: z.string().optional(),
+});

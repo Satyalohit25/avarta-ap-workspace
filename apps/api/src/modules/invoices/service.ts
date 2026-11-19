@@ -842,6 +842,49 @@ export async function transitionInvoice(
   return getInvoice(organizationId, invoiceId);
 }
 
+export interface BulkApproveResult {
+  processed: number;
+  succeeded: string[];
+  failed: Array<{ invoiceId: string; reason: string }>;
+}
+
+/**
+ * Bulk approves a batch of invoices adhering to AGENTS.md Rule 6,
+ * Segregation of Duties (SoD), role approval thresholds, and blocking exceptions.
+ */
+export async function bulkApproveInvoices(
+  organizationId: string,
+  invoiceIds: string[],
+  userId?: string,
+  userRole?: string,
+  notes?: string
+): Promise<BulkApproveResult> {
+  const succeeded: string[] = [];
+  const failed: Array<{ invoiceId: string; reason: string }> = [];
+
+  for (const invoiceId of invoiceIds) {
+    try {
+      await executeInvoiceApproval({
+        organizationId,
+        invoiceId,
+        userId,
+        userRole,
+        notes: notes || "Approved via bulk approval action",
+      });
+      succeeded.push(invoiceId);
+    } catch (err: unknown) {
+      const reason = err instanceof Error ? err.message : "Approval validation failed";
+      failed.push({ invoiceId, reason });
+    }
+  }
+
+  return {
+    processed: invoiceIds.length,
+    succeeded,
+    failed,
+  };
+}
+
 export async function syncInvoiceToErp(
   organizationId: string,
   invoiceId: string,

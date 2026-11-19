@@ -16,7 +16,7 @@ import {
   TrendingUp,
   ShieldCheck,
 } from "lucide-react";
-import { InvoiceListItem, listInvoices, transitionInvoice } from "../../api/invoices";
+import { InvoiceListItem, listInvoices, transitionInvoice, bulkApproveInvoices } from "../../api/invoices";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SkeletonRows } from "../../components/Skeleton";
 import { EmptyState } from "../../components/EmptyState";
@@ -147,6 +147,13 @@ export default function InvoicesPage() {
 
   useEffect(() => {
     loadData();
+    const handleMutation = () => loadData();
+    window.addEventListener("avarta:mutation", handleMutation);
+    window.addEventListener("avarta-update-counts", handleMutation);
+    return () => {
+      window.removeEventListener("avarta:mutation", handleMutation);
+      window.removeEventListener("avarta-update-counts", handleMutation);
+    };
   }, [loadData]);
 
   function handleSort(field: SortField) {
@@ -384,6 +391,40 @@ export default function InvoicesPage() {
   }
 
   // Bulk Operations
+  async function handleBulkApprove() {
+    const selectedList = filteredAndSortedInvoices.filter((i) => selectedIds.has(i.id));
+    if (selectedList.length === 0) return;
+
+    setIsBulkOperating(true);
+    try {
+      const res = await bulkApproveInvoices(selectedList.map((i) => i.id));
+      const { processed, succeeded, failed } = res.data;
+
+      // Keep failed rows selected per T-308 acceptance criteria
+      setSelectedIds(new Set(failed.map((f) => f.invoiceId)));
+      loadData();
+
+      if (succeeded.length > 0) {
+        toast.success(
+          "Bulk Approval Completed",
+          `${succeeded.length} approved, ${failed.length} failed.${failed.length > 0 ? " Failed rows remain selected for review." : ""}`
+        );
+      } else {
+        toast.warning(
+          "Bulk Approval Incomplete",
+          `0 of ${processed} invoices approved. Reason: ${failed[0]?.reason ?? "Criteria not met"}`
+        );
+      }
+    } catch (err: unknown) {
+      toast.error(
+        "Bulk Approval Failed",
+        err instanceof Error ? err.message : "An error occurred during bulk approval."
+      );
+    } finally {
+      setIsBulkOperating(false);
+    }
+  }
+
   async function handleBulkSchedule() {
     const selectedList = filteredAndSortedInvoices.filter((i) => selectedIds.has(i.id));
     if (selectedList.length === 0) return;
@@ -701,6 +742,18 @@ export default function InvoicesPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleBulkApprove}
+              disabled={isBulkOperating}
+              isLoading={isBulkOperating}
+              className="gap-1.5 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700"
+            >
+              <CheckSquare size={13} className="text-indigo-400" />
+              <span>Bulk Approve</span>
+            </Button>
+
             <Button
               size="sm"
               variant="secondary"

@@ -136,6 +136,13 @@ export default function ApprovalsPage() {
 
   useEffect(() => {
     load();
+    const handleMutation = () => load();
+    window.addEventListener("avarta:mutation", handleMutation);
+    window.addEventListener("avarta-update-counts", handleMutation);
+    return () => {
+      window.removeEventListener("avarta:mutation", handleMutation);
+      window.removeEventListener("avarta-update-counts", handleMutation);
+    };
   }, []);
 
   // Deep-linking: auto-select matching invoice row if invoiceId query param is present

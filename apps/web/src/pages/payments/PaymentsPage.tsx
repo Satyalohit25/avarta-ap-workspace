@@ -113,6 +113,13 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     load();
+    const handleMutation = () => load();
+    window.addEventListener("avarta:mutation", handleMutation);
+    window.addEventListener("avarta-update-counts", handleMutation);
+    return () => {
+      window.removeEventListener("avarta:mutation", handleMutation);
+      window.removeEventListener("avarta-update-counts", handleMutation);
+    };
   }, []);
 
   function toggleSelectRow(id: string) {
