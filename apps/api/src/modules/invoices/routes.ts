@@ -25,6 +25,9 @@ import {
   updateDecisionChecklistHandler,
   gstr2bReconcileHandler,
   validateIrnHandler,
+  calculateInvoiceTdsHandler,
+  msme43bhReportHandler,
+  tdsSummaryReportHandler,
 } from "./controller";
 
 import { enforceInvoiceQuota } from "../billing/middleware";
@@ -49,6 +52,11 @@ invoiceRoutes.post(
   gstr2bReconcileHandler
 );
 invoiceRoutes.get("/", requireScope("invoices:read"), listHandler);
+
+// Statutory Compliance Reports & Calculations (T-501, T-502)
+invoiceRoutes.get("/compliance/msme-43bh", requireRole("ADMINISTRATOR", "FINANCE_MANAGER"), requireScope("invoices:read"), msme43bhReportHandler);
+invoiceRoutes.get("/compliance/tds-summary", requireRole("ADMINISTRATOR", "FINANCE_MANAGER"), requireScope("invoices:read"), tdsSummaryReportHandler);
+invoiceRoutes.post("/:invoiceId/calculate-tds", requireScope("invoices:read"), calculateInvoiceTdsHandler);
 invoiceRoutes.get("/:invoiceId/audit", requireScope("invoices:read"), auditHandler);
 invoiceRoutes.post(
   "/",

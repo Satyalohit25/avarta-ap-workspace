@@ -13,6 +13,8 @@ export const createSupplierSchema = z.object({
   address: z.string().optional(),
   panNumber: z.string().optional(),
   msmeStatus: z.string().optional(),
+  msmeCategory: z.enum(["MICRO", "SMALL", "MEDIUM", "NON_MSME"]).optional(),
+  udyamNumber: z.string().regex(/^UDYAM-[A-Z]{2}-[0-9]{2}-[0-9]{7}$/, "Invalid Udyam format. Must follow UDYAM-XX-00-0000000").optional().or(z.literal("")),
   category: z.string().optional(),
   bankName: z.string().optional(),
   accountNumber: z.string().optional(),

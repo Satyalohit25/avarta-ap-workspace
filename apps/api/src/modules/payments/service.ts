@@ -64,6 +64,9 @@ export async function schedulePayment(organizationId: string, input: {
   amount: string | number;
   scheduledDate: string;
   paymentMethod?: string;
+  applyTds?: boolean;
+  tdsSectionCode?: string;
+  customTdsRatePercent?: number | null;
 }) {
   return prisma.$transaction(async (tx) => {
     const lockedRows = await tx.$queryRaw<Array<{ id: string }>>`
@@ -118,15 +121,40 @@ export async function schedulePayment(organizationId: string, input: {
       throw ApiError.conflict("Invoice has already been paid.");
     }
 
+    let finalAmount = input.amount;
+    let paymentNotes: string | undefined;
+
+    if (input.applyTds) {
+      const supplier = invoice.supplierId
+        ? await tx.supplier.findFirst({ where: { id: invoice.supplierId, organizationId } })
+        : null;
+      const { applyPaymentTds } = await import("./tds");
+      const tdsResult = applyPaymentTds({
+        organizationId,
+        invoiceId: input.invoiceId,
+        invoiceNumber: invoice.invoiceNumber,
+        supplierId: invoice.supplierId || "DIRECT_EXPENSE",
+        supplierName: supplier?.displayName || "Vendor",
+        supplierPan: supplier?.panNumber,
+        grossAmount: Number(input.amount),
+        sectionCode: input.tdsSectionCode || "194C",
+        customTdsRatePercent: input.customTdsRatePercent,
+        deductionDate: input.scheduledDate ? input.scheduledDate.split("T")[0] : undefined,
+      });
+      finalAmount = tdsResult.netPayableAmount;
+      paymentNotes = `Statutory TDS Deducted: ₹${tdsResult.tdsAmount.toFixed(2)} (${tdsResult.tdsRatePercent}% under Sec ${tdsResult.sectionCode})`;
+    }
+
     return tx.payment.create({
       data: {
         organizationId,
         invoiceId: input.invoiceId,
-        amount: input.amount,
+        amount: finalAmount,
         currency: invoice.currency,
         paymentMethod: input.paymentMethod ?? "BANK_TRANSFER",
         scheduledDate: new Date(input.scheduledDate),
         status: "SCHEDULED",
+        notes: paymentNotes,
       },
     });
   });

@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { supplierMsmeStore, evaluateMsmeCompliance } from "../suppliers/msme";
 
 type InvoiceListPayload = Prisma.InvoiceGetPayload<{
   include: { supplier: true; exceptions: true };
@@ -53,6 +54,18 @@ export function toInvoiceListItem(invoice: InvoiceListPayload) {
     aiConfidence: invoice.aiConfidence ? Number(invoice.aiConfidence) : null,
     openExceptionCount: invoice.exceptions.filter((e) => e.status !== "RESOLVED" && e.status !== "REJECTED").length,
     source: invoice.source,
+    msmeCompliance: invoice.supplier
+      ? evaluateMsmeCompliance({
+          invoiceDate: invoice.invoiceDate
+            ? invoice.invoiceDate.toISOString().split("T")[0]
+            : invoice.createdAt.toISOString().split("T")[0],
+          dueDate: invoice.dueDate ? invoice.dueDate.toISOString().split("T")[0] : null,
+          paidDate: invoice.status === "PAID" ? invoice.updatedAt.toISOString().split("T")[0] : null,
+          amount: Number(invoice.totalAmount),
+          msmeCategory: supplierMsmeStore.getProfile(invoice.organizationId, invoice.supplier.id)?.msmeCategory || "NON_MSME",
+          agreedTermsDays: invoice.supplier.paymentTermsDays,
+        })
+      : null,
   };
 }
 

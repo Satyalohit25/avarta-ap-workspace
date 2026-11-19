@@ -368,11 +368,79 @@ export async function validateIrnHandler(req: Request, res: Response, next: Next
     next(err);
   }
 }
+
+export async function calculateInvoiceTdsHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { calculateTds } = await import("./tds");
+    const invoice = await invoiceService.getInvoice(orgId(req), req.params.invoiceId);
+    const supplier = invoice.supplier as (Record<string, unknown> | null | undefined);
+    const supplierPan = (supplier?.panNumber as string | undefined) ||
+      (typeof supplier?.gstin === "string" ? supplier.gstin.substring(2, 12) : undefined);
+    const result = calculateTds({
+      grossAmount: Number(invoice.totalAmount),
+      sectionCode: req.body?.sectionCode || "194C",
+      pan: supplierPan,
+      isIndividualHuf: req.body?.isIndividualHuf,
+      customRatePercent: req.body?.customRatePercent,
+    });
     res.json({ data: result });
   } catch (err) {
     next(err);
   }
 }
 
+export async function msme43bhReportHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { generateSection43BhReport, supplierMsmeStore } = await import("../suppliers/msme");
+    const financialYear = (req.query.financialYear as string) || "2026-2027";
+    const invoicesResult = await invoiceService.listInvoices({
+      organizationId: orgId(req),
+      pageSize: 500,
+    });
 
+    const reportInvoices = invoicesResult.data.map((inv: (typeof invoicesResult.data)[number]) => {
+      const msme = inv.supplier ? supplierMsmeStore.getProfile(orgId(req), inv.supplier.id) : undefined;
+      return {
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        supplierId: inv.supplier?.id || "",
+        supplierName: inv.supplier?.name || "Unknown",
+        supplierPan: inv.supplier?.gstin ? inv.supplier.gstin.substring(2, 12) : null,
+        udyamNumber: msme?.udyamNumber || null,
+        msmeCategory: msme?.msmeCategory || "NON_MSME",
+        invoiceDate: inv.invoiceDate ? new Date(inv.invoiceDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+        amount: Number(inv.totalAmount),
+        paidDate: inv.status === "PAID" ? new Date().toISOString().split("T")[0] : null,
+        hasAgreement: msme?.hasWrittenAgreement ?? true,
+      };
+    });
+
+    const report = generateSection43BhReport({
+      financialYear,
+      invoices: reportInvoices,
+    });
+    res.json({ data: report });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function tdsSummaryReportHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { generateForm16ASummary, generateForm26QQuarterlySummary } = await import("./tds");
+    const financialYear = (req.query.financialYear as string) || "FY 2026-27";
+    const quarter = (req.query.quarter as "Q1" | "Q2" | "Q3" | "Q4") || "Q4";
+    const supplierPan = req.query.supplierPan as string | undefined;
+
+    if (supplierPan) {
+      const form16A = generateForm16ASummary(orgId(req), supplierPan, financialYear, quarter);
+      res.json({ data: form16A });
+    } else {
+      const form26Q = generateForm26QQuarterlySummary(orgId(req), financialYear, quarter);
+      res.json({ data: form26Q });
+    }
+  } catch (err) {
+    next(err);
+  }
+}
 

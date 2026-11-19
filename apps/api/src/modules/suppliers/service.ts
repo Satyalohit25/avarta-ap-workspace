@@ -1,6 +1,7 @@
 import { parsePagination, paginationMeta } from "../../lib/pagination";
 import { ApiError } from "../../lib/errors";
 import * as repo from "./repository";
+import { supplierMsmeStore, isMsmeProtected, MsmeCategory } from "./msme";
 
 function computeSupplierMetrics(
   invoices: Array<{ status: string; workflowState: string; createdAt: Date; updatedAt: Date }>,
@@ -73,6 +74,9 @@ export async function listSuppliers(params: {
         disputeRate: metrics.disputeRate,
         avgTurnaroundDays: metrics.avgTurnaroundDays,
         riskScore: metrics.riskScore,
+        msmeCategory: supplierMsmeStore.getProfile(params.organizationId, s.id)?.msmeCategory || "NON_MSME",
+        udyamNumber: supplierMsmeStore.getProfile(params.organizationId, s.id)?.udyamNumber || null,
+        isMsmeProtected: isMsmeProtected(supplierMsmeStore.getProfile(params.organizationId, s.id)?.msmeCategory),
       };
     }),
     meta: paginationMeta(page, pageSize, total),
@@ -83,9 +87,13 @@ export async function getSupplier(organizationId: string, id: string) {
   const supplier = await repo.findSupplierById(organizationId, id);
   if (!supplier) throw ApiError.notFound("Supplier not found");
   const metrics = computeSupplierMetrics(supplier.invoices || [], supplier.gstNumber);
+  const msme = supplierMsmeStore.getProfile(organizationId, id) || supplierMsmeStore.getProfile(organizationId, supplier.supplierCode);
   return {
     ...supplier,
     ...metrics,
+    msmeCategory: msme?.msmeCategory || "NON_MSME",
+    udyamNumber: msme?.udyamNumber || null,
+    isMsmeProtected: isMsmeProtected(msme?.msmeCategory),
   };
 }
 
@@ -101,8 +109,11 @@ export async function createSupplier(organizationId: string, data: Record<string
     email,
     phone,
     address,
+    panNumber,
+    msmeCategory,
+    udyamNumber,
   } = data;
-  return repo.createSupplier(organizationId, {
+  const created = await repo.createSupplier(organizationId, {
     // organizationId is added here to satisfy Prisma type; repo.createSupplier will authoratively override it
     organizationId,
     supplierCode: supplierCode as string,
@@ -115,5 +126,19 @@ export async function createSupplier(organizationId: string, data: Record<string
     email: email ? (email as string) : undefined,
     phone: phone ? (phone as string) : undefined,
     address: address ? (address as string) : undefined,
+    panNumber: panNumber ? (panNumber as string).toUpperCase() : undefined,
   });
+
+  if (msmeCategory || udyamNumber) {
+    supplierMsmeStore.setProfile({
+      organizationId,
+      supplierId: created.id,
+      supplierCode: created.supplierCode,
+      msmeCategory: (msmeCategory as MsmeCategory) || "NON_MSME",
+      udyamNumber: udyamNumber ? String(udyamNumber).toUpperCase() : null,
+      hasWrittenAgreement: true,
+    });
+  }
+
+  return created;
 }
