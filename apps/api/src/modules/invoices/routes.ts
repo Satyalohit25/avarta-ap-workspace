@@ -22,6 +22,8 @@ import {
   overrideLineVarianceHandler,
   updateLineMatchStatusHandler,
   updateDecisionChecklistHandler,
+  gstr2bReconcileHandler,
+  validateIrnHandler,
 } from "./controller";
 
 import { enforceInvoiceQuota } from "../billing/middleware";
@@ -39,6 +41,12 @@ invoiceRoutes.post(
 );
 
 invoiceRoutes.get("/needs-attention", requireScope("invoices:read"), needsAttentionHandler);
+invoiceRoutes.post(
+  "/gstr2b/reconcile",
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
+  requireScope("invoices:read"),
+  gstr2bReconcileHandler
+);
 invoiceRoutes.get("/", requireScope("invoices:read"), listHandler);
 invoiceRoutes.get("/:invoiceId/audit", requireScope("invoices:read"), auditHandler);
 invoiceRoutes.post(
@@ -107,7 +115,7 @@ invoiceRoutes.post(
   regenerateTrackingHandler
 );
 
-invoiceRoutes.patch(
+invoiceRoutes.post(
   "/:invoiceId/lines/:lineId/override",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER"),
   requireScope("invoices:write"),
@@ -126,6 +134,14 @@ invoiceRoutes.patch(
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "APPROVER", "FINANCE_EXECUTIVE"),
   requireScope("invoices:write"),
   updateDecisionChecklistHandler
+);
+
+// e-Invoice IRN & Signed QR Code validation endpoint
+invoiceRoutes.post(
+  "/:invoiceId/validate-irn",
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
+  requireScope("invoices:read"),
+  validateIrnHandler
 );
 
 

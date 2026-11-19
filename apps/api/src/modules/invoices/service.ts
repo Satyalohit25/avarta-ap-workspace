@@ -704,6 +704,33 @@ export async function runValidations(
     }
   }
 
+  // Statutory e-Invoice IRN & Signed QR Code Verification (T-504)
+  if (invoice.supplierId) {
+    const supplier = await prisma.supplier.findFirst({
+      where: { id: invoice.supplierId, organizationId },
+    });
+    const { validateEInvoice } = await import("./irn-validator");
+    const eInvResult = validateEInvoice({
+      invoiceNumber: invoice.invoiceNumber || "INV-UNKNOWN",
+      totalAmount: Number(invoice.totalAmount || 0),
+      irn: (invoice as any).irn,
+      signedQrCode: (invoice as any).signedQrCode,
+      supplierGstin: supplier?.gstNumber,
+      supplierTurnover: (supplier as any)?.annualTurnover,
+      isSupplierEInvoicingApplicable: (supplier as any)?.eInvoicingApplicable,
+    });
+
+    if (!eInvResult.isValid) {
+      failures.push({
+        ruleCode: "IRN_VALIDATION",
+        ruleName: "e-Invoice IRN Verification",
+        message: eInvResult.discrepancies.join(" "),
+        exceptionType: "MISSING_REQUIRED_FIELD",
+        severity: "HIGH",
+      });
+    }
+  }
+
   // Always record a passing/failing row per rule for the Validation tab (Doc 06.4).
   const allRuleCodes = [
     "VENDOR_EXISTS",
@@ -711,6 +738,7 @@ export async function runValidations(
     "AI_CONFIDENCE",
     "GSTIN_CHECKSUM",
     "TAX_CALCULATION",
+    "IRN_VALIDATION",
   ];
   for (const ruleCode of allRuleCodes) {
     const failure = failures.find((f) => f.ruleCode === ruleCode);
@@ -1279,4 +1307,63 @@ export async function updateDecisionChecklist(params: {
   return { decisionChecklist: confirmations };
 }
 
+export async function reconcileGstr2bWithWorkspace(
+  organizationId: string,
+  content: string | object,
+  format: "json" | "csv" = "json",
+  tolerance: number = 1.0
+) {
+  const { parseGstr2bJson, parseGstr2bCsv, reconcileGstr2b } = await import("./gstr2b");
+
+  const gstrRecords =
+    format === "csv" && typeof content === "string"
+      ? parseGstr2bCsv(content)
+      : parseGstr2bJson(content);
+
+  const invoices = await prisma.invoice.findMany({
+    where: {
+      organizationId,
+      status: { notIn: ["REJECTED", "ARCHIVED"] },
+    },
+    include: {
+      supplier: { select: { displayName: true, gstNumber: true } },
+    },
+  });
+
+  const booksInvoices = invoices.map((inv) => ({
+    id: inv.id,
+    invoiceNumber: inv.invoiceNumber,
+    supplierGstin: inv.supplier?.gstNumber || null,
+    supplierName: inv.supplier?.displayName || "Unknown Supplier",
+    taxAmount: Number(inv.taxAmount || 0),
+    totalAmount: Number(inv.totalAmount || 0),
+    invoiceDate: inv.invoiceDate || inv.createdAt,
+  }));
+
+  return reconcileGstr2b(booksInvoices, gstrRecords, tolerance);
+}
+
+export async function validateInvoiceIrn(organizationId: string, invoiceId: string) {
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: invoiceId, organizationId },
+    include: {
+      supplier: true,
+    },
+  });
+
+  if (!invoice) {
+    throw ApiError.notFound("Invoice not found");
+  }
+
+  const { validateEInvoice } = await import("./irn-validator");
+  return validateEInvoice({
+    invoiceNumber: invoice.invoiceNumber,
+    totalAmount: Number(invoice.totalAmount || 0),
+    irn: (invoice as any).irn,
+    signedQrCode: (invoice as any).signedQrCode,
+    supplierGstin: invoice.supplier?.gstNumber,
+    supplierTurnover: (invoice.supplier as any)?.annualTurnover,
+    isSupplierEInvoicingApplicable: (invoice.supplier as any)?.eInvoicingApplicable,
+  });
+}
 

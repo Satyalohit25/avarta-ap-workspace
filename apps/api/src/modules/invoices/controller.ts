@@ -321,5 +321,40 @@ export async function updateDecisionChecklistHandler(req: Request, res: Response
   }
 }
 
+export async function gstr2bReconcileHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { content, format, tolerance } = req.body;
+    if (!content) {
+      throw ApiError.badRequest("GSTR-2B content (JSON or CSV string/object) is required.");
+    }
+    const result = await invoiceService.reconcileGstr2bWithWorkspace(
+      orgId(req),
+      content,
+      format || "json",
+      tolerance ? Number(tolerance) : 1.0
+    );
+    res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function validateIrnHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await invoiceService.validateInvoiceIrn(
+      orgId(req),
+      req.params.invoiceId
+    );
+    res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+    res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
 
 
