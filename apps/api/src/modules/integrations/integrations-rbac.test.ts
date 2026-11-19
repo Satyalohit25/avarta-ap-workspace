@@ -115,7 +115,7 @@ describe("Integrations & Invoice Extraction RBAC Protection (ACT-P0-11 & Extract
   it("blocks READ_ONLY and APPROVER from POST /extract with 403 Forbidden", async () => {
     const res = await dispatch(appInvoices, "POST", "/test/extract", "READ_ONLY");
     expect(res.status).toBe(403);
-    expect(res.body.error).toContain("You do not have permission");
+    expect(res.body.error).toMatch(/You do not have permission|READ_ONLY role cannot execute mutating operations/);
 
     const resApprover = await dispatch(appInvoices, "POST", "/test/extract", "APPROVER");
     expect(resApprover.status).toBe(403);

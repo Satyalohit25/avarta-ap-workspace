@@ -397,6 +397,7 @@ describe("T-201 and T-202 Suite: State Persistence and Rejection Recovery", () =
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "VALIDATION_SUCCESS" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_START" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_SUCCESS" });
+      await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVAL_REQUEST" });
 
       const waitingInvoice = await prisma.invoice.findFirst({
         where: { id: invoice.id, organizationId: orgId },
@@ -468,6 +469,7 @@ describe("T-201 and T-202 Suite: State Persistence and Rejection Recovery", () =
       // 3. Re-enter matching & approval
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_START" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_SUCCESS" });
+      await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVAL_REQUEST" });
 
       const reWaitingInvoice = await prisma.invoice.findFirst({
         where: { id: invoice.id, organizationId: orgId },
@@ -529,6 +531,7 @@ describe("T-201 and T-202 Suite: State Persistence and Rejection Recovery", () =
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "VALIDATION_SUCCESS" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_START" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_SUCCESS" });
+      await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVAL_REQUEST" });
 
       await prisma.approval.create({
         data: {

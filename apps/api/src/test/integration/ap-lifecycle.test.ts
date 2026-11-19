@@ -179,6 +179,7 @@ describe("T-402: Full-Lifecycle API Integration Test Suite on Real Postgres", ()
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "VALIDATION_SUCCESS" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_START" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_SUCCESS" });
+      await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVAL_REQUEST" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVED", triggeredBy: financeManagerId });
 
       // Negative check A: Attempt raw insert of Payment with status PAID but utrNumber NULL
@@ -423,11 +424,17 @@ describe("T-402: Full-Lifecycle API Integration Test Suite on Real Postgres", ()
       currentInv = await getInvoice(orgId, invoice.id);
       expect(currentInv.workflowState).toBe("MATCHING");
 
-      // Matching succeeds: transitions to WAITING_APPROVAL, status PENDING_APPROVAL
+      // Matching succeeds: transitions to MATCHED, then via APPROVAL_REQUEST to WAITING_APPROVAL, status PENDING_APPROVAL
       await applyTransition({
         invoiceId: invoice.id,
         organizationId: orgId,
         event: "MATCHING_SUCCESS",
+        triggeredBy: creatorExecutiveId,
+      });
+      await applyTransition({
+        invoiceId: invoice.id,
+        organizationId: orgId,
+        event: "APPROVAL_REQUEST",
         triggeredBy: creatorExecutiveId,
       });
       currentInv = await getInvoice(orgId, invoice.id);
@@ -710,10 +717,12 @@ describe("T-402: Full-Lifecycle API Integration Test Suite on Real Postgres", ()
       inv = await getInvoice(orgId, invoice.id);
       expect(inv.workflowState).toBe("VALIDATED");
 
-      // 8. Re-enter MATCHING -> MATCHING_SUCCESS -> WAITING_APPROVAL
+      // 8. Re-enter MATCHING -> MATCHING_SUCCESS -> MATCHED -> APPROVAL_REQUEST -> WAITING_APPROVAL
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_START" });
-      expect(findTransition("MATCHING", "MATCHING_SUCCESS")?.to).toBe("WAITING_APPROVAL");
+      expect(findTransition("MATCHING", "MATCHING_SUCCESS")?.to).toBe("MATCHED");
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_SUCCESS" });
+      expect(findTransition("MATCHED", "APPROVAL_REQUEST")?.to).toBe("WAITING_APPROVAL");
+      await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVAL_REQUEST" });
       inv = await getInvoice(orgId, invoice.id);
       expect(inv.workflowState).toBe("WAITING_APPROVAL");
 
@@ -727,6 +736,7 @@ describe("T-402: Full-Lifecycle API Integration Test Suite on Real Postgres", ()
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "EXCEPTION_RESOLVED" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_START" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_SUCCESS" });
+      await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVAL_REQUEST" });
       expect(findTransition("WAITING_APPROVAL", "APPROVED")?.to).toBe("SCHEDULED");
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVED" });
       inv = await getInvoice(orgId, invoice.id);
@@ -805,6 +815,7 @@ describe("T-402: Full-Lifecycle API Integration Test Suite on Real Postgres", ()
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "VALIDATION_SUCCESS" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_START" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_SUCCESS" });
+      await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVAL_REQUEST" });
 
       const approval = await prisma.approval.findFirst({
         where: { invoice: { organizationId: orgId }, invoiceId: invoice.id, status: "PENDING" },
@@ -837,6 +848,7 @@ describe("T-402: Full-Lifecycle API Integration Test Suite on Real Postgres", ()
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "VALIDATION_SUCCESS" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_START" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_SUCCESS" });
+      await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVAL_REQUEST" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVED", triggeredBy: financeManagerId });
 
       const payment = await prisma.payment.findFirst({
@@ -879,6 +891,7 @@ describe("T-402: Full-Lifecycle API Integration Test Suite on Real Postgres", ()
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "VALIDATION_SUCCESS" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_START" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_SUCCESS" });
+      await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVAL_REQUEST" });
 
       const approval = await prisma.approval.findFirst({
         where: { invoice: { organizationId: orgId }, invoiceId: invoice.id, status: "PENDING" },
@@ -916,6 +929,7 @@ describe("T-402: Full-Lifecycle API Integration Test Suite on Real Postgres", ()
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "VALIDATION_SUCCESS" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_START" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_SUCCESS" });
+      await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVAL_REQUEST" });
 
       // Rejection with empty reason throws 400 Bad Request
       await expect(
@@ -942,6 +956,7 @@ describe("T-402: Full-Lifecycle API Integration Test Suite on Real Postgres", ()
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "VALIDATION_SUCCESS" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_START" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_SUCCESS" });
+      await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVAL_REQUEST" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVED", triggeredBy: financeManagerId });
 
       const payment = await prisma.payment.findFirst({
@@ -1004,6 +1019,7 @@ describe("T-402: Full-Lifecycle API Integration Test Suite on Real Postgres", ()
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "VALIDATION_SUCCESS" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_START" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_SUCCESS" });
+      await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVAL_REQUEST" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVED", triggeredBy: financeManagerId });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "PAYMENT_RUN" });
       await applyTransition({
@@ -1062,6 +1078,7 @@ describe("T-402: Full-Lifecycle API Integration Test Suite on Real Postgres", ()
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "VALIDATION_SUCCESS" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_START" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_SUCCESS" });
+      await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVAL_REQUEST" });
 
       const approval = await prisma.approval.findFirst({
         where: { invoice: { organizationId: orgId }, invoiceId: invoice.id, status: "PENDING" },
@@ -1080,6 +1097,8 @@ describe("T-402: Full-Lifecycle API Integration Test Suite on Real Postgres", ()
         supplierId: testSupplierId,
         invoiceNumber: "INV-SOD-OVERRIDE-01",
         totalAmount: 25000,
+        subtotalAmount: 21186.44,
+        taxAmount: 3813.56,
         currency: "INR",
         userId: adminUserId,
       });
@@ -1089,6 +1108,7 @@ describe("T-402: Full-Lifecycle API Integration Test Suite on Real Postgres", ()
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "VALIDATION_SUCCESS" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_START" });
       await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "MATCHING_SUCCESS" });
+      await applyTransition({ invoiceId: invoice.id, organizationId: orgId, event: "APPROVAL_REQUEST" });
 
       const approval = await prisma.approval.findFirst({
         where: { invoice: { organizationId: orgId }, invoiceId: invoice.id, status: "PENDING" },

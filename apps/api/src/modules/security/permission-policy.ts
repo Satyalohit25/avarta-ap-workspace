@@ -312,6 +312,54 @@ export const ROUTE_PERMISSION_POLICY: RoutePolicyEntry[] = [
     allowedRoles: ["ADMINISTRATOR", "FINANCE_MANAGER", "APPROVER", "FINANCE_EXECUTIVE"],
     description: "Persist decision hub checklist confirmations",
   },
+  {
+    method: "POST",
+    path: "/api/v1/invoices/gstr2b/reconcile",
+    allowedRoles: ["ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"],
+    description: "Reconcile GSTR-2B data against invoices",
+  },
+  {
+    method: "GET",
+    path: "/api/v1/invoices/compliance/msme-43bh",
+    allowedRoles: ["ADMINISTRATOR", "FINANCE_MANAGER"],
+    description: "MSME 43B(h) compliance report",
+  },
+  {
+    method: "GET",
+    path: "/api/v1/invoices/compliance/tds-summary",
+    allowedRoles: ["ADMINISTRATOR", "FINANCE_MANAGER"],
+    description: "TDS summary statutory report",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/invoices/:invoiceId/calculate-tds",
+    allowedRoles: ["ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE", "APPROVER"],
+    description: "Calculate invoice TDS deduction",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/invoices/bulk-approve",
+    allowedRoles: ["ADMINISTRATOR", "FINANCE_MANAGER", "APPROVER"],
+    description: "Bulk approve eligible invoices",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/invoices/:invoiceId/archive",
+    allowedRoles: ["ADMINISTRATOR", "FINANCE_MANAGER"],
+    description: "Archive invoice permanently",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/invoices/:invoiceId/lines/:lineId/override",
+    allowedRoles: ["ADMINISTRATOR", "FINANCE_MANAGER"],
+    description: "Override invoice line variance via POST alias",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/invoices/:invoiceId/validate-irn",
+    allowedRoles: ["ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"],
+    description: "Validate e-Invoice IRN & Signed QR code",
+  },
 
   // =========================================================================
   // 5. SUPPLIERS
@@ -377,6 +425,12 @@ export const ROUTE_PERMISSION_POLICY: RoutePolicyEntry[] = [
     path: "/api/v1/approvals/:approvalId/reject",
     allowedRoles: ["ADMINISTRATOR", "FINANCE_MANAGER", "APPROVER"],
     description: "Reject invoice voucher",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/approvals/bulk-approve",
+    allowedRoles: ["ADMINISTRATOR", "FINANCE_MANAGER", "APPROVER"],
+    description: "Bulk approve pending approvals",
   },
 
   // =========================================================================

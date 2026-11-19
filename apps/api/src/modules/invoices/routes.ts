@@ -138,6 +138,13 @@ invoiceRoutes.post(
 );
 
 invoiceRoutes.patch(
+  "/:invoiceId/lines/:lineId/override",
+  requireRole("ADMINISTRATOR", "FINANCE_MANAGER"),
+  requireScope("invoices:write"),
+  overrideLineVarianceHandler
+);
+
+invoiceRoutes.patch(
   "/:invoiceId/lines/:lineId/match-status",
   requireRole("ADMINISTRATOR", "FINANCE_MANAGER", "FINANCE_EXECUTIVE"),
   requireScope("invoices:write"),

@@ -87,7 +87,7 @@ export async function applyTransition({
     });
 
     // Relational Side Effect: Automated Approval Generation
-    if (rule.to === "WAITING_APPROVAL") {
+    if (rule.to === "WAITING_APPROVAL" || rule.to === "MATCHED") {
       const existingApproval = await tx.approval.findFirst({
         where: { invoiceId, status: "PENDING" },
       });
