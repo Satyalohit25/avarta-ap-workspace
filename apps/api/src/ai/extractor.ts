@@ -1,6 +1,7 @@
 import fs from "fs";
 import zlib from "zlib";
 import { OUTBOUND_TIMEOUTS } from "../config/timeouts";
+import { ApiError } from "../lib/errors";
 import type { IntegrationRecord } from "../modules/integrations/repository";
 import { classifyConfidence, ConfidenceBand } from "./confidence";
 
@@ -29,7 +30,7 @@ export interface ExtractedInvoiceData {
   invoiceNumber: string;
   invoiceDate: string;
   dueDate: string;
-  currency: string;
+  currency: string | null;
   supplier: {
     name: string;
     gstin?: string;
@@ -63,11 +64,18 @@ export interface ExtractedInvoiceData {
     | "RETAIL_RECEIPT";
 }
 
+// T-209: PDF Decompression cap and stream limits
+export const MAX_STREAM_OUTPUT_LENGTH = 20 * 1024 * 1024; // 20 MB per stream
+export const MAX_TOTAL_DECOMPRESSED_BYTES = 40 * 1024 * 1024; // 40 MB total per PDF
+export const MAX_STREAM_COUNT = 200; // Max streams per document
+export const DECOMPRESSION_TIMEOUT_MS = 5000; // 5-second timeout
+
 /**
  * Extracts plain text from a PDF buffer by decoding uncompressed text blocks
  * and decompressing /FlateDecode streams using native Node.js zlib.
+ * Guards against decompression bombs with strict per-stream (20MB) and total limits (T-209).
  */
-function extractTextFromPdfBuffer(buffer: Buffer): string {
+export function extractTextFromPdfBuffer(buffer: Buffer): string {
   let fullText = "";
   const str = buffer.toString("binary");
 
@@ -85,10 +93,48 @@ function extractTextFromPdfBuffer(buffer: Buffer): string {
   // 2. Extract compressed FlateDecode streams: stream ... endstream
   const streamRegex = /stream[\r\n]+([\s\S]*?)[\r\n]+endstream/g;
   let match: RegExpExecArray | null;
+  let streamCount = 0;
+  let totalDecompressedBytes = 0;
+  const startTime = Date.now();
+
   while ((match = streamRegex.exec(str)) !== null) {
+    if (Date.now() - startTime > DECOMPRESSION_TIMEOUT_MS) {
+      throw ApiError.unprocessableEntity(
+        "PDF stream decompression timed out (potential decompression bomb)"
+      );
+    }
+
+    streamCount++;
+    if (streamCount > MAX_STREAM_COUNT) {
+      throw ApiError.unprocessableEntity(
+        `PDF stream count (${streamCount}) exceeded maximum safety limit (${MAX_STREAM_COUNT})`
+      );
+    }
+
     try {
       const rawStream = Buffer.from(match[1], "binary");
-      const decompressed = zlib.inflateSync(rawStream).toString("utf-8");
+
+      const remainingBytes = MAX_TOTAL_DECOMPRESSED_BYTES - totalDecompressedBytes;
+      if (remainingBytes <= 0) {
+        throw ApiError.unprocessableEntity(
+          "PDF cumulative decompressed size exceeded safety limit (potential decompression bomb)"
+        );
+      }
+
+      const streamCap = Math.min(MAX_STREAM_OUTPUT_LENGTH, remainingBytes);
+
+      const decompressedBuffer = zlib.inflateSync(rawStream, {
+        maxOutputLength: streamCap,
+      });
+
+      totalDecompressedBytes += decompressedBuffer.length;
+      if (totalDecompressedBytes > MAX_TOTAL_DECOMPRESSED_BYTES) {
+        throw ApiError.unprocessableEntity(
+          "PDF cumulative decompressed size exceeded safety limit (potential decompression bomb)"
+        );
+      }
+
+      const decompressed = decompressedBuffer.toString("utf-8");
 
       const streamAscii = decompressed.match(/[A-Za-z0-9_\-.]{3,}/g) || [];
       fullText += " " + streamAscii.join(" ");
@@ -106,12 +152,134 @@ function extractTextFromPdfBuffer(buffer: Buffer): string {
           fullText += " " + im.slice(1, -1);
         }
       }
-    } catch {
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        throw err;
+      }
+      const isBufferTooLarge =
+        Boolean(
+          err &&
+            typeof err === "object" &&
+            "code" in err &&
+            (err as { code: unknown }).code === "ERR_BUFFER_TOO_LARGE"
+        ) ||
+        (err instanceof Error &&
+          /buffer too large|maxOutputLength/i.test(err.message));
+
+      if (isBufferTooLarge) {
+        throw ApiError.unprocessableEntity(
+          "PDF stream decompression exceeded 20 MB safety limit (potential decompression bomb)"
+        );
+      }
       // Stream is not FlateDecode or is binary image data; ignore
     }
   }
 
   return fullText.trim();
+}
+
+/**
+ * Detects currency from invoice text or subject (T-208).
+ * Supports INR (₹, Rs, INR), USD (USD, US$), EUR (EUR, €), GBP (GBP, £), SGD (SGD, S$), CAD (CAD, C$).
+ * Returns null if ambiguous (e.g. bare $ alone, multiple conflicting currencies, or none).
+ */
+export function detectCurrency(text: string): string | null {
+  if (!text || typeof text !== "string") return null;
+
+  const found = new Set<string>();
+
+  // INR: ₹, Rs., INR
+  if (/(?:₹|\bRs\.?|\bINR\b)/i.test(text)) {
+    found.add("INR");
+  }
+
+  // USD: explicit US$ or USD (bare $ alone does not mean USD)
+  if (/(?:\bUSD\b|US\s*\$|\bUS\$)/i.test(text)) {
+    found.add("USD");
+  }
+
+  // CAD: CAD, C$, CA$, CAN$ (ensure it does not match inside other identifiers)
+  if (/(?:\bCAD\b|(?<![A-Za-z])(?:CA?|CAN)\s*\$)/i.test(text)) {
+    found.add("CAD");
+  }
+
+  // SGD: SGD, S$ (negative lookbehind ensures US$ is not matched as S$)
+  if (/(?:\bSGD\b|(?<![A-Za-z])S\s*\$|\bSG\$)/i.test(text)) {
+    found.add("SGD");
+  }
+
+  // EUR: EUR, €
+  if (/(?:€|\bEUR\b)/i.test(text)) {
+    found.add("EUR");
+  }
+
+  // GBP: GBP, £
+  if (/(?:£|\bGBP\b)/i.test(text)) {
+    found.add("GBP");
+  }
+
+  // Check if there is a bare dollar sign ($) without US/C/CA/S
+  const strippedOfExplicitDollars = text.replace(/(?:US|CA|C|S)\s*\$/gi, "");
+  const hasBareDollar = /(?<![A-Za-z])\$(?!\w)/.test(strippedOfExplicitDollars);
+
+  // If bare dollar sign is present without explicit currency prefix, it is ambiguous
+  if (hasBareDollar && found.size === 0) {
+    return null;
+  }
+
+  if (found.size === 1) {
+    return Array.from(found)[0];
+  }
+
+  return null;
+}
+
+const STOP_WORDS = new Set([
+  "FOR", "FROM", "TO", "DATED", "OF", "THE", "IN", "ON", "AT", "BY",
+  "NUMBER", "NO", "NUM", "INVOICE", "BILL", "COPY", "ORIGINAL", "DUPLICATE",
+  "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER", "JANUARY", "FEBRUARY",
+  "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST",
+  "SEPT", "OCT", "NOV", "DEC", "JAN", "FEB", "MAR", "APR", "JUN", "JUL", "AUG",
+  "MONTHLY", "MONTH", "SUMMARY", "STATEMENT", "PAYMENT", "SERVICES", "ATTACHED",
+  "RECEIPT", "ORDER", "PURCHASE", "DUE", "TOTAL", "AMOUNT",
+  "TXT", "PDF", "PNG", "JPG", "JPEG", "TIFF", "CSV", "XML"
+]);
+
+/**
+ * Extracts invoice number from text or email subject without capturing prefixes
+ * like 'Number' or prepositions like 'for' in 'Invoice for September' (T-208).
+ */
+export function extractInvoiceNumber(text: string): string | null {
+  if (!text || typeof text !== "string") return null;
+
+  // If text is prepositional subject like "Invoice for September" without an invoice number pattern
+  if (
+    /\b(?:invoice|bill|inv)\s+(?:for|of|dated|regarding|re:)\s+[A-Za-z]+\b/i.test(text) &&
+    !/\b(?:number|no\.?|num\.?|#)\b/i.test(text) &&
+    !/\b(?:INV|BILL)[-/][A-Za-z0-9/-]+\b/i.test(text)
+  ) {
+    return null;
+  }
+
+  const patterns = [
+    // 1. INVOICE-2026-001 or INV/2026/001 or BILL-4412 (Match explicit prefixed codes first; exclude PO/SO)
+    /\b((?:INV|BILL)[-/][A-Za-z0-9/-]{3,25})\b/i,
+    // 2. Invoice Number: ABC-123 or Inv # 2026-101 or Tax Invoice - TI/2026/001
+    /(?:invoice|inv|bill|tax\s+invoice)[\s#.:-]*(?:number|no\.?|num\.?|#|id|ref)?[\s#:.-]+([A-Za-z0-9][A-Za-z0-9/-]{2,29})/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const candidate = match[1].trim().toUpperCase();
+      if (STOP_WORDS.has(candidate)) continue;
+      if (/^(?:NUMBER|NUM|NO|FOR)$/i.test(candidate)) continue;
+      if (/^[A-Z]{2,15}$/.test(candidate) && !/\d|[-/]/.test(candidate) && STOP_WORDS.has(candidate)) continue;
+      return candidate;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -803,41 +971,18 @@ export function extractWithHeuristics(
     .toISOString()
     .split("T")[0];
 
-  // Try extracting currency from text
-  let detectedCurrency = "INR";
-  if (/\b(SGD|S\$)\b/i.test(combinedSearch)) detectedCurrency = "SGD";
-  else if (/\b(CAD|C\$)\b/i.test(combinedSearch)) detectedCurrency = "CAD";
-  else if (/\b(USD|US\$|\$)\b/i.test(combinedSearch)) detectedCurrency = "USD";
-  else if (/\b(EUR|€)\b/i.test(combinedSearch)) detectedCurrency = "EUR";
-  else if (/\b(GBP|£)\b/i.test(combinedSearch)) detectedCurrency = "GBP";
+  // T-208: Currency detection with strict disambiguation (INR, USD, CAD, SGD, EUR, GBP; bare $ returns null)
+  const detectedCurrency = detectCurrency(combinedSearch);
 
-  // Try extracting invoice number from text or filename
-  let detectedInvoiceNum = "";
-  const invMatch = combinedSearch.match(
-    /(?:inv|invoice|bill|awb|airwaybill)[\s#:.-]*([A-Za-z0-9-]{6,16})/i,
-  );
-  if (invMatch && invMatch[1]) {
-    detectedInvoiceNum = invMatch[1].toUpperCase();
-  }
+  // T-208: Invoice number extraction without capturing prefixes like "Number" or "for"
+  const cleanOriginalName = originalName.replace(/\.[a-z0-9]{2,5}$/i, "");
+  const detectedInvoiceNum =
+    extractInvoiceNumber(fileText) ||
+    extractInvoiceNumber(cleanOriginalName) ||
+    extractInvoiceNumber(combinedSearch) ||
+    "";
 
-  // Try extracting amount (prefer explicit total amount patterns over generic amount)
-  let detectedAmount = 0;
-  const specificTotalMatch = combinedSearch.match(
-    /\b(?:total\s+amount|grand\s+total|invoice\s+total|total(?:\s+invoice\s+value)?|amount\s+due|balance\s+due)\b[\s:A-Z$€£₹]*([\d,]+\.\d{2})/i,
-  );
-  const amtMatch =
-    specificTotalMatch ||
-    combinedSearch.match(
-      /\b(?:total|balance|amount)\b[\s:A-Z$€£₹]*([\d,]+\.\d{2})/i,
-    );
-  if (amtMatch && amtMatch[1]) {
-    const parsedAmt = parseFloat(amtMatch[1].replace(/,/g, ""));
-    if (!isNaN(parsedAmt) && parsedAmt > 0) {
-      detectedAmount = parsedAmt;
-    }
-  }
-
-  // Try extracting subtotal from text
+  // Try extracting subtotal from text first
   let detectedSubtotal: number | null = null;
   const subtotalMatch = combinedSearch.match(
     /(?:subtotal|sub-total|taxable\s+amount|taxable\s+value)[\s:A-Z$€£₹]*([\d,]+\.\d{2})/i,
@@ -846,6 +991,22 @@ export function extractWithHeuristics(
     const parsedSub = parseFloat(subtotalMatch[1].replace(/,/g, ""));
     if (!isNaN(parsedSub) && parsedSub >= 0) {
       detectedSubtotal = parsedSub;
+    }
+  }
+
+  // T-208: Total regex must never match inside "subtotal"
+  let detectedAmount = 0;
+  const specificTotalMatch = combinedSearch.match(
+    /\b(?:total\s+amount|grand\s+total|invoice\s+total|total(?:\s+invoice\s+value)?|amount\s+due|balance\s+due)\b[\s:A-Z$€£₹]*([\d,]+\.\d{2})/i,
+  );
+  const generalTotalMatch = combinedSearch.match(
+    /(?:^|[^\w-])(?<!sub)(?<!sub-)total\b[\s:A-Z$€£₹]*([\d,]+\.\d{2})/i,
+  );
+  const amtMatch = specificTotalMatch || generalTotalMatch;
+  if (amtMatch && amtMatch[1]) {
+    const parsedAmt = parseFloat(amtMatch[1].replace(/,/g, ""));
+    if (!isNaN(parsedAmt) && parsedAmt > 0) {
+      detectedAmount = parsedAmt;
     }
   }
 
@@ -868,12 +1029,17 @@ export function extractWithHeuristics(
 
   const hasInvoiceNum = Boolean(detectedInvoiceNum);
   const hasAmount = detectedAmount > 0;
-  const overallConfidence =
-    hasInvoiceNum && hasAmount
-      ? 78.5
-      : hasInvoiceNum || hasAmount
-        ? 50.0
-        : 25.0;
+  const hasCurrency = Boolean(detectedCurrency);
+
+  // T-208: Lower confidence when unsure or fields are ambiguous/missing
+  let overallConfidence = 25.0;
+  if (hasInvoiceNum && hasAmount && hasCurrency) {
+    overallConfidence = 78.5;
+  } else if ((hasInvoiceNum && hasAmount) || (hasAmount && hasCurrency)) {
+    overallConfidence = 50.0;
+  } else if (hasInvoiceNum || hasAmount) {
+    overallConfidence = 35.0;
+  }
 
   return {
     invoiceNumber: detectedInvoiceNum,
@@ -887,7 +1053,9 @@ export function extractWithHeuristics(
           ? "SG"
           : detectedCurrency === "CAD"
             ? "CA"
-            : "IN",
+            : detectedCurrency === "INR"
+              ? "IN"
+              : undefined,
       address: "Industrial Logistics Park, Zone 4",
     },
     lines: hasAmount

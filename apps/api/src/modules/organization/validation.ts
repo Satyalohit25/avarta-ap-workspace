@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validateGstinChecksum } from "../invoices/tax-validator";
 
 const organizationSettingsSchema = z.object({
   priceTolerancePercent: z.number().min(0).max(100).optional(),
@@ -17,7 +18,10 @@ export const updateOrganizationSchema = z
     gstin: z
       .string()
       .trim()
-      .regex(/^[0-9A-Z]{15}$/i, "GSTIN must be a 15-character alphanumeric value")
+      .transform((val) => val.toUpperCase())
+      .refine((val) => validateGstinChecksum(val), {
+        message: "Organization GSTIN failed statutory Modulo-36 check-digit verification",
+      })
       .nullable()
       .optional(),
     country: z.string().trim().length(2).optional(),

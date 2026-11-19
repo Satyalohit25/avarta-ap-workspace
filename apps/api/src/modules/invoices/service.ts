@@ -6,7 +6,7 @@ import { ApiError } from "../../lib/errors";
 import { parsePagination, paginationMeta } from "../../lib/pagination";
 import { applyTransition, startWorkflow } from "../../workflow/engine";
 import { runThreeWayMatching } from "../../workflow/matcher";
-import { validateGstinChecksum, validateTaxArithmetic } from "./tax-validator";
+import { calculateGstSplit, validateGstinChecksum, validateTaxArithmetic } from "./tax-validator";
 import { extractInvoiceFromFile } from "../../ai/extractor";
 import { classifyConfidence, ConfidenceBand, normalizeConfidenceScore } from "../../ai/confidence";
 import * as repo from "./repository";
@@ -204,6 +204,9 @@ export async function createInvoice(input: CreateInvoiceInput) {
         extracted = await extractInvoiceFromFile(filePath, input.file.mimeType, input.file.fileName);
       }
     } catch (err) {
+      if (err instanceof ApiError && err.status === 422) {
+        throw err;
+      }
       console.warn("Document AI pre-extraction failed:", err);
     }
   }
@@ -643,11 +646,13 @@ export async function runValidations(
     });
   }
 
-  // Statutory GSTIN Checksum Verification (Step 10)
+  // Statutory GSTIN Checksum Verification (Step 10 & T-205)
+  let supplierGstin: string | null = null;
   if (invoice.supplierId) {
     const supplier = await prisma.supplier.findFirst({
       where: { id: invoice.supplierId, organizationId },
     });
+    supplierGstin = supplier?.gstNumber ?? null;
     if (supplier?.gstNumber && !validateGstinChecksum(supplier.gstNumber)) {
       failures.push({
         ruleCode: "GSTIN_CHECKSUM",
@@ -659,7 +664,21 @@ export async function runValidations(
     }
   }
 
-  // Statutory Tax Arithmetic Verification (Step 10 / T-107)
+  const organization = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: { gstin: true },
+  });
+  if (organization?.gstin && !validateGstinChecksum(organization.gstin)) {
+    failures.push({
+      ruleCode: "GSTIN_CHECKSUM",
+      ruleName: "Organization GSTIN Checksum",
+      message: `Organization GSTIN "${organization.gstin}" failed statutory Modulo-36 checksum verification.`,
+      exceptionType: "INVALID_GST",
+      severity: "HIGH",
+    });
+  }
+
+  // Statutory Tax Arithmetic Verification (Step 10 / T-107 & T-205)
   const rawSubtotal = invoice.subtotalAmount;
   const rawTax = invoice.taxAmount;
   const total = Number(invoice.totalAmount || 0);
@@ -697,6 +716,25 @@ export async function runValidations(
           ruleCode: "TAX_CALCULATION",
           ruleName: "Tax Arithmetic Balance",
           message: `Subtotal (${subtotal}) + Tax (${tax}) does not equal Total (${total}). Discrepancy: ${taxCheck.difference.toFixed(2)}.`,
+          exceptionType: "TAX_DIFFERENCE",
+          severity: "HIGH",
+        });
+      }
+    }
+
+    // Place of Supply Tax Split Verification (T-205)
+    if (invoice.currency === "INR" && tax > 0 && supplierGstin && organization?.gstin) {
+      const gstSplit = calculateGstSplit({
+        supplierGstin,
+        buyerGstin: organization.gstin,
+        totalTax: tax,
+      });
+
+      if (!gstSplit.isBalanced) {
+        failures.push({
+          ruleCode: "TAX_CALCULATION",
+          ruleName: "Place of Supply Balance",
+          message: `Statutory GST split (CGST: ${gstSplit.cgst}, SGST: ${gstSplit.sgst}, IGST: ${gstSplit.igst}) does not equal total tax (${tax}) to the paisa.`,
           exceptionType: "TAX_DIFFERENCE",
           severity: "HIGH",
         });

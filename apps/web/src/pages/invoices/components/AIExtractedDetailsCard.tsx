@@ -72,10 +72,10 @@ export function AIExtractedDetailsCard({
   const [showTechnical, setShowTechnical] = useState(false);
   const [showChecklist, setShowChecklist] = useState(true);
 
-  // Derive initial numbers from real props
+  // Derive initial numbers from real props (T-205: stop fabricating 18% / 1.18 fallback)
   const initTotal = Number(initialTotalAmount) || 0;
-  const initTaxable = initTotal > 0 ? (Math.round((initTotal / 1.18) * 100) / 100).toFixed(2) : "0.00";
-  const initTax = initTotal > 0 ? (Math.round((initTotal - Number(initTaxable)) * 100) / 100).toFixed(2) : "0.00";
+  const initTaxable = initTotal > 0 ? initTotal.toFixed(2) : "0.00";
+  const initTax = "0.00";
 
   // Field values with inline edit capability
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({
@@ -92,8 +92,6 @@ export function AIExtractedDetailsCard({
 
   useEffect(() => {
     const tot = Number(initialTotalAmount) || 0;
-    const taxSub = tot > 0 ? (Math.round((tot / 1.18) * 100) / 100).toFixed(2) : "0.00";
-    const taxVal = tot > 0 ? (Math.round((tot - Number(taxSub)) * 100) / 100).toFixed(2) : "0.00";
     setFieldValues({
       invoiceNumber: initialInvoiceNumber || "",
       supplierName: initialSupplierName || "",
@@ -101,8 +99,8 @@ export function AIExtractedDetailsCard({
       invoiceDate: initialInvoiceDate ? String(initialInvoiceDate).slice(0, 10) : "",
       dueDate: initialDueDate ? String(initialDueDate).slice(0, 10) : "",
       totalAmount: initialTotalAmount != null ? String(initialTotalAmount) : "0",
-      taxableSubtotal: taxSub,
-      taxAmount: taxVal,
+      taxableSubtotal: tot > 0 ? tot.toFixed(2) : "0.00",
+      taxAmount: "0.00",
       purchaseOrderNumber: purchaseOrderId || "",
     });
   }, [initialInvoiceNumber, initialSupplierName, initialSupplierGstin, initialInvoiceDate, initialDueDate, initialTotalAmount, purchaseOrderId]);
@@ -112,10 +110,15 @@ export function AIExtractedDetailsCard({
   const [correctedFields, setCorrectedFields] = useState<Record<string, { original: string; corrected: string }>>({});
 
   const totalNum = Number(fieldValues.totalAmount) || 0;
-  const taxableNum = Number(fieldValues.taxableSubtotal) || (totalNum > 0 ? Math.round((totalNum / 1.18) * 100) / 100 : 0);
+  const taxableNum = Number(fieldValues.taxableSubtotal) || totalNum;
   const taxNum = Math.round((totalNum - taxableNum) * 100) / 100;
-  const cgstNum = Math.round((taxNum / 2) * 100) / 100;
-  const sgstNum = Math.round((taxNum - cgstNum) * 100) / 100;
+
+  // Place of Supply GST Split (T-205)
+  const supplierState = (fieldValues.supplierGstin || "").trim().slice(0, 2);
+  const isInterState = supplierState.length === 2 && supplierState !== "27"; // Org base state 27 (MH)
+  const cgstNum = isInterState ? 0 : Math.floor((taxNum / 2) * 100) / 100;
+  const sgstNum = isInterState ? 0 : Math.round((taxNum - cgstNum) * 100) / 100;
+  const igstNum = isInterState ? taxNum : 0;
 
   const confidenceScore = aiConfidence != null ? Number(aiConfidence) : 95;
   const isTerminalState = ["SYNCED", "REJECTED", "ARCHIVED", "PAID"].includes(status?.toUpperCase() || "");
@@ -520,13 +523,15 @@ export function AIExtractedDetailsCard({
           {/* Tax Amount */}
           <FieldRow
             fieldKey="taxAmount"
-            label="Total GST (18.0%)"
+            label={isInterState ? "Integrated GST (IGST)" : "Total GST"}
             value={formatCurrency(taxNum, currency)}
             displayComponent={
               <span className="text-body-sm font-mono text-neutral-900 dark:text-zinc-100">
                 {formatCurrency(taxNum, currency)}{" "}
                 <span className="text-micro text-neutral-500 font-sans">
-                  (CGST ₹{cgstNum.toLocaleString("en-IN")} + SGST ₹{sgstNum.toLocaleString("en-IN")})
+                  {isInterState
+                    ? `(IGST ₹${igstNum.toLocaleString("en-IN")})`
+                    : `(CGST ₹${cgstNum.toLocaleString("en-IN")} + SGST ₹${sgstNum.toLocaleString("en-IN")})`}
                 </span>
               </span>
             }

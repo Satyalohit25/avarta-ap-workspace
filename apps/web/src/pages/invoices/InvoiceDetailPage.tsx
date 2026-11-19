@@ -1693,6 +1693,7 @@ export default function InvoiceDetailPage() {
             isUploading={actionPending}
             invoiceNumber={invoice.invoiceNumber}
             supplierName={invoice.supplier?.name}
+            supplierGstin={invoice.supplier?.gstin}
             invoiceDate={invoice.invoiceDate}
             dueDate={invoice.dueDate}
             totalAmount={invoice.totalAmount}
@@ -1745,6 +1746,7 @@ export default function InvoiceDetailPage() {
               invoiceId={invoice.id}
               invoiceNumber={invoice.invoiceNumber}
               supplierName={invoice.supplier?.name}
+              supplierGstin={invoice.supplier?.gstin}
               totalAmount={invoice.totalAmount}
               status={context.status}
               purchaseOrderId={invoice.purchaseOrderId}

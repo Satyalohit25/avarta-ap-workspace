@@ -4,6 +4,8 @@ import os from "os";
 import { describe, expect, it, vi } from "vitest";
 import {
   calculateGstinCheckDigit,
+  calculateGstSplit,
+  extractGstinStateCode,
   validateGstinChecksum,
   validateTaxArithmetic,
 } from "./tax-validator";
@@ -218,5 +220,96 @@ describe("Tax ID & Arithmetic Validation (Step 10 & T-107)", () => {
         })
       );
     }, 20000);
+  });
+
+  describe("T-205: GST Handling: IGST vs CGST/SGST by Place of Supply & GSTIN Validation", () => {
+    it("extracts state code from valid 15-char GSTIN", () => {
+      expect(extractGstinStateCode("27AAACT2727Q1ZW")).toBe("27");
+      expect(extractGstinStateCode("29AAACB5678B2ZQ")).toBe("29");
+      expect(extractGstinStateCode("07AABCA9012C3ZR")).toBe("07");
+      expect(extractGstinStateCode(null)).toBeNull();
+      expect(extractGstinStateCode("INVALID")).toBeNull();
+    });
+
+    it("intra-state supply (same state codes): splits equally into CGST + SGST, IGST = 0", () => {
+      // Both Maharashtra (27)
+      const result = calculateGstSplit({
+        supplierGstin: "27AAACT2727Q1ZW",
+        buyerGstin: "27AAACA1234F1Z5",
+        totalTax: 1800.0,
+      });
+
+      expect(result.placeOfSupplyType).toBe("INTRA_STATE");
+      expect(result.supplierStateCode).toBe("27");
+      expect(result.buyerStateCode).toBe("27");
+      expect(result.cgst).toBe(900.0);
+      expect(result.sgst).toBe(900.0);
+      expect(result.igst).toBe(0);
+      expect(result.isBalanced).toBe(true);
+    });
+
+    it("intra-state supply balances odd-paisa totals exactly (e.g. 100.01 -> 50.00 CGST + 50.01 SGST)", () => {
+      const result = calculateGstSplit({
+        supplierGstin: "27AAACT2727Q1ZW",
+        buyerGstin: "27AAACA1234F1Z5",
+        totalTax: 100.01,
+      });
+
+      expect(result.placeOfSupplyType).toBe("INTRA_STATE");
+      expect(result.cgst).toBe(50.0);
+      expect(result.sgst).toBe(50.01);
+      expect(result.igst).toBe(0);
+      expect(result.cgst + result.sgst).toBeCloseTo(100.01, 2);
+      expect(result.isBalanced).toBe(true);
+    });
+
+    it("inter-state supply (different state codes): assigns 100% to IGST, CGST = 0, SGST = 0", () => {
+      // Karnataka (29) -> Maharashtra (27)
+      const result = calculateGstSplit({
+        supplierGstin: "29AAACB5678B2ZQ",
+        buyerGstin: "27AAACA1234F1Z5",
+        totalTax: 1800.0,
+      });
+
+      expect(result.placeOfSupplyType).toBe("INTER_STATE");
+      expect(result.supplierStateCode).toBe("29");
+      expect(result.buyerStateCode).toBe("27");
+      expect(result.cgst).toBe(0);
+      expect(result.sgst).toBe(0);
+      expect(result.igst).toBe(1800.0);
+      expect(result.isBalanced).toBe(true);
+    });
+
+    it("0% rated line: returns 0.00 for all tax components and isBalanced: true", () => {
+      const result = calculateGstSplit({
+        supplierGstin: "27AAACT2727Q1ZW",
+        buyerGstin: "27AAACA1234F1Z5",
+        totalTax: 0,
+      });
+
+      expect(result.placeOfSupplyType).toBe("INTRA_STATE");
+      expect(result.cgst).toBe(0);
+      expect(result.sgst).toBe(0);
+      expect(result.igst).toBe(0);
+      expect(result.totalTax).toBe(0);
+      expect(result.isBalanced).toBe(true);
+    });
+
+    it("validates organization GSTIN with Modulo-36 check digit and normalizes to uppercase", async () => {
+      const { updateOrganizationSchema } = await import("../organization/validation");
+
+      // Valid GSTIN lowercase input normalizes to uppercase
+      const parsed = updateOrganizationSchema.parse({
+        gstin: "27aaact2727q1zw",
+      });
+      expect(parsed.gstin).toBe("27AAACT2727Q1ZW");
+
+      // Invalid Modulo-36 check digit rejects
+      expect(() =>
+        updateOrganizationSchema.parse({
+          gstin: "27AAACT2727Q1ZZ",
+        })
+      ).toThrow(/Modulo-36 check-digit/i);
+    });
   });
 });

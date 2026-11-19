@@ -36,6 +36,7 @@ export interface DocumentSourceCardProps {
   isUploading?: boolean;
   invoiceNumber?: string | null;
   supplierName?: string | null;
+  supplierGstin?: string | null;
   invoiceDate?: string | null;
   dueDate?: string | null;
   totalAmount?: number | string | null;
@@ -64,6 +65,7 @@ export function DocumentSourceCard({
   isUploading = false,
   invoiceNumber,
   supplierName,
+  supplierGstin,
   invoiceDate,
   dueDate,
   totalAmount,
@@ -261,8 +263,11 @@ export function DocumentSourceCard({
         const qty = Number(l.quantity) || 1;
         const lineAmt = Number(l.lineAmount) || Number(l.unitPrice) * qty;
         const taxAmt =
-          Number(l.taxAmount) ||
-          Math.round((lineAmt - lineAmt / 1.18) * 100) / 100;
+          typeof l.taxAmount === "number"
+            ? l.taxAmount
+            : typeof (l as { taxRate?: number }).taxRate === "number"
+              ? Math.round((lineAmt - lineAmt / (1 + Number((l as { taxRate?: number }).taxRate) / 100)) * 100) / 100
+              : 0;
         const taxableAmt = Math.round((lineAmt - taxAmt) * 100) / 100;
         const unitRate = Math.round((taxableAmt / qty) * 100) / 100;
 
@@ -294,10 +299,10 @@ export function DocumentSourceCard({
     return [];
   }, [lines, safeCurrency]);
 
-  // Taxable subtotal & GST breakdown
+  // Taxable subtotal & GST breakdown (T-205: stop fabricating 1.18)
   const subtotal = useMemo(() => {
     const sumTaxable = lineItems.reduce(
-      (acc, it) => acc + (it.taxableAmount ?? it.lineAmount / 1.18),
+      (acc, it) => acc + (it.taxableAmount ?? it.lineAmount),
       0,
     );
     return Math.round(sumTaxable * 100) / 100;
@@ -307,8 +312,12 @@ export function DocumentSourceCard({
     return Math.round((totalAmountNum - subtotal) * 100) / 100;
   }, [totalAmountNum, subtotal]);
 
-  const cgstAmount = Math.round((taxAmount / 2) * 100) / 100;
-  const sgstAmount = Math.round((taxAmount - cgstAmount) * 100) / 100;
+  const supplierState = (supplierGstin || "").trim().slice(0, 2);
+  const isInterState = supplierState.length === 2 && supplierState !== "27"; // Org base state 27 (MH)
+
+  const cgstAmount = isInterState ? 0 : Math.floor((taxAmount / 2) * 100) / 100;
+  const sgstAmount = isInterState ? 0 : Math.round((taxAmount - cgstAmount) * 100) / 100;
+  const igstAmount = isInterState ? taxAmount : 0;
 
   const computedRawBoxes = useMemo(() => {
     if (rawBoxesMap && Object.keys(rawBoxesMap).length > 0) return rawBoxesMap;
@@ -849,13 +858,14 @@ export function DocumentSourceCard({
                                 </td>
                                 <td className="py-2.5 px-2 text-right text-neutral-700 dark:text-zinc-300">
                                   {formatCurrency(
-                                    item.taxableAmount ??
-                                      item.lineAmount / 1.18,
+                                    item.taxableAmount ?? item.lineAmount,
                                     safeCurrency,
                                   )}
                                 </td>
                                 <td className="py-2.5 px-2 text-right text-neutral-500 dark:text-zinc-400">
-                                  18%
+                                  {typeof (item as { taxRate?: number }).taxRate === "number"
+                                    ? `${(item as { taxRate?: number }).taxRate}%`
+                                    : "—"}
                                 </td>
                                 <td className="py-2.5 pl-2 text-right font-semibold text-neutral-900 dark:text-zinc-100">
                                   {formatCurrency(
@@ -897,21 +907,30 @@ export function DocumentSourceCard({
                         </div>
                       </VoucherAnchor>
 
-                      {/* CGST */}
-                      <div className="flex justify-between text-neutral-500 dark:text-zinc-400 text-micro">
-                        <span>CGST (9.0%):</span>
-                        <span className="font-mono">
-                          {formatCurrency(cgstAmount, safeCurrency)}
-                        </span>
-                      </div>
-
-                      {/* SGST */}
-                      <div className="flex justify-between text-neutral-500 dark:text-zinc-400 text-micro">
-                        <span>SGST (9.0%):</span>
-                        <span className="font-mono">
-                          {formatCurrency(sgstAmount, safeCurrency)}
-                        </span>
-                      </div>
+                      {/* GST Tax Split (T-205) */}
+                      {isInterState ? (
+                        <div className="flex justify-between text-neutral-500 dark:text-zinc-400 text-micro">
+                          <span>Integrated GST (IGST):</span>
+                          <span className="font-mono">
+                            {formatCurrency(igstAmount, safeCurrency)}
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex justify-between text-neutral-500 dark:text-zinc-400 text-micro">
+                            <span>CGST:</span>
+                            <span className="font-mono">
+                              {formatCurrency(cgstAmount, safeCurrency)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-neutral-500 dark:text-zinc-400 text-micro">
+                            <span>SGST:</span>
+                            <span className="font-mono">
+                              {formatCurrency(sgstAmount, safeCurrency)}
+                            </span>
+                          </div>
+                        </>
+                      )}
 
                       {/* Tax Amount Anchor */}
                       <VoucherAnchor

@@ -38,6 +38,7 @@ interface LineItemMatchingTableProps {
   invoiceId?: string;
   invoiceNumber?: string;
   supplierName?: string | null;
+  supplierGstin?: string | null;
   totalAmount?: number | string;
   status: string;
   purchaseOrderId?: string | null;
@@ -55,6 +56,7 @@ interface LineItemMatchingTableProps {
 export function LineItemMatchingTable({
   invoiceId: _invoiceId = "inv",
   supplierName,
+  supplierGstin,
   totalAmount,
   status,
   purchaseOrderId,
@@ -117,7 +119,9 @@ export function LineItemMatchingTable({
         const taxableAmount =
           typeof l.taxableAmount === "number"
             ? l.taxableAmount
-            : Math.round((lineAmount / 1.18) * 100) / 100;
+            : typeof (l as { taxRate?: number }).taxRate === "number"
+              ? Math.round((lineAmount / (1 + Number((l as { taxRate?: number }).taxRate) / 100)) * 100) / 100
+              : lineAmount;
         const taxAmount = Math.round((lineAmount - taxableAmount) * 100) / 100;
 
         return {
@@ -203,10 +207,10 @@ export function LineItemMatchingTable({
     (l) => l.status !== "MATCHED" && !l.overrideAccepted,
   );
 
-  // Subtotal & GST reconciliation
+  // Subtotal & GST reconciliation (T-205: stop fabricating 1.18)
   const subtotalSum = useMemo(() => {
     const sum = lines.reduce(
-      (acc, it) => acc + (it.taxableAmount ?? it.lineAmount / 1.18),
+      (acc, it) => acc + (it.taxableAmount ?? it.lineAmount),
       0,
     );
     return Math.round(sum * 100) / 100;
@@ -217,9 +221,14 @@ export function LineItemMatchingTable({
     return Math.round(sum * 100) / 100;
   }, [lines]);
 
+  // Place of Supply GST Split (T-205)
+  const supplierState = (supplierGstin || "").trim().slice(0, 2);
+  const isInterState = supplierState.length === 2 && supplierState !== "27"; // Org base state 27 (MH)
+
   const taxAmountSum = Math.round((grandTotalSum - subtotalSum) * 100) / 100;
-  const cgstAmountSum = Math.round((taxAmountSum / 2) * 100) / 100;
-  const sgstAmountSum = Math.round((taxAmountSum - cgstAmountSum) * 100) / 100;
+  const cgstAmountSum = isInterState ? 0 : Math.floor((taxAmountSum / 2) * 100) / 100;
+  const sgstAmountSum = isInterState ? 0 : Math.round((taxAmountSum - cgstAmountSum) * 100) / 100;
+  const igstAmountSum = isInterState ? taxAmountSum : 0;
 
   /* ─────────────────────────────────────────────────────────────
    * State 1: PRE-CAPTURE (RECEIVED)
@@ -446,7 +455,7 @@ export function LineItemMatchingTable({
               ) : (
                 lines.map((l) => {
                   const lineTotal = l.lineAmount;
-                  const taxableVal = l.taxableAmount ?? lineTotal / 1.18;
+                  const taxableVal = l.taxableAmount ?? lineTotal;
                   const unitDiff = l.invUnitPrice - l.poUnitPrice;
                   const isVariance =
                     l.status === "PRICE_VARIANCE" ||
@@ -614,20 +623,31 @@ export function LineItemMatchingTable({
                 {formatCurrency(subtotalSum, currency)}
               </span>
             </div>
-            <div className="flex justify-between text-micro text-neutral-500 dark:text-zinc-400">
-              <span>CGST (9.0%):</span>
-              <span className="font-mono">
-                {formatCurrency(cgstAmountSum, currency)}
-              </span>
-            </div>
-            <div className="flex justify-between text-micro text-neutral-500 dark:text-zinc-400">
-              <span>SGST (9.0%):</span>
-              <span className="font-mono">
-                {formatCurrency(sgstAmountSum, currency)}
-              </span>
-            </div>
+            {isInterState ? (
+              <div className="flex justify-between text-micro text-neutral-500 dark:text-zinc-400">
+                <span>Integrated GST (IGST):</span>
+                <span className="font-mono">
+                  {formatCurrency(igstAmountSum, currency)}
+                </span>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between text-micro text-neutral-500 dark:text-zinc-400">
+                  <span>CGST:</span>
+                  <span className="font-mono">
+                    {formatCurrency(cgstAmountSum, currency)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-micro text-neutral-500 dark:text-zinc-400">
+                  <span>SGST:</span>
+                  <span className="font-mono">
+                    {formatCurrency(sgstAmountSum, currency)}
+                  </span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between text-neutral-700 dark:text-zinc-300 font-medium border-t border-neutral-100 dark:border-zinc-800 pt-1">
-              <span>Total GST (18.0%):</span>
+              <span>Total GST:</span>
               <span className="font-mono">
                 {formatCurrency(taxAmountSum, currency)}
               </span>

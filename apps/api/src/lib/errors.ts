@@ -25,6 +25,9 @@ export class ApiError extends Error {
   static conflict(message: string, details?: unknown) {
     return new ApiError(409, "CONFLICT", message, details);
   }
+  static unprocessableEntity(message: string, details?: unknown) {
+    return new ApiError(422, "UNPROCESSABLE_ENTITY", message, details);
+  }
   static tooManyRequests(message = "Too many requests. Please try again later.") {
     return new ApiError(429, "TOO_MANY_REQUESTS", message);
   }

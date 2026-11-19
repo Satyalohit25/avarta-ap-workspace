@@ -4,6 +4,7 @@ import { prisma } from "../../config/database";
 import { runWithSystemJobBypass } from "../../config/tenant-guard";
 import { startWorkflow } from "../../workflow/engine";
 import { processInvoice } from "../invoices/service";
+import { extractInvoiceNumber } from "../../ai/extractor";
 
 export interface EmailAttachment {
   fileName: string;
@@ -107,10 +108,10 @@ export async function processInboundEmail(input: InboundEmailInput): Promise<Inb
     },
   });
 
-  // Extract or generate invoice number from subject
-  const subjectMatch = subject.match(/(?:INVOICE|BILL|INV)\b[#:\s-]*([A-Z0-9-]+)/i);
-  const invoiceNumber = subjectMatch
-    ? subjectMatch[1].toUpperCase()
+  // Extract or generate invoice number from subject (T-208: never extract 'for' from 'Invoice for September')
+  const extractedNum = extractInvoiceNumber(subject);
+  const invoiceNumber = extractedNum
+    ? extractedNum.toUpperCase()
     : `INV-EML-${Date.now().toString().slice(-6)}`;
 
   const invoice = await prisma.invoice.create({

@@ -31,7 +31,9 @@ export async function updateOrganizationSettings(
   const data: Record<string, unknown> = {};
   if (input.name !== undefined) data.name = input.name;
   if (input.legalName !== undefined) data.legalName = input.legalName;
-  if (input.gstin !== undefined) data.gstin = input.gstin;
+  if (input.gstin !== undefined) {
+    data.gstin = input.gstin ? input.gstin.trim().toUpperCase() : null;
+  }
   if (input.country !== undefined) data.country = input.country.toUpperCase();
   if (input.defaultCurrency !== undefined) {
     data.defaultCurrency = input.defaultCurrency.toUpperCase();
